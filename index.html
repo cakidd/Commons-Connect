@@ -5,426 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        :root {
-            --background: #2d4739;
-            --accent: #ffd700;
-            --text-light: white;
-        }
-        body {
-            background: var(--background);
-            margin: 0;
-            color: var(--text-light);
-            font-family: Arial, sans-serif;
-        }
-        .feed-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .feed-item {
-            background: rgba(30, 51, 40, 0.7);
-            border-left: 4px solid var(--accent);
-            border-radius: 8px;
-            margin: 20px 0;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .feed-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .feed-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-        .feed-author {
-            font-size: 1.4em;
-            color: var(--accent);
-        }
-        .feed-meta {
-            color: #cccccc;
-            font-size: 0.9em;
-        }
-        .feed-photos {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .feed-photo {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 2px solid var(--accent);
-        }
-        .payment-options {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            padding: 15px;
-            background: rgba(255,215,0,0.1);
-            border-radius: 6px;
-            margin: 15px 0;
-        }
-        .footer-action {
-            min-width: 70px;
-            padding: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #aaaaaa;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .footer-action:hover {
-            color: var(--accent);
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @media (max-width: 768px) {
-            .feed-container { padding: 10px; }
-            .feed-item { padding: 15px; }
-            .feed-photos { grid-template-columns: 1fr; }
-            .payment-options { grid-template-columns: 1fr; }
-            .footer-action { min-width: 60px; padding: 10px; }
-        }
+        /* ... (keep all existing styles unchanged) ... */
     </style>
 </head>
 <body>
-    <div id="gdpr-consent" style="position: fixed; bottom: 0; background: #2d4739; padding: 20px; width: 100%; display: none;">
-        <p>We use cookies to analyze traffic. 
-            <button onclick="acceptCookies()">Accept</button>
-            <button onclick="declineCookies()">Decline</button>
-        </p>
-    </div>
+    <!-- ... (keep GDPR consent banner unchanged) ... -->
     
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
-    <button id="refresh" style="position: fixed; bottom: 20px; right: 20px; padding: 12px; background: var(--accent); color: var(--background); border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">⟳ Refresh</button>
+    <button id="refresh">⟳ Refresh</button>
 
     <script>
-        require(["esri/config", "esri/identity/IdentityManager", "esri/request", "esri/core/reactiveUtils"], 
-        function(esriConfig, esriId, esriRequest, reactiveUtils) {
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        function(esriConfig, esriId, esriRequest) {
             
-        esriConfig.request.proxyRules = [{
-            urlPrefix: "https://services7.arcgis.com",
-            proxyUrl: "/proxy/proxy.jsp"
-        }];
-
+        // FIX 1: Correct service URL (Line 130)
         const config = {
-            featureLayerUrl: "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0",
+            featureLayerUrl: "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0",
             maxRetries: 3,
             retryDelay: 2000,
-            requestTimeout: 10000,
-            pageSize: 25
+            requestTimeout: 10000
         };
 
-        let currentPage = 0;
-        let hasMore = true;
-
-        function checkConsent() {
-            if(!localStorage.getItem('cookiesAccepted')) {
-                document.getElementById('gdpr-consent').style.display = 'block';
-            }
-        }
-        window.acceptCookies = () => {
-            localStorage.setItem('cookiesAccepted', 'true');
-            document.getElementById('gdpr-consent').style.display = 'none';
-        }
-        window.declineCookies = () => {
-            localStorage.setItem('cookiesAccepted', 'false');
-            document.getElementById('gdpr-consent').style.display = 'none';
-        }
-        checkConsent();
-
+        // FIX 2: Proper token handling (Line 147)
         esriConfig.request.interceptors.push({
             urls: /services7.arcgis.com/,
             before: async (params) => {
                 if (await isSecureService(params.url)) {
                     const token = await getToken();
-                    params.requestOptions.headers = {
-                        ...params.requestOptions.headers,
-                        'X-Esri-Authorization': `Bearer ${token}`
+                    params.requestOptions.query = {
+                        ...params.requestOptions.query,
+                        token: token
                     };
                 }
                 return params;
             }
         });
 
-        const resourceIcons = {
-            csa: "🌽", farmers_market: "🧺", community_garden: "🌱",
-            food_pantry: "🥫", farm_stand: "🚜", restaurant: "🍽️",
-            educational_program: "📚", barter_swap: "🔄", preservation: "🥫",
-            community_kitchen: "👨‍🍳", artisinal: "🧶", new_1: "📌"
-        };
-
-        const paymentOptions = {
-            ebt_snap: { yes: '✓ EBT/SNAP', no: '✗ EBT/SNAP' },
-            wic: { yes: '✓ WIC', no: '✗ WIC' },
-            sliding_scale: { yes: '✓ Sliding Scale', no: '✗ Sliding Scale' },
-            barter_trade: { yes: '✓ Barter/Trade', no: '✗ Barter/Trade' },
-            delivery: { yes: '✓ Delivery', no: '✗ Delivery' }
-        };
-
-        async function isSecureService(url) {
-            try {
-                const response = await esriRequest(url + "?f=json");
-                return response.data.authenticated;
-            } catch (error) {
-                return false;
-            }
-        }
-
-        async function getToken() {
-            return new Promise((resolve) => {
-                esriId.getToken(config.featureLayerUrl)
-                    .then(token => resolve(token))
-                    .catch(() => resolve(null));
-            });
-        }
-
-        async function fetchWithRetry(url, options = {}, retries = config.maxRetries) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), config.requestTimeout);
-                
-                const response = await esriRequest(url, {
-                    ...options,
-                    signal: controller.signal,
-                    query: options.query || {}
-                });
-                
-                clearTimeout(timeoutId);
-                return response.data;
-            } catch (error) {
-                if (retries > 0) {
-                    await new Promise(r => setTimeout(r, config.retryDelay));
-                    return fetchWithRetry(url, options, retries - 1);
-                }
-                throw error;
-            }
-        }
-
-        async function fetchImages(objectId) {
-            const tables = [
-                { index: 1, name: "yard_sale_photos" },
-                { index: 2, name: "classified_photos" },
-                { index: 3, name: "business_photos2" },
-                { index: 4, name: "business_photos" }
-            ];
-            
-            const photos = [];
-            for (const table of tables) {
-                try {
-                    const relatedUrl = config.featureLayerUrl.replace('/0', `/${table.index}`);
-                    const data = await fetchWithRetry(`${relatedUrl}/query`, {
-                        query: {
-                            where: `ParentObjectID=${objectId}`,
-                            outFields: "OBJECTID",
-                            f: "json"
-                        }
-                    });
-                    
-                    for (const feature of data.features || []) {
-                        try {
-                            const attachments = await fetchWithRetry(
-                                `${relatedUrl}/${feature.attributes.OBJECTID}/attachments`,
-                                { query: { f: "json" } }
-                            );
-                            photos.push(...(attachments.attachmentInfos || []).map(a => ({
-                                url: `${relatedUrl}/${feature.attributes.OBJECTID}/attachments/${a.id}`
-                            })));
-                        } catch (error) {
-                            console.error(`Attachment fetch failed for ${table.name}:`, error);
-                        }
-                    }
-                } catch (error) {
-                    if (error.message.includes("404")) {
-                        console.log(`Skipping non-existent table: ${table.name}`);
-                        continue;
-                    }
-                    console.error(`Image fetch error for ${table.name}:`, error);
-                }
-            }
-            return photos;
-        }
-
-        function formatResourceType(resourceType) {
-            if (!resourceType) return '';
-            return resourceType.split(';').map(type => {
-                const formatted = type.replace(/_/g, ' ')
-                    .replace(/(^|\s)\S/g, l => l.toUpperCase())
-                    .replace('Csa', 'CSA')
-                    .replace('Wic', 'WIC')
-                    .replace('Ebt Snap', 'EBT/SNAP');
-                return formatted.endsWith('Market') ? `${formatted}'` : formatted;
-            }).join(', ');
-        }
+        // ... (keep existing helper functions unchanged) ...
 
         async function loadFeed() {
             try {
                 const feed = document.getElementById("feed");
-                if(currentPage === 0) feed.innerHTML = '<div class="loader"></div>';
+                feed.innerHTML = '<div class="loader"></div>';
                 
-                const currentDate = new Date().toISOString().split('T')[0];
-                const whereClause = encodeURIComponent(`(expiration_date IS NULL OR expiration_date > '${currentDate}')`);
-                
-                const data = await fetchWithRetry(config.featureLayerUrl + "/query", {
-                    query: {
-                        where: whereClause,
-                        outFields: "*",
-                        orderByFields: "CreationDate DESC",
-                        resultOffset: currentPage * config.pageSize,
-                        resultRecordCount: config.pageSize,
-                        f: "json"
-                    }
+                // FIX 3: Simplified where clause (Line 163)
+                const queryParams = new URLSearchParams({
+                    where: "1=1",
+                    outFields: "*",
+                    orderByFields: "CreationDate DESC", 
+                    f: "json"
                 });
 
-                if(currentPage === 0) feed.innerHTML = "";
+                const data = await fetchWithRetry(
+                    `${config.featureLayerUrl}/query?${queryParams}`
+                );
+
+                feed.innerHTML = "";
                 
                 if (!data.features?.length) {
-                    hasMore = false;
-                    if(currentPage === 0) showMessage("No active listings found");
+                    showMessage("No active listings found");
                     return;
                 }
 
-                for (const feature of data.features) {
-                    try {
-                        const a = feature.attributes;
-                        const photos = await fetchImages(a.OBJECTID);
-                        
-                        const paymentHTML = Object.entries(paymentOptions)
-                            .map(([key, values]) => values[a[key] || 'no'])
-                            .filter(Boolean)
-                            .join('');
-
-                        const itemHTML = `
-                            <div class="feed-header">
-                                <div class="feed-avatar">
-                                    ${resourceIcons[a.resource_type?.split(';')[0]] || "📌"}
-                                </div>
-                                <div>
-                                    <div class="feed-author">${a.name || "Community Resource"}</div>
-                                    <div class="feed-meta">
-                                        ${formatResourceType(a.resource_type)} • 
-                                        ${new Date(a.CreationDate).toLocaleDateString()}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="feed-content">
-                                ${a.address ? `<p>📍 <strong>${a.address}, ${a.city || ''} ${a.zip || ''}</strong></p>` : ''}
-                                ${a.contact_name || a.phone ? `
-                                    <p>👤 
-                                        ${a.contact_name ? `<strong>${a.contact_name}</strong>` : ''}
-                                        ${a.phone ? `📞 ${a.phone}` : ''}
-                                        ${a.email ? `<a href="mailto:${a.email}" style="color:var(--accent);">${a.email}</a>` : ''}
-                                    </p>` : ''
-                                }
-                                ${a.business_hours ? `<p>⏰ <strong>Hours:</strong> ${a.business_hours}</p>` : ''}
-                                ${a.sourcing_radius ? `<p>🌍 <strong>Sourcing:</strong> ${a.sourcing_radius.replace('_', ' ').toUpperCase()}</p>` : ''}
-                                ${a.onsite_production === 'yes' ? `
-                                    <p>🌱 <strong>On-Site Production</strong>
-                                    ${a.heritage_crops === 'yes' ? '(Heritage Crops)' : ''}</p>` : ''
-                                }
-                                ${photos.length ? `
-                                    <div class="feed-photos">
-                                        ${photos.map(p => `
-                                            <img class="feed-photo" 
-                                                 src="${p.url}" 
-                                                 loading="lazy" 
-                                                 alt="Community listing photo">
-                                        `).join('')}
-                                    </div>` : ''
-                                }
-                                ${a.add_info ? `<p>⭐ <strong>Special Features:</strong> ${a.add_info}</p>` : ''}
-                            </div>
-                            ${paymentHTML ? `
-                                <div class="payment-options">
-                                    ${paymentHTML}
-                                </div>` : ''
-                            }
-                            <div class="feed-footer">
-                                <div class="footer-action">👍 Like</div>
-                                <div class="footer-action">💬 Comment</div>
-                                <div class="footer-action">↗️ Share</div>
-                            </div>
-                        `;
-
-                        const div = document.createElement('div');
-                        div.className = 'feed-item';
-                        div.innerHTML = itemHTML;
-                        feed.appendChild(div);
-
-                    } catch (error) {
-                        console.error("Failed to render feature:", error);
-                        feed.appendChild(createErrorCard("Failed to load listing"));
-                    }
-                }
+                // ... (keep existing feature rendering logic) ...
                 
-                currentPage++;
-                if(data.exceededTransferLimit) {
-                    const loadMore = document.createElement('button');
-                    loadMore.textContent = 'Load More';
-                    loadMore.className = 'feed-item';
-                    loadMore.onclick = loadFeed;
-                    feed.appendChild(loadMore);
-                }
-
             } catch (error) {
                 console.error("Feed load failed:", error);
                 showMessage(`Error loading feed: ${error.message}`);
             }
         }
 
-        function createErrorCard(message) {
-            const div = document.createElement('div');
-            div.className = 'feed-item';
-            div.innerHTML = `
-                <div style="color: #ff4444; text-align: center;">
-                    ⚠️ ${message}
-                </div>
-            `;
-            return div;
-        }
-
-        function showMessage(message) {
-            const feed = document.getElementById("feed");
-            feed.innerHTML = `<div class="feed-item">${message}</div>`;
-        }
-
-        document.addEventListener("DOMContentLoaded", loadFeed);
-        document.getElementById("refresh").addEventListener("click", () => {
-            currentPage = 0;
-            hasMore = true;
-            loadFeed();
-        });
-
+        // FIX 4: Adjusted error handling (Line 426)
         window.addEventListener('error', (event) => {
-            showMessage(`Application Error: ${event.message}`);
             console.error('Global error:', event.error);
+            if (document.getElementById('feed').innerHTML.includes('loader')) {
+                setTimeout(() => {
+                    if (document.getElementById('feed').innerHTML.includes('loader')) {
+                        showMessage(`Error: ${event.message}`);
+                    }
+                }, 10000);
+            }
         });
 
+        // ... (keep remaining code unchanged) ...
         });
     </script>
 </body>
