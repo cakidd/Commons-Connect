@@ -269,13 +269,13 @@
                 const whereClause = `(expiration_date IS NULL OR expiration_date > '${currentDate}')`;
                 
                 const data = await fetchWithRetry(config.featureLayerUrl + "/query", {
-                    query: {
-                        where: whereClause,
-                        outFields: "*",
-                        orderByFields: "CreationDate DESC",
-                        f: "json"
-                    }
-                });
+  query: {
+    where: "1=1", // Explicit where clause
+    outFields: "*",
+    orderByFields: "CreationDate DESC",
+    f: "json"
+  }
+});
 
                 feed.innerHTML = "";
                 if (!data.features?.length) {
