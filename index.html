@@ -58,17 +58,19 @@
             margin: 15px 0;
             line-height: 1.4;
         }
-        .feed-photo {
-            width: 100%;
-            border-radius: 6px;
-            margin-top: 15px;
-            border: 2px solid var(--accent);
-        }
+        /* Added photo grid styles */
         .feed-photos {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 10px;
-            margin-top: 15px;
+            margin: 15px 0;
+        }
+        .feed-photo {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid var(--accent);
         }
         .payment-options {
             display: flex;
@@ -123,7 +125,7 @@
     </div>
     
     <script>
-        // Feature layer URL - CORRECT VERIFIED URL
+        // CORRECT FEATURE LAYER URL (no _form suffix)
         const featureLayerUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
         
         // Resource type icons
@@ -142,72 +144,73 @@
             "new_1": "📌"
         };
         
-        // Function to get photos from related tables for a specific feature
-        async function getPhotos(objectId) {
-            try {
-                // Try to get photos from all related tables (business_photos, etc.)
-                const relatedTables = [1, 2, 3, 4]; // Indices of related tables with photos
-                const photos = [];
-                
-                for (const tableIndex of relatedTables) {
-                    try {
-                        // Build the URL for the related table
-                        const relatedTableUrl = featureLayerUrl.replace(/\/0$/, `/${tableIndex}`);
+        // IMPLEMENTED: Comprehensive photo loading function
+        async function fetchImagesForFeature(objectId) {
+            // Array to store found photo URLs
+            const photoUrls = [];
+            
+            // Define the related tables to check for photos
+            // These are the related tables with image attachments from your schema
+            const relatedTables = [
+                { index: 1, name: "yard_sale_photos" },
+                { index: 2, name: "classified_photos" },
+                { index: 3, name: "business_photos2" },
+                { index: 4, name: "business_photos" }
+            ];
+            
+            // Check each related table for attachments related to this objectId
+            for (const table of relatedTables) {
+                try {
+                    // Step 1: Query the related table for records linked to this objectId
+                    const relatedTableUrl = featureLayerUrl.replace('/0', `/${table.index}`);
+                    const relatedResponse = await fetch(
+                        `${relatedTableUrl}/query?where=ParentObjectID=${objectId}&outFields=OBJECTID&f=json`
+                    );
+                    
+                    if (!relatedResponse.ok) continue;
+                    
+                    const relatedData = await relatedResponse.json();
+                    
+                    // If no related records found, try next table
+                    if (!relatedData.features || relatedData.features.length === 0) continue;
+                    
+                    // Step 2: For each related record, fetch its attachments
+                    for (const feature of relatedData.features) {
+                        const relatedObjectId = feature.attributes.OBJECTID;
                         
-                        // Query for related records
-                        const response = await fetch(
-                            `${relatedTableUrl}/query?where=ParentObjectID=${objectId}&f=json`
+                        // Query for attachments on this related record
+                        const attachmentsResponse = await fetch(
+                            `${relatedTableUrl}/${relatedObjectId}/attachments?f=json`
                         );
                         
-                        if (!response.ok) continue;
+                        if (!attachmentsResponse.ok) continue;
                         
-                        const data = await response.json();
+                        const attachmentsData = await attachmentsResponse.json();
                         
-                        // If features exist in the related table
-                        if (data.features && data.features.length > 0) {
-                            // For each related record, fetch attachments
-                            for (const feature of data.features) {
-                                try {
-                                    const attachmentResponse = await fetch(
-                                        `${relatedTableUrl}/${feature.attributes.OBJECTID}/attachments?f=json`
-                                    );
-                                    
-                                    if (!attachmentResponse.ok) continue;
-                                    
-                                    const attachmentData = await attachmentResponse.json();
-                                    
-                                    // If attachments exist, add them to the photos array
-                                    if (attachmentData.attachmentInfos && attachmentData.attachmentInfos.length > 0) {
-                                        for (const attachment of attachmentData.attachmentInfos) {
-                                            photos.push({
-                                                url: `${relatedTableUrl}/${feature.attributes.OBJECTID}/attachments/${attachment.id}`,
-                                                name: attachment.name
-                                            });
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error(`Error fetching attachments for object ${feature.attributes.OBJECTID}:`, error);
-                                }
+                        // Add each attachment URL to our collection
+                        if (attachmentsData.attachmentInfos && attachmentsData.attachmentInfos.length > 0) {
+                            for (const attachment of attachmentsData.attachmentInfos) {
+                                photoUrls.push({
+                                    url: `${relatedTableUrl}/${relatedObjectId}/attachments/${attachment.id}`,
+                                    name: attachment.name,
+                                    contentType: attachment.contentType
+                                });
                             }
                         }
-                    } catch (error) {
-                        console.error(`Error querying related table ${tableIndex}:`, error);
                     }
+                } catch (error) {
+                    console.error(`Error fetching images from ${table.name}:`, error);
+                    // Continue to next table even if one fails
                 }
-                
-                return photos;
-            } catch (error) {
-                console.error("Error fetching photos:", error);
-                return [];
             }
+            
+            return photoUrls;
         }
         
-        // Function to load feed
+        // Load the feed using your actual Survey123 fields
         async function loadFeed() {
             try {
-                const response = await fetch(
-                    `${featureLayerUrl}/query?where=1=1&outFields=*&orderByFields=CreationDate DESC&f=json`
-                );
+                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=*&orderByFields=CreationDate DESC&f=json`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -230,7 +233,7 @@
                     return;
                 }
                 
-                // Process each feature
+                // Process each feature - now sequentially to handle async image loading
                 for (const feature of data.features) {
                     await processFeature(feature, feed);
                 }
@@ -250,7 +253,7 @@
             }
         }
         
-        // Process a single feature
+        // IMPLEMENTED: Process a single feature with image loading
         async function processFeature(feature, feed) {
             const a = feature.attributes;
             
@@ -282,14 +285,15 @@
             if (a.barter_trade === "yes") paymentMethods.push("✓ Barter/Trade");
             if (a.delivery === "yes") paymentMethods.push("✓ Delivery");
             
-            // Get photos
-            const photos = await getPhotos(a.OBJECTID);
+            // ADDED: Fetch images for this feature
+            const photos = await fetchImagesForFeature(a.OBJECTID);
             
             // Create a new feed item
             const feedItem = document.createElement("div");
             feedItem.className = "feed-item";
             
-            feedItem.innerHTML = `
+            // Build the HTML for this feed item
+            let itemHtml = `
                 <div class="feed-header">
                     <div class="feed-avatar">${resourceIcon}</div>
                     <div>
@@ -299,22 +303,22 @@
                 </div>
                 
                 <div class="feed-content">
-                    ${a.address ? `<p>📍 <strong>Location:</strong> ${a.address}${a.city ? `, ${a.city}` : ""}${a.county ? `, ${a.county} County` : ""}${a.zip ? ` ${a.zip}` : ""}</p>` : ""}
+                    ${a.address ? `<p>📍 <strong>Location:</strong> ${a.address}, ${a.city || ""} ${a.county ? a.county + " County" : ""} ${a.zip || ""}</p>` : ""}
                     ${a.contact_name ? `<p>👤 <strong>Contact:</strong> ${a.contact_name}${a.phone ? " • " + a.phone : ""}${a.email ? " • " + a.email : ""}</p>` : ""}
                     ${a.business_hours ? `<p>⏰ <strong>Hours:</strong> ${a.business_hours}</p>` : ""}
                     ${a.web ? `<p>🌐 <strong>Website:</strong> <a href="${a.web}" style="color:var(--accent);" target="_blank">${a.web}</a></p>` : ""}
                     ${a.add_info ? `<p>ℹ️ <strong>Details:</strong> ${a.add_info}</p>` : ""}
                     ${a.onsite_production === "yes" ? `<p>🌱 <strong>On-site production</strong>${a.heritage_crops === "yes" ? " with heritage crops" : ""}</p>` : ""}
                     
+                    <!-- ADDED: Photo grid display -->
                     ${photos.length > 0 ? `
                         <div class="feed-photos">
                             ${photos.map(photo => `
-                                <img 
-                                    class="feed-photo" 
-                                    src="${photo.url}" 
-                                    alt="${photo.name}" 
-                                    loading="lazy"
-                                    onerror="this.style.display='none'"
+                                <img class="feed-photo" 
+                                     src="${photo.url}" 
+                                     alt="${photo.name}"
+                                     loading="lazy"
+                                     onerror="this.style.display='none'"
                                 />
                             `).join('')}
                         </div>
@@ -334,7 +338,14 @@
                 </div>
             `;
             
+            feedItem.innerHTML = itemHtml;
             feed.appendChild(feedItem);
+        }
+        
+        // REPLACED: Function to load images
+        async function loadImages() {
+            // This function is now handled directly in processFeature
+            // Keeping as empty for backwards compatibility
         }
         
         // Load feed when the page loads
@@ -342,4 +353,3 @@
     </script>
 </body>
 </html>
-
