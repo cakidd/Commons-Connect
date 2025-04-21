@@ -284,20 +284,20 @@
         // Error Handling
         window.addEventListener('error', (e) => {
             const feed = document.getElementById("feed");
-            if(feed.innerHTML.includes('loader')) {
-                setTimeout(() => {
-                    window.addEventListener('error', (e) => {
-    const feed = document.getElementById("feed");
-    if(feed.innerHTML.includes('loader')) {
-        setTimeout(() => {
-            if(feed.innerHTML.includes('loader')) { // Verify still loading
-                feed.innerHTML = `
-                    <div class="feed-item" style="text-align:center">
-                        ⚠️ System Error: ${e.message}<br>
-                        <button onclick="location.reload()" style="margin-top:15px">
-                            Refresh Page
-                        </button>
-                    </div>
+           window.addEventListener('error', function(e) {
+    var feed = document.getElementById("feed");
+    if (feed && typeof feed.innerHTML === "string" && feed.innerHTML.indexOf('loader') !== -1) {
+        setTimeout(function() {
+            if (feed.innerHTML.indexOf('loader') !== -1) {
+                feed.innerHTML = 
+                    '<div class="feed-item" style="text-align:center">' +
+                        '⚠️ System Error: ' + (e && e.message ? e.message : 'Unknown error') + '<br>' +
+                        '<button onclick="location.reload()" style="margin-top:15px">Refresh Page</button>' +
+                    '</div>';
+            }
+        }, 5000);
+    }
+});
                 `;
             }
         }, 5000);
