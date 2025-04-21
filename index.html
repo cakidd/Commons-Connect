@@ -98,6 +98,7 @@
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.15);
             transition: all 0.3s ease;
+            z-index: 1000;
         }
         #refresh:hover {
             transform: translateY(-2px);
@@ -133,11 +134,11 @@
         require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
         (esriConfig, esriId, esriRequest) => {
             
-        // ========== Configuration ==========
+        // Service Configuration
         const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-        const PHOTO_TABLES = [1,2,3,4]; // Survey123 attachment table indexes
+        const PHOTO_TABLES = [1,2,3,4];
 
-        // ========== Authentication ==========
+        // Authentication Setup
         esriConfig.request.interceptors.push({
             urls: /services7.arcgis.com/,
             before: async (params) => {
@@ -145,17 +146,16 @@
                     const token = await esriId.getToken(SERVICE_URL);
                     if(token) params.requestOptions.query = {...params.requestOptions.query, token};
                 } catch(error) {
-                    console.error("Auth Error:", error);
+                    console.error("Authentication Error:", error);
                 }
                 return params;
             }
         });
 
-        // ========== Core Functions ==========
+        // Core Functionality
         async function loadFeed() {
             const feed = document.getElementById("feed");
             try {
-                // Show loader
                 feed.innerHTML = '<div class="loader"></div>';
                 
                 // Fetch features
@@ -168,7 +168,6 @@
                     }
                 }).then(res => res.data);
 
-                // Clear feed
                 feed.innerHTML = '';
                 
                 if(!features?.length) {
@@ -182,13 +181,13 @@
                         const photos = await getPhotos(attributes.OBJECTID);
                         feed.appendChild(createCard(attributes, photos));
                     } catch(error) {
-                        console.error("Error processing feature:", error);
+                        console.error("Feature Error:", error);
                     }
                 }
             } catch(error) {
                 console.error("Feed Error:", error);
                 feed.innerHTML = `
-                    <div class="feed-item" style="color:#ff4444; text-align:center">
+                    <div class="feed-item" style="text-align:center;color:#ff4444">
                         🔄 Error loading feed<br>
                         <button onclick="location.reload()" style="margin-top:10px">Retry Now</button>
                     </div>
@@ -228,7 +227,7 @@
             const card = document.createElement('div');
             card.className = 'feed-item';
             
-            // Header Section
+            // Header
             card.innerHTML = `
                 <div class="feed-header">
                     <div class="feed-avatar">${getIcon(attributes.resource_type)}</div>
@@ -242,33 +241,28 @@
                 </div>
             `;
 
-            // Photo Gallery
+            // Photos
             if(photos.length) {
                 const gallery = document.createElement('div');
                 gallery.className = 'feed-photos';
                 photos.forEach(url => {
-                    gallery.innerHTML += `
-                        <img class="feed-photo" 
-                             src="${url}" 
-                             loading="lazy" 
-                             alt="Community listing photo">
-                    `;
+                    gallery.innerHTML += `<img class="feed-photo" src="${url}" loading="lazy" alt="Listing photo">`;
                 });
                 card.appendChild(gallery);
             }
 
             // Payment Options
-            const paymentDiv = document.createElement('div');
-            paymentDiv.className = 'payment-options';
+            const payments = document.createElement('div');
+            payments.className = 'payment-options';
             ['ebt_snap', 'wic', 'barter_trade'].forEach(field => {
-                paymentDiv.innerHTML += `
+                payments.innerHTML += `
                     <div class="payment-option">
                         ${attributes[field] === 'yes' ? '✅' : '❌'}
                         ${field.replace('_', ' ').toUpperCase()}
                     </div>
                 `;
             });
-            card.appendChild(paymentDiv);
+            card.appendChild(payments);
 
             return card;
         }
@@ -280,14 +274,14 @@
             return '📌';
         }
 
-        // ========== Initialization ==========
+        // Initialization
         document.addEventListener("DOMContentLoaded", loadFeed);
         document.getElementById("refresh").addEventListener("click", () => {
             document.getElementById("feed").innerHTML = '<div class="loader"></div>';
             loadFeed();
         });
 
-        // ========== Error Handling ==========
+        // Error Handling
         window.addEventListener('error', (e) => {
             const feed = document.getElementById("feed");
             if(feed.innerHTML.includes('loader')) {
