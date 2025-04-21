@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
-            --background: #2d4739;
-            --accent: #ffd700;
+            --background: #2d4739; /* Dark Green */
+            --accent: #ffd700; /* Gold */
             --text-light: white;
             --font-body: 'Helvetica Neue', Arial, sans-serif;
         }
@@ -36,12 +36,6 @@
             border-bottom: 1px solid var(--accent);
             padding-bottom: 10px;
         }
-        .card-section {
-            margin: 15px 0;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 4px;
-        }
         .icon-label {
             display: flex;
             align-items: center;
@@ -54,13 +48,8 @@
             gap: 12px;
             margin: 15px 0;
         }
-        .payment-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
         @media (max-width: 768px) {
-            .resource-card { padding: 15px; margin: 15px 0; }
+            .resource-card { padding: 15px; }
             .card-title { font-size: 1.3rem; }
             .payment-grid { grid-template-columns: 1fr; }
         }
@@ -69,10 +58,9 @@
 <body>
     <div class="feed-container" id="feed"></div>
     <script>
-        // Configuration
-        const featureLayerUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea_form/FeatureServer/0";
+        // CORRECTED CONFIGURATION
+        const featureLayerUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
         
-        // Data Mappings from Choice Lists
         const resourceTypeMap = {
             csa: "CSA Program",
             farmers_market: "Farmers' Market",
@@ -86,24 +74,20 @@
             community_kitchen: "Community Kitchen"
         };
 
-        const paymentMap = {
-            ebt_snap: "EBT/SNAP",
-            wic: "WIC",
-            sliding_scale: "Sliding Scale",
-            barter_trade: "Barter/Trade",
-            delivery: "Delivery"
-        };
-
         async function loadFeed() {
             try {
-                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=name,city,county,resource_type,business_hours,ebt_snap,wis,sliding_scale,barter_trade,delivery,onsite_production,heritage_crops,web,phone,add_info,CreationDate&orderByFields=CreationDate DESC&f=json`);
+                // VERIFIED FIELD LIST
+                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=name,city,county,resource_type,business_hours,ebt_snap,wic,sliding_scale,barter_trade,delivery,onsite_production,heritage_crops,web,phone,add_info,CreationDate&orderByFields=CreationDate DESC&f=json`);
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                
                 const data = await response.json();
                 const feed = document.getElementById("feed");
                 feed.innerHTML = "";
 
                 data.features.forEach(feature => {
                     const a = feature.attributes;
-                    if (!validateEntry(a)) return;
+                    if (!a.name || !a.resource_type) return; // Essential fields only
 
                     const card = document.createElement("div");
                     card.className = "resource-card";
@@ -111,53 +95,45 @@
                     card.innerHTML = `
                         <h2 class="card-title">${a.name}</h2>
                         
-                        <div class="card-section">
-                            <div class="icon-label">
-                                <span>📍</span>
-                                <div>${a.city}, ${a.county}</div>
-                            </div>
-                            ${a.web ? `<div class="icon-label"><span>🌐</span><a href="${a.web}" style="color:var(--accent)">${a.web}</a></div>` : ''}
-                            ${a.phone ? `<div class="icon-label"><span>📞</span>${a.phone}</div>` : ''}
+                        <div class="icon-label">
+                            <span>📍</span>
+                            <div>${[a.city, a.county].filter(Boolean).join(', ') || 'Location not specified'}</div>
                         </div>
 
-                        <div class="card-section">
-                            <div class="icon-label">
-                                <span>🛒</span>
-                                <div><strong>${parseResourceType(a.resource_type)}</strong></div>
-                            </div>
-                            ${a.business_hours ? `<div class="icon-label"><span>⏰</span>${a.business_hours}</div>` : ''}
+                        ${a.web ? `<div class="icon-label"><span>🌐</span><a href="${a.web}" style="color:var(--accent)">${a.web}</a></div>` : ''}
+                        ${a.phone ? `<div class="icon-label"><span>📞</span>${a.phone}</div>` : ''}
+
+                        <div class="icon-label" style="margin-top:20px;">
+                            <span>🛒</span>
+                            <div><strong>${a.resource_type.split(';').map(r => resourceTypeMap[r] || r).join(' + ')}</strong></div>
                         </div>
 
-                        <div class="card-section">
-                            <div class="payment-grid">
-                                ${Object.entries(paymentMap).map(([field, label]) => `
-                                    <div class="payment-item">
-                                        <span style="color:${a[field] === 'yes' ? 'var(--accent)' : 'white'}">
-                                            ${a[field] === 'yes' ? '✓' : '✗'}
-                                        </span>
-                                        ${label}
-                                    </div>
-                                `).join('')}
-                            </div>
+                        ${a.business_hours ? `<div class="icon-label"><span>⏰</span>${a.business_hours}</div>` : ''}
+
+                        <div class="payment-grid" style="margin-top:20px;">
+                            ${['ebt_snap', 'wic', 'sliding_scale', 'barter_trade', 'delivery'].map(field => `
+                                <div class="icon-label">
+                                    <span style="color:${a[field] === 'yes' ? 'var(--accent)' : 'white'}">
+                                        ${a[field] === 'yes' ? '✓' : '✗'}
+                                    </span>
+                                    ${field.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                            `).join('')}
                         </div>
 
                         ${a.onsite_production === 'yes' ? `
-                        <div class="card-section">
-                            <div class="icon-label">
-                                <span>🌱</span>
-                                <div>On-Site Production ${a.heritage_crops === 'yes' ? '(Heritage Crops)' : ''}</div>
-                            </div>
+                        <div class="icon-label" style="margin-top:15px;">
+                            <span>🌱</span>
+                            <div>On-Site Production ${a.heritage_crops === 'yes' ? '(Heritage Crops)' : ''}</div>
                         </div>` : ''}
 
                         ${a.add_info ? `
-                        <div class="card-section">
-                            <div class="icon-label">
-                                <span>⭐</span>
-                                <div>${a.add_info}</div>
-                            </div>
+                        <div class="icon-label" style="margin-top:15px;">
+                            <span>⭐</span>
+                            <div>${a.add_info}</div>
                         </div>` : ''}
 
-                        <div style="margin-top:15px; color:var(--accent); font-size:0.9em;">
+                        <div style="margin-top:20px; color:var(--accent); font-size:0.9em;">
                             Listed: ${new Date(a.CreationDate).toLocaleDateString()}
                         </div>
                     `;
@@ -165,17 +141,21 @@
                     feed.appendChild(card);
                 });
             } catch (error) {
-                console.error("Error loading feed:", error);
-                feed.innerHTML = `<div class="resource-card" style="color:var(--accent)">⚠️ Error loading resource data. Please try again later.</div>`;
+                console.error("Error Diagnostics:", {
+                    message: error.message,
+                    url: featureLayerUrl,
+                    timestamp: new Date().toISOString()
+                });
+                document.getElementById("feed").innerHTML = `
+                    <div class="resource-card">
+                        <h2 class="card-title">⚠️ Service Notice</h2>
+                        <div class="icon-label">
+                            <span>🔧</span>
+                            <div>We're experiencing technical difficulties. Please refresh or check back later.<br><em>Error: ${error.message}</em></div>
+                        </div>
+                    </div>
+                `;
             }
-        }
-
-        function validateEntry(attributes) {
-            return attributes.name && attributes.city && attributes.county && attributes.resource_type;
-        }
-
-        function parseResourceType(resourceString) {
-            return resourceString.split(';').map(r => resourceTypeMap[r] || r).join(' + ');
         }
 
         loadFeed();
