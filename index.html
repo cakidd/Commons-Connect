@@ -1,129 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Community Hub</title>
+    <title>Appalachian Foodways Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        :root {
-            --background: #2d4739; /* Dark Green */
-            --accent: #ffd700; /* Gold */
-            --text-light: white;
-        }
-        body {
-            background: var(--background);
-            margin: 0;
-            color: var(--text-light);
-            font-family: Arial, sans-serif;
-        }
-        .feed-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .resource-card {
-            background: #1e3328;
-            border-left: 4px solid var(--accent);
-            border-radius: 8px;
-            margin: 20px 0;
-            padding: 25px;
-        }
-        .card-header {
-            color: var(--accent);
-            border-bottom: 1px solid var(--accent);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .icon-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 10px 0;
-        }
+        :root { --background: #2d4739; --accent: #ffd700; --text-light: white; }
+        body { background: var(--background); margin: 0; color: var(--text-light); font-family: Arial; }
+        .feed-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .resource-card { background: #1e3328; border-left: 4px solid var(--accent); border-radius: 8px; margin: 20px 0; padding: 25px; }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed"></div>
     <script>
-        // 1. CORRECT FEATURE LAYER URL (No "_form")
-        const featureLayerUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+        // Use CORS proxy for testing (remove later)
+        const featureLayerUrl = "https://cors-anywhere.herokuapp.com/https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
 
-        // 2. VERIFIED FIELD NAMES FROM SURVEY
         async function loadFeed() {
             try {
-                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=name,resource_type,city,county,business_hours,ebt_snap,wic,sliding_scale,barter_trade,delivery,add_info,CreationDate&f=json`);
-                
-                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-                
+                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=name,resource_type,city,county&f=json`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                const feed = document.getElementById("feed");
                 
-                feed.innerHTML = data.features.map(feature => {
-                    const a = feature.attributes;
-                    return `
-                        <div class="resource-card">
-                            <h2 class="card-header">${a.name || "Untitled Listing"}</h2>
-                            
-                            ${a.city ? `
-                            <div class="icon-row">
-                                <span>📍</span>
-                                <div>${a.city}${a.county ? `, ${a.county}` : ''}</div>
-                            </div>` : ''}
-                            
-                            ${a.resource_type ? `
-                            <div class="icon-row">
-                                <span>🛒</span>
-                                <div>${a.resource_type.replace(/;/g, ', ')}</div>
-                            </div>` : ''}
-                            
-                            ${a.business_hours ? `
-                            <div class="icon-row">
-                                <span>⏰</span>
-                                <div>${a.business_hours}</div>
-                            </div>` : ''}
-                            
-                            <div class="icon-row">
-                                ${['ebt_snap', 'wic'].map(field => 
-                                    `<span style="color:${a[field] === 'yes' ? 'var(--accent)' : 'white'}">
-                                        ${a[field] === 'yes' ? '✓' : '✗'} ${field.toUpperCase()}
-                                    </span>`
-                                ).join(' ')}
-                            </div>
-                            
-                            ${a.add_info ? `
-                            <div class="icon-row">
-                                <span>⭐</span>
-                                <div>${a.add_info}</div>
-                            </div>` : ''}
-                            
-                            <div style="color:var(--accent); margin-top:15px;">
-                                Listed: ${new Date(a.CreationDate).toLocaleDateString()}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                document.getElementById("feed").innerHTML = data.features.map(f => `
+                    <div class="resource-card">
+                        <h2 style="color:var(--accent)">${f.attributes.name}</h2>
+                        <div>📍 ${f.attributes.city}, ${f.attributes.county}</div>
+                        <div>🛒 ${f.attributes.resource_type}</div>
+                    </div>
+                `).join('');
                 
             } catch (error) {
-                console.error("Debug Info:", {
-                    error: error.message,
-                    featureLayer: featureLayerUrl,
-                    timestamp: new Date().toISOString()
-                });
                 document.getElementById("feed").innerHTML = `
                     <div class="resource-card">
-                        <h2 class="card-header">⚠️ Data Load Issue</h2>
-                        <div class="icon-row">
-                            <span>🔧</span>
-                            <div>Technical issue detected. Please ensure:<br>
-                                1. Feature layer is shared publicly<br>
-                                2. Field names match your Survey123 form<br>
-                                <em>Error: ${error.message}</em>
-                            </div>
-                        </div>
+                        <h2 style="color:var(--accent)">⚠️ Error</h2>
+                        <div>${error.message}<br>Feature Layer: ${featureLayerUrl}</div>
                     </div>
                 `;
+                console.error("Full Error:", error);
             }
         }
-
         loadFeed();
     </script>
 </body>
