@@ -3,9 +3,8 @@
 <head>
     <title>The Commons Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://js.arcgis.com/4.25/"></script>
+    <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        /* Full CSS Implementation */
         :root {
             --background: #2d4739;
             --accent: #ffd700;
@@ -112,19 +111,26 @@
     </style>
 </head>
 <body>
+    <div id="gdpr-consent" style="position: fixed; bottom: 0; background: #2d4739; padding: 20px; width: 100%; display: none;">
+        <p>We use cookies to analyze traffic. 
+            <button onclick="acceptCookies()">Accept</button>
+            <button onclick="declineCookies()">Decline</button>
+        </p>
+    </div>
+    
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
     <button id="refresh" style="position: fixed; bottom: 20px; right: 20px; padding: 12px; background: var(--accent); color: var(--background); border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">⟳ Refresh</button>
 
     <script>
-        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
-        function(esriConfig, esriId, esriRequest) {
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request", "esri/core/reactiveUtils"], 
+        function(esriConfig, esriId, esriRequest, reactiveUtils) {
             
         // CORS Proxy Configuration
         esriConfig.request.proxyRules = [{
             urlPrefix: "https://services7.arcgis.com",
-            proxyUrl: "/proxy/"
+            proxyUrl: "/proxy/proxy.jsp"
         }];
 
         const config = {
@@ -133,6 +139,22 @@
             retryDelay: 2000,
             requestTimeout: 10000
         };
+
+        // GDPR Consent Management
+        function checkConsent() {
+            if(!localStorage.getItem('cookiesAccepted')) {
+                document.getElementById('gdpr-consent').style.display = 'block';
+            }
+        }
+        window.acceptCookies = () => {
+            localStorage.setItem('cookiesAccepted', 'true');
+            document.getElementById('gdpr-consent').style.display = 'none';
+        }
+        window.declineCookies = () => {
+            localStorage.setItem('cookiesAccepted', 'false');
+            document.getElementById('gdpr-consent').style.display = 'none';
+        }
+        checkConsent();
 
         // Authentication Interceptor
         esriConfig.request.interceptors.push({
@@ -164,7 +186,6 @@
             delivery: { yes: '✓ Delivery', no: '✗ Delivery' }
         };
 
-        // Core Functions
         async function isSecureService(url) {
             try {
                 const response = await esriRequest(url + "?f=json");
@@ -266,16 +287,16 @@
                 feed.innerHTML = '<div class="loader"></div>';
                 
                 const currentDate = new Date().toISOString().split('T')[0];
-                const whereClause = `(expiration_date IS NULL OR expiration_date > '${currentDate}')`;
+                const whereClause = encodeURIComponent(`(expiration_date IS NULL OR expiration_date > '${currentDate}')`);
                 
                 const data = await fetchWithRetry(config.featureLayerUrl + "/query", {
-  query: {
-    where: "1=1", // Explicit where clause
-    outFields: "*",
-    orderByFields: "CreationDate DESC",
-    f: "json"
-  }
-});
+                    query: {
+                        where: whereClause,
+                        outFields: "*",
+                        orderByFields: "CreationDate DESC",
+                        f: "json"
+                    }
+                });
 
                 feed.innerHTML = "";
                 if (!data.features?.length) {
@@ -377,7 +398,6 @@
             feed.innerHTML = `<div class="feed-item">${message}</div>`;
         }
 
-        // Event Listeners
         document.addEventListener("DOMContentLoaded", loadFeed);
         document.getElementById("refresh").addEventListener("click", loadFeed);
 
@@ -385,4 +405,3 @@
     </script>
 </body>
 </html>
-
