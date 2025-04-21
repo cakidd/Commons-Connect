@@ -127,7 +127,6 @@
         require(["esri/config", "esri/identity/IdentityManager", "esri/request", "esri/core/reactiveUtils"], 
         function(esriConfig, esriId, esriRequest, reactiveUtils) {
             
-        // CORS Proxy Configuration
         esriConfig.request.proxyRules = [{
             urlPrefix: "https://services7.arcgis.com",
             proxyUrl: "/proxy/proxy.jsp"
@@ -144,7 +143,6 @@
         let currentPage = 0;
         let hasMore = true;
 
-        // GDPR Consent Management
         function checkConsent() {
             if(!localStorage.getItem('cookiesAccepted')) {
                 document.getElementById('gdpr-consent').style.display = 'block';
@@ -160,7 +158,6 @@
         }
         checkConsent();
 
-        // Authentication Interceptor
         esriConfig.request.interceptors.push({
             urls: /services7.arcgis.com/,
             before: async (params) => {
@@ -423,7 +420,6 @@
             loadFeed();
         });
 
-        // Global error handling
         window.addEventListener('error', (event) => {
             showMessage(`Application Error: ${event.message}`);
             console.error('Global error:', event.error);
