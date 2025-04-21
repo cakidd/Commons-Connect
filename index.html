@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Community Newsfeed</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Community Feed - The Commons</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
         :root {
@@ -94,21 +94,40 @@
     <button id="refresh">⟳ Refresh</button>
 
     <script>
-        require(["esri/config", "esri/request"], 
-        (esriConfig, esriRequest) => {
-
-        // Configuration
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        (esriConfig, esriId, esriRequest) => {
+            
+        // Service Configuration
         const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
         const PHOTO_TABLES = [1,2,3,4];
 
-        // Core functionality
+        // Authentication Handler
+        esriConfig.request.interceptors.push({
+            urls: /services7.arcgis.com/,
+            before: async (params) => {
+                try {
+                    const token = await esriId.getToken(SERVICE_URL);
+                    if(token) {
+                        params.requestOptions.query = {
+                            ...params.requestOptions.query,
+                            token: token
+                        };
+                    }
+                } catch(error) {
+                    console.error("Authentication Error:", error);
+                }
+                return params;
+            }
+        });
+
+        // Core Functionality
         async function loadFeed() {
             const feed = document.getElementById("feed");
             try {
                 feed.innerHTML = '<div class="loader"></div>';
                 
-                // Fetch main features
-                const { data } = await esriRequest(`${SERVICE_URL}/query`, {
+                // Fetch features
+                const response = await esriRequest(`${SERVICE_URL}/query`, {
                     query: {
                         where: "1=1",
                         outFields: "*",
@@ -116,8 +135,8 @@
                         f: "json"
                     }
                 });
-
-                if (!data.features?.length) {
+                
+                if(!response.data.features?.length) {
                     feed.innerHTML = '<div class="feed-item">🌟 No current listings</div>';
                     return;
                 }
@@ -125,86 +144,101 @@
                 feed.innerHTML = '';
                 
                 // Process features
-                const cards = await Promise.all(data.features.map(async (feature) => {
-                    const card = document.createElement('div');
-                    card.className = 'feed-item';
-                    
-                    // Header
-                    card.innerHTML = `
-                        <div class="feed-header">
-                            <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '📌'}</div>
-                            <div>
-                                <div class="feed-author">${feature.attributes.name || 'Community Post'}</div>
-                                <div>${feature.attributes.description || ''}</div>
-                            </div>
-                        </div>
-                    `;
-
-                    // Add images
-                    const photos = await getPhotos(feature.attributes.OBJECTID);
-                    if (photos.length) {
-                        const gallery = document.createElement('div');
-                        gallery.className = 'feed-photos';
-                        photos.forEach(url => {
-                            gallery.innerHTML += `<img class="feed-photo" src="${url}" loading="lazy">`;
-                        });
-                        card.appendChild(gallery);
+                for(const feature of response.data.features) {
+                    try {
+                        const photos = await getPhotos(feature.attributes.OBJECTID);
+                        const card = createCard(feature.attributes, photos);
+                        feed.appendChild(card);
+                    } catch(error) {
+                        console.error("Feature Error:", error);
                     }
-
-                    return card;
-                }));
-
-                cards.forEach(card => feed.appendChild(card));
-
-            } catch (error) {
-                feed.innerHTML = `
-                    <div class="feed-item" style="color:#ff4444">
-                        Error: ${error.message}<br>
-                        <button onclick="location.reload()">Retry</button>
-                    </div>
-                `;
+                }
+            } catch(error) {
+                handleError(error);
             }
         }
 
         async function getPhotos(objectId) {
-            try {
-                const photoRequests = PHOTO_TABLES.map(tableId => 
-                    esriRequest(`${SERVICE_URL.replace('/0', `/${tableId}`)}/query`, {
+            const photos = [];
+            for(const tableId of PHOTO_TABLES) {
+                try {
+                    const tableUrl = SERVICE_URL.replace('/0', `/${tableId}`);
+                    const query = await esriRequest(`${tableUrl}/query`, {
                         query: {
                             where: `ParentObjectID=${objectId}`,
                             outFields: "OBJECTID",
                             f: "json"
                         }
-                    })
-                );
-
-                const responses = await Promise.all(photoRequests);
-                
-                const photos = [];
-                for (const [index, response] of responses.entries()) {
-                    const features = response.data.features || [];
-                    for (const feature of features) {
+                    });
+                    
+                    for(const feature of query.data.features) {
                         const attachments = await esriRequest(
-                            `${SERVICE_URL.replace('/0', `/${PHOTO_TABLES[index]}`)}/${feature.attributes.OBJECTID}/attachments?f=json`
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments?f=json`
                         );
                         photos.push(...attachments.data.attachmentInfos.map(a => 
-                            `${SERVICE_URL.replace('/0', `/${PHOTO_TABLES[index]}`)}/${feature.attributes.OBJECTID}/attachments/${a.id}`
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments/${a.id}`
                         ));
                     }
+                } catch(error) {
+                    console.log(`Skipped table ${tableId}: ${error.message}`);
                 }
-                return photos;
-
-            } catch (error) {
-                console.error("Photo load error:", error);
-                return [];
             }
+            return photos;
         }
 
-        // Event handlers
+        function createCard(attributes, photos) {
+            const card = document.createElement('div');
+            card.className = 'feed-item';
+            card.innerHTML = `
+                <div class="feed-header">
+                    <div class="feed-avatar">${attributes.name?.charAt(0) || '📌'}</div>
+                    <div>
+                        <div class="feed-author">${attributes.name || 'Community Resource'}</div>
+                        <div class="feed-meta">
+                            ${new Date(attributes.CreationDate).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+                ${photos.length ? `
+                <div class="feed-photos">
+                    ${photos.map(url => `<img class="feed-photo" src="${url}" loading="lazy">`).join('')}
+                </div>` : ''}
+            `;
+            return card;
+        }
+
+        function handleError(error) {
+            const feed = document.getElementById("feed");
+            feed.innerHTML = `
+                <div class="feed-item" style="color:#ff4444">
+                    ${error.message}<br>
+                    <button onclick="location.reload()">Retry</button>
+                </div>
+            `;
+        }
+
+        // Initialization
         document.addEventListener("DOMContentLoaded", loadFeed);
         document.getElementById("refresh").addEventListener("click", () => {
             document.getElementById("feed").innerHTML = '<div class="loader"></div>';
             loadFeed();
+        });
+
+        // Global Error Handling
+        window.addEventListener('error', (e) => {
+            const feed = document.getElementById("feed");
+            if(feed.innerHTML.includes('loader')) {
+                setTimeout(() => {
+                    if(feed.innerHTML.includes('loader')) {
+                        feed.innerHTML = `
+                            <div class="feed-item" style="text-align:center">
+                                ⚠️ System Error: ${e.message}<br>
+                                <button onclick="location.reload()">Refresh Page</button>
+                            </div>
+                        `;
+                    }
+                }, 5000);
+            }
         });
 
         });
