@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Feed</title>
+    <title>Community Feed - The Commons</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
@@ -137,8 +137,12 @@
             featureLayerUrl: "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0",
             maxRetries: 3,
             retryDelay: 2000,
-            requestTimeout: 10000
+            requestTimeout: 10000,
+            pageSize: 25
         };
+
+        let currentPage = 0;
+        let hasMore = true;
 
         // GDPR Consent Management
         function checkConsent() {
@@ -162,9 +166,9 @@
             before: async (params) => {
                 if (await isSecureService(params.url)) {
                     const token = await getToken();
-                    params.requestOptions.query = {
-                        ...params.requestOptions.query,
-                        token: token
+                    params.requestOptions.headers = {
+                        ...params.requestOptions.headers,
+                        'X-Esri-Authorization': `Bearer ${token}`
                     };
                 }
                 return params;
@@ -284,7 +288,7 @@
         async function loadFeed() {
             try {
                 const feed = document.getElementById("feed");
-                feed.innerHTML = '<div class="loader"></div>';
+                if(currentPage === 0) feed.innerHTML = '<div class="loader"></div>';
                 
                 const currentDate = new Date().toISOString().split('T')[0];
                 const whereClause = encodeURIComponent(`(expiration_date IS NULL OR expiration_date > '${currentDate}')`);
@@ -294,13 +298,17 @@
                         where: whereClause,
                         outFields: "*",
                         orderByFields: "CreationDate DESC",
+                        resultOffset: currentPage * config.pageSize,
+                        resultRecordCount: config.pageSize,
                         f: "json"
                     }
                 });
 
-                feed.innerHTML = "";
+                if(currentPage === 0) feed.innerHTML = "";
+                
                 if (!data.features?.length) {
-                    showMessage("No active listings found");
+                    hasMore = false;
+                    if(currentPage === 0) showMessage("No active listings found");
                     return;
                 }
 
@@ -376,6 +384,16 @@
                         feed.appendChild(createErrorCard("Failed to load listing"));
                     }
                 }
+                
+                currentPage++;
+                if(data.exceededTransferLimit) {
+                    const loadMore = document.createElement('button');
+                    loadMore.textContent = 'Load More';
+                    loadMore.className = 'feed-item';
+                    loadMore.onclick = loadFeed;
+                    feed.appendChild(loadMore);
+                }
+
             } catch (error) {
                 console.error("Feed load failed:", error);
                 showMessage(`Error loading feed: ${error.message}`);
@@ -399,7 +417,17 @@
         }
 
         document.addEventListener("DOMContentLoaded", loadFeed);
-        document.getElementById("refresh").addEventListener("click", loadFeed);
+        document.getElementById("refresh").addEventListener("click", () => {
+            currentPage = 0;
+            hasMore = true;
+            loadFeed();
+        });
+
+        // Global error handling
+        window.addEventListener('error', (event) => {
+            showMessage(`Application Error: ${event.message}`);
+            console.error('Global error:', event.error);
+        });
 
         });
     </script>
