@@ -286,14 +286,16 @@
             const feed = document.getElementById("feed");
             if(feed.innerHTML.includes('loader')) {
                 setTimeout(() => {
-                    feed.innerHTML = `
-                        <div class="feed-item" style="text-align:center">
-                            ⚠️ System Error: ${e.message}<br>
-                            <button onclick="location.reload()" style="margin-top:15px">
-                                Refresh Page
-                            </button>
-                        </div>
-                    `;
+                    if(feed.innerHTML.includes('loader')) {
+                        feed.innerHTML = `
+                            <div class="feed-item" style="text-align:center">
+                                ⚠️ System Error: ${e.message}<br>
+                                <button onclick="location.reload()" style="margin-top:15px">
+                                    Refresh Page
+                                </button>
+                            </div>
+                        `;
+                    }
                 }, 5000);
             }
         });
