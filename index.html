@@ -1,136 +1,181 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Feed</title>
+    <title>Appalachian Foodways Resource Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
-            --primary-color: #2c4f90;  /* Your Hub's primary color */
-            --secondary-color: #4a6da7; 
-            --background-color: #f8f9fa;
-            --text-color: #333;
+            --background: #2d4739;
+            --accent: #ffd700;
+            --text-light: white;
+            --font-body: 'Helvetica Neue', Arial, sans-serif;
         }
         body {
-            background: var(--background-color);
+            background: var(--background);
             margin: 0;
-            color: var(--text-color);
+            color: var(--text-light);
+            font-family: var(--font-body);
         }
         .feed-container {
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
         }
-        .feed-item {
-            background: white;
+        .resource-card {
+            background: #1e3328;
+            border-left: 4px solid var(--accent);
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            padding: 20px;
+            margin: 20px 0;
+            padding: 25px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
         }
-        .feed-header {
+        .card-title {
+            color: var(--accent);
+            font-size: 1.5rem;
+            margin: 0 0 15px 0;
+            border-bottom: 1px solid var(--accent);
+            padding-bottom: 10px;
+        }
+        .card-section {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+        .icon-label {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            gap: 8px;
+            margin: 8px 0;
         }
-        .feed-type {
-            font-size: 1.5em;
-            margin-right: 10px;
-        }
-        .feed-title {
-            font-size: 1.2em;
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-        .feed-details {
-            margin: 15px 0;
-            line-height: 1.6;
-        }
-        .feed-photo-grid {
+        .payment-grid {
             display: grid;
-            grid-gap: 10px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
         }
-        .feed-photo {
-            width: 100%;
-            border-radius: 6px;
-            border: 1px solid #ddd;
+        .payment-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .hub-consistent-button {
-            background: var(--primary-color);
-            color: white !important;
-            padding: 8px 20px;
-            border-radius: 20px;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
+        @media (max-width: 768px) {
+            .resource-card { padding: 15px; margin: 15px 0; }
+            .card-title { font-size: 1.3rem; }
+            .payment-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed"></div>
     <script>
-        const featureLayerUrl = "YOUR_FEATURE_LAYER_URL";
-
-        // Emoji mapping based on entry type (adjust field name as needed)
-        const typeEmojis = {
-            "business": "🏢 Business",
-            "yard_sale": "🛍️ Yard Sale",
-            "classified": "📰 Classified"
+        // Configuration
+        const featureLayerUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea_form/FeatureServer/0";
+        
+        // Data Mappings from Choice Lists
+        const resourceTypeMap = {
+            csa: "CSA Program",
+            farmers_market: "Farmers' Market",
+            community_garden: "Community Garden",
+            food_pantry: "Food Pantry/Bank",
+            farm_stand: "Farm Stand",
+            restaurant: "Restaurant",
+            educational_program: "Educational Program",
+            barter_swap: "Barter & Swap Spot",
+            preservation: "Traditional Food Preservation",
+            community_kitchen: "Community Kitchen"
         };
 
-        async function getPhotos(objectId) {
-            const photos = [];
-            const relatedTables = [1, 2, 3, 4];
-            for (const tableId of relatedTables) {
-                try {
-                    const url = `${featureLayerUrl}/../${tableId}`;
-                    const response = await fetch(`${url}/query?where=ParentObjectID=${objectId}&f=json`);
-                    const data = await response.json();
-                    if (data.features?.length > 0) {
-                        data.features.forEach(f => photos.push(f.attributes.URL));
-                    }
-                } catch (error) {
-                    console.error(`Error fetching from table ${tableId}:`, error);
-                }
-            }
-            return photos;
-        }
+        const paymentMap = {
+            ebt_snap: "EBT/SNAP",
+            wic: "WIC",
+            sliding_scale: "Sliding Scale",
+            barter_trade: "Barter/Trade",
+            delivery: "Delivery"
+        };
 
         async function loadFeed() {
             try {
-                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=Type,Title,Description,Address,ContactInfo,ContactPhone,ContactEmail,CreationDate&orderByFields=CreationDate DESC&f=json`);
+                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=name,city,county,resource_type,business_hours,ebt_snap,wis,sliding_scale,barter_trade,delivery,onsite_production,heritage_crops,web,phone,add_info,CreationDate&orderByFields=CreationDate DESC&f=json`);
                 const data = await response.json();
                 const feed = document.getElementById("feed");
                 feed.innerHTML = "";
 
-                for (const feature of data.features) {
+                data.features.forEach(feature => {
                     const a = feature.attributes;
-                    const feedItem = document.createElement("div");
-                    feedItem.className = "feed-item";
-                    const photos = await getPhotos(a.OBJECTID);
+                    if (!validateEntry(a)) return;
 
-                    feedItem.innerHTML = `
-                        <div class="feed-header">
-                            <div class="feed-type">${typeEmojis[a.Type] || "📌 Post"}</div>
-                            <div class="feed-title">${a.Title || "New Submission"}</div>
-                        </div>
-                        <div class="feed-details">
-                            ${a.Description ? `<p>${a.Description}</p>` : ''}
-                            ${a.Address ? `<div><strong>📍 Location:</strong> ${a.Address}</div>` : ''}
-                            ${a.ContactInfo ? `<div><strong>📞 Contact:</strong> ${a.ContactInfo} ${a.ContactPhone ? `| ${a.ContactPhone}` : ''} ${a.ContactEmail ? `| ${a.ContactEmail}` : ''}</div>` : ''}
-                        </div>
-                        ${photos.length > 0 ? `
-                            <div class="feed-photo-grid" style="grid-template-columns: repeat(${Math.min(photos.length, 3)}, 1fr)">
-                                ${photos.map(url => `<img class="feed-photo" src="${url}" alt="Submission photo">`).join('')}
+                    const card = document.createElement("div");
+                    card.className = "resource-card";
+                    
+                    card.innerHTML = `
+                        <h2 class="card-title">${a.name}</h2>
+                        
+                        <div class="card-section">
+                            <div class="icon-label">
+                                <span>📍</span>
+                                <div>${a.city}, ${a.county}</div>
                             </div>
-                        ` : ''}
-                        <a href="#" class="hub-consistent-button">View Details</a>
+                            ${a.web ? `<div class="icon-label"><span>🌐</span><a href="${a.web}" style="color:var(--accent)">${a.web}</a></div>` : ''}
+                            ${a.phone ? `<div class="icon-label"><span>📞</span>${a.phone}</div>` : ''}
+                        </div>
+
+                        <div class="card-section">
+                            <div class="icon-label">
+                                <span>🛒</span>
+                                <div><strong>${parseResourceType(a.resource_type)}</strong></div>
+                            </div>
+                            ${a.business_hours ? `<div class="icon-label"><span>⏰</span>${a.business_hours}</div>` : ''}
+                        </div>
+
+                        <div class="card-section">
+                            <div class="payment-grid">
+                                ${Object.entries(paymentMap).map(([field, label]) => `
+                                    <div class="payment-item">
+                                        <span style="color:${a[field] === 'yes' ? 'var(--accent)' : 'white'}">
+                                            ${a[field] === 'yes' ? '✓' : '✗'}
+                                        </span>
+                                        ${label}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        ${a.onsite_production === 'yes' ? `
+                        <div class="card-section">
+                            <div class="icon-label">
+                                <span>🌱</span>
+                                <div>On-Site Production ${a.heritage_crops === 'yes' ? '(Heritage Crops)' : ''}</div>
+                            </div>
+                        </div>` : ''}
+
+                        ${a.add_info ? `
+                        <div class="card-section">
+                            <div class="icon-label">
+                                <span>⭐</span>
+                                <div>${a.add_info}</div>
+                            </div>
+                        </div>` : ''}
+
+                        <div style="margin-top:15px; color:var(--accent); font-size:0.9em;">
+                            Listed: ${new Date(a.CreationDate).toLocaleDateString()}
+                        </div>
                     `;
-                    feed.appendChild(feedItem);
-                }
+                    
+                    feed.appendChild(card);
+                });
             } catch (error) {
-                document.getElementById("feed").innerHTML = "⚠️ Failed to load data. Check the console.";
+                console.error("Error loading feed:", error);
+                feed.innerHTML = `<div class="resource-card" style="color:var(--accent)">⚠️ Error loading resource data. Please try again later.</div>`;
             }
+        }
+
+        function validateEntry(attributes) {
+            return attributes.name && attributes.city && attributes.county && attributes.resource_type;
+        }
+
+        function parseResourceType(resourceString) {
+            return resourceString.split(';').map(r => resourceTypeMap[r] || r).join(' + ');
         }
 
         loadFeed();
