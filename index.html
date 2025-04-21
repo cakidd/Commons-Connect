@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Feed</title>
+    <title>Community Newsfeed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
@@ -22,7 +22,7 @@
             padding: 20px;
         }
         .feed-item {
-            background: linear-gradient(145deg, rgba(45,71,57,0.9), rgba(30,51,40,0.7));
+            background: rgba(30,51,40,0.7);
             border-left: 4px solid var(--accent);
             border-radius: 8px;
             margin: 20px 0;
@@ -48,11 +48,6 @@
         .feed-author {
             font-size: 1.4rem;
             color: var(--accent);
-            letter-spacing: 0.5px;
-        }
-        .feed-meta {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.9rem;
         }
         .feed-photos {
             display: grid;
@@ -66,25 +61,6 @@
             object-fit: cover;
             border-radius: 6px;
             border: 2px solid var(--accent);
-            transition: transform 0.3s ease;
-        }
-        .feed-photo:hover {
-            transform: scale(1.03);
-        }
-        .payment-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 15px;
-            background: rgba(255,215,0,0.1);
-            border-radius: 6px;
-            margin: 15px 0;
-        }
-        .payment-option {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.9rem;
         }
         #refresh {
             position: fixed;
@@ -96,13 +72,6 @@
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        #refresh:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
@@ -117,79 +86,76 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        @media (max-width: 768px) {
-            .feed-container { padding: 15px; }
-            .feed-item { padding: 20px; margin: 15px 0; }
-            #refresh { bottom: 15px; right: 15px; }
-        }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
-    <button id="refresh">⟳ Refresh Feed</button>
+    <button id="refresh">⟳ Refresh</button>
 
     <script>
-        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
-        (esriConfig, esriId, esriRequest) => {
-            
-        // Service Configuration
+        require(["esri/config", "esri/request"], 
+        (esriConfig, esriRequest) => {
+
+        // ======== Configuration ========
         const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-        const PHOTO_TABLES = [1,2,3,4];
+        const VALID_PHOTO_TABLES = [1,2]; // Verified existing tables
 
-        // Authentication Setup
-        esriConfig.request.interceptors.push({
-            urls: /services7.arcgis.com/,
-            before: async (params) => {
-                try {
-                    const token = await esriId.getToken(SERVICE_URL);
-                    if(token) params.requestOptions.query = {...params.requestOptions.query, token};
-                } catch(error) {
-                    console.error("Authentication Error:", error);
-                }
-                return params;
-            }
-        });
-
-        // Core Functionality
+        // ======== Core Functionality ========
         async function loadFeed() {
             const feed = document.getElementById("feed");
             try {
-                feed.innerHTML = '<div class="loader"></div>';
-                
                 // Fetch features
-                const { features } = await esriRequest(`${SERVICE_URL}/query`, {
+                const { data } = await esriRequest(`${SERVICE_URL}/query`, {
                     query: {
                         where: "1=1",
                         outFields: "*",
-                        orderByFields: "CreationDate DESC",
                         f: "json"
                     }
-                }).then(res => res.data);
+                });
 
-                feed.innerHTML = '';
-                
-                if(!features?.length) {
-                    feed.innerHTML = `<div class="feed-item">🌟 No current listings found</div>`;
+                if (!data.features?.length) {
+                    feed.innerHTML = '<div class="feed-item">🌟 No current listings</div>';
                     return;
                 }
 
+                // Clear loader
+                feed.innerHTML = '';
+
                 // Process features
-                for(const { attributes } of features) {
-                    try {
-                        const photos = await getPhotos(attributes.OBJECTID);
-                        feed.appendChild(createCard(attributes, photos));
-                    } catch(error) {
-                        console.error("Feature Error:", error);
+                for (const feature of data.features) {
+                    const card = document.createElement('div');
+                    card.className = 'feed-item';
+                    card.innerHTML = `
+                        <div class="feed-header">
+                            <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '📌'}</div>
+                            <div>
+                                <div class="feed-author">${feature.attributes.name || 'Community Post'}</div>
+                                <div>${feature.attributes.description || ''}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Add images
+                    const photos = await getPhotos(feature.attributes.OBJECTID);
+                    if (photos.length) {
+                        const gallery = document.createElement('div');
+                        gallery.className = 'feed-photos';
+                        photos.forEach(url => {
+                            gallery.innerHTML += `<img class="feed-photo" src="${url}" loading="lazy">`;
+                        });
+                        card.appendChild(gallery);
                     }
+
+                    feed.appendChild(card);
                 }
-            } catch(error) {
-                console.error("Feed Error:", error);
+
+            } catch (error) {
                 feed.innerHTML = `
-                    <div class="feed-item" style="text-align:center;color:#ff4444">
-                        🔄 Error loading feed<br>
-                        <button onclick="location.reload()" style="margin-top:10px">Retry Now</button>
+                    <div class="feed-item" style="color:#ff4444">
+                        Error loading feed: ${error.message}
+                        <button onclick="location.reload()">Retry</button>
                     </div>
                 `;
             }
@@ -197,106 +163,36 @@
 
         async function getPhotos(objectId) {
             const photos = [];
-            for(const tableId of PHOTO_TABLES) {
+            for (const tableId of VALID_PHOTO_TABLES) {
                 try {
-                    const tableUrl = SERVICE_URL.replace('/0', `/${tableId}`);
-                    const { features } = await esriRequest(`${tableUrl}/query`, {
-                        query: {
-                            where: `ParentObjectID=${objectId}`,
-                            outFields: "OBJECTID",
-                            f: "json"
-                        }
-                    }).then(res => res.data);
+                    const { data } = await esriRequest(
+                        `${SERVICE_URL.replace('/0', `/${tableId}`)}/query`, 
+                        { query: { where: `ParentObjectID=${objectId}`, f: 'json' } }
+                    );
                     
-                    for(const { attributes } of features) {
-                        const { attachmentInfos } = await esriRequest(
-                            `${tableUrl}/${attributes.OBJECTID}/attachments?f=json`
-                        ).then(res => res.data);
-                        photos.push(...attachmentInfos.map(a => 
-                            `${tableUrl}/${attributes.OBJECTID}/attachments/${a.id}`
+                    for (const feature of data.features) {
+                        const { data: attachments } = await esriRequest(
+                            `${SERVICE_URL.replace('/0', `/${tableId}`)}/${feature.attributes.OBJECTID}/attachments?f=json`
+                        );
+                        photos.push(...attachments.attachmentInfos.map(a => 
+                            `${SERVICE_URL.replace('/0', `/${tableId}`)}/${feature.attributes.OBJECTID}/attachments/${a.id}`
                         ));
                     }
-                } catch(error) {
-                    console.log(`Skipped table ${tableId}: ${error.message}`);
+                } catch (error) {
+                    console.log(`Skipped table ${tableId}:`, error.message);
                 }
             }
             return photos;
         }
 
-        function createCard(attributes, photos) {
-            const card = document.createElement('div');
-            card.className = 'feed-item';
-            
-            // Header
-            card.innerHTML = `
-                <div class="feed-header">
-                    <div class="feed-avatar">${getIcon(attributes.resource_type)}</div>
-                    <div>
-                        <div class="feed-author">${attributes.name || 'Community Resource'}</div>
-                        <div class="feed-meta">
-                            📅 ${new Date(attributes.CreationDate).toLocaleDateString()} 
-                            📍 ${attributes.address || ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Photos
-            if(photos.length) {
-                const gallery = document.createElement('div');
-                gallery.className = 'feed-photos';
-                photos.forEach(url => {
-                    gallery.innerHTML += `<img class="feed-photo" src="${url}" loading="lazy" alt="Listing photo">`;
-                });
-                card.appendChild(gallery);
-            }
-
-            // Payment Options
-            const payments = document.createElement('div');
-            payments.className = 'payment-options';
-            ['ebt_snap', 'wic', 'barter_trade'].forEach(field => {
-                payments.innerHTML += `
-                    <div class="payment-option">
-                        ${attributes[field] === 'yes' ? '✅' : '❌'}
-                        ${field.replace('_', ' ').toUpperCase()}
-                    </div>
-                `;
-            });
-            card.appendChild(payments);
-
-            return card;
-        }
-
-        function getIcon(resourceType) {
-            const types = (resourceType || '').split(';');
-            if(types.includes('farmers_market')) return '🛒';
-            if(types.includes('community_garden')) return '🌱';
-            return '📌';
-        }
-
-        // Initialization
+        // ======== Initialization ========
         document.addEventListener("DOMContentLoaded", loadFeed);
         document.getElementById("refresh").addEventListener("click", () => {
             document.getElementById("feed").innerHTML = '<div class="loader"></div>';
             loadFeed();
         });
 
-        // Error Handling
-                  window.addEventListener('error', (e) => {
-         const feed = document.getElementById("feed");
-         if (feed && feed.innerHTML.includes('loader')) {
-             setTimeout(() => {
-                 if (feed.innerHTML.includes('loader')) {
-                     feed.innerHTML = `
-                         <div class="feed-item" style="text-align:center">
-                             ⚠️ System Error: ${e.message || 'Unknown error'}<br>
-                             <button onclick="location.reload()" style="margin-top:15px">
-                                 Refresh Page
-                             </button>
-                         </div>
-                     `;
-                 }
-             }, 5000);
-         }
-     });
- </script>
+        });
+    </script>
+</body>
+</html>
