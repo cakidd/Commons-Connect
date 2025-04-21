@@ -3,10 +3,11 @@
 <head>
     <title>The Commons Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://js.arcgis.com/4.28/"></script>
     <style>
         :root {
-            --background: #2d4739; /* Dark Green from your style guide */
-            --accent: #ffd700; /* Gold accent color */
+            --background: #2d4739;
+            --accent: #ffd700;
             --text-light: white;
         }
         body {
@@ -31,228 +32,238 @@
         .feed-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         .feed-avatar {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: #4a6da7;
+            background: var(--accent);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            color: white;
+            font-size: 24px;
         }
         .feed-author {
+            font-size: 1.4em;
             color: var(--accent);
-            font-weight: bold;
-            font-size: 1.2em;
         }
         .feed-meta {
-            color: #aaa;
+            color: #cccccc;
             font-size: 0.9em;
         }
-        .feed-content {
-            margin: 15px 0;
-            line-height: 1.4;
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
         }
         .feed-photo {
             width: 100%;
+            height: 200px;
+            object-fit: cover;
             border-radius: 6px;
-            margin-top: 15px;
+            border: 2px solid var(--accent);
         }
         .payment-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 6px;
             margin: 15px 0;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 4px;
         }
-        .payment-option {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .feed-footer {
-            display: flex;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            margin-top: 15px;
-            padding-top: 15px;
-        }
-        .footer-action {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-right: 15px;
-            color: #aaa;
+        #refresh {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px;
+            background: var(--accent);
+            color: var(--background);
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 1000;
         }
-        .footer-action:hover {
-            color: var(--accent);
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
-        .location-tag {
-            display: inline-block;
-            background: rgba(255,255,255,0.05);
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin-right: 5px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         @media (max-width: 768px) {
+            .feed-container { padding: 10px; }
             .feed-item { padding: 15px; }
-            .payment-options { flex-direction: column; }
+            .feed-photos { grid-template-columns: 1fr; }
+            .payment-options { grid-template-columns: 1fr; }
+            #refresh { bottom: 10px; right: 10px; }
         }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
-        <div class="feed-item" style="text-align: center;">
-            <h2 style="color: var(--accent)">Loading community feed...</h2>
-        </div>
+        <div class="loader"></div>
     </div>
-    
+    <button id="refresh">⟳ Refresh</button>
+
     <script>
-        // CORRECT FEATURE LAYER URL (no _form suffix)
-        const featureLayerUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        function(esriConfig, esriId, esriRequest) {
+            
+        // Validated Service URL from Survey123 REST endpoint
+        const featureServiceUrl = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
         
-        // Resource type icons
-        const resourceIcons = {
-            "csa": "🌽",
-            "farmers_market": "🧺",
-            "community_garden": "🌱",
-            "food_pantry": "🥫",
-            "farm_stand": "🚜",
-            "restaurant": "🍽️",
-            "educational_program": "📚",
-            "barter_swap": "🔄",
-            "preservation": "🥫",
-            "community_kitchen": "👨‍🍳",
-            "artisinal": "🧶",
-            "new_1": "📌"
-        };
-        
-        // Load the feed using your actual Survey123 fields
+        // Authentication Handling
+        esriConfig.request.interceptors.push({
+            urls: /services7.arcgis.com/,
+            before: async (params) => {
+                try {
+                    const token = await esriId.getToken(featureServiceUrl);
+                    if(token) {
+                        params.requestOptions.query = {
+                            ...params.requestOptions.query,
+                            token: token
+                        };
+                    }
+                } catch(error) {
+                    console.error("Auth error:", error);
+                }
+                return params;
+            }
+        });
+
+        // Image Attachment Tables Configuration
+        const attachmentTables = [
+            {index: 1, name: 'yard_sale_photos'},
+            {index: 2, name: 'classified_photos'},
+            {index: 3, name: 'business_photos2'},
+            {index: 4, name: 'business_photos'}
+        ];
+
+        async function fetchFeatures() {
+            try {
+                const response = await esriRequest(`${featureServiceUrl}/query`, {
+                    query: {
+                        where: "1=1",
+                        outFields: "*",
+                        orderByFields: "CreationDate DESC",
+                        f: "json"
+                    }
+                });
+                return response.data;
+            } catch(error) {
+                throw new Error(`Feature load failed: ${error.message}`);
+            }
+        }
+
+        async function fetchAttachments(objectId) {
+            const attachments = [];
+            for(const table of attachmentTables) {
+                try {
+                    const tableUrl = featureServiceUrl.replace('/0', `/${table.index}`);
+                    const res = await esriRequest(`${tableUrl}/query`, {
+                        query: {
+                            where: `ParentObjectID=${objectId}`,
+                            outFields: "OBJECTID",
+                            f: "json"
+                        }
+                    });
+                    for(const feature of res.data.features) {
+                        const attRes = await esriRequest(`${tableUrl}/${feature.attributes.OBJECTID}/attachments?f=json`);
+                        attachments.push(...attRes.data.attachmentInfos.map(a => 
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments/${a.id}`
+                        ));
+                    }
+                } catch(error) {
+                    console.log(`Skipped ${table.name}: ${error.message}`);
+                }
+            }
+            return attachments;
+        }
+
+        function createFeatureCard(attributes, photos) {
+            const card = document.createElement('div');
+            card.className = 'feed-item';
+            card.innerHTML = `
+                <div class="feed-header">
+                    <div class="feed-avatar">${attributes.resource_type?.startsWith('farm') ? '🚜' : '📌'}</div>
+                    <div>
+                        <div class="feed-author">${attributes.name || 'Community Resource'}</div>
+                        <div class="feed-meta">
+                            ${new Date(attributes.CreationDate).toLocaleDateString()} • 
+                            ${attributes.address || ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="feed-content">
+                    ${photos.length ? `
+                    <div class="feed-photos">
+                        ${photos.map(url => `<img class="feed-photo" src="${url}" loading="lazy">`).join('')}
+                    </div>` : ''}
+                    ${attributes.add_info ? `<p>${attributes.add_info}</p>` : ''}
+                </div>
+                <div class="payment-options">
+                    ${['ebt_snap', 'wic', 'barter_trade'].map(field => 
+                        attributes[field] === 'yes' ? `✓ ${field.toUpperCase()}` : `✗ ${field.toUpperCase()}`
+                    ).join(' ')}
+                </div>
+            `;
+            return card;
+        }
+
         async function loadFeed() {
             try {
-                const response = await fetch(`${featureLayerUrl}/query?where=1=1&outFields=name,resource_type,address,city,zip,county,contact_name,phone,email,business_hours,web,add_info,ebt_snap,wic,sliding_scale,barter_trade,delivery,onsite_production,heritage_crops,CreationDate&orderByFields=CreationDate DESC&f=json`);
-                
-                const data = await response.json();
                 const feed = document.getElementById("feed");
+                feed.innerHTML = '<div class="loader"></div>';
                 
-                // Clear the loading message
-                feed.innerHTML = "";
+                const data = await fetchFeatures();
+                feed.innerHTML = '';
                 
-                // If no features, show empty state
-                if (!data.features || data.features.length === 0) {
-                    feed.innerHTML = `
-                        <div class="feed-item">
-                            <div class="feed-author" style="text-align: center;">No listings found</div>
-                            <p style="text-align: center;">Be the first to share a community resource!</p>
-                        </div>
-                    `;
+                if(!data.features?.length) {
+                    feed.innerHTML = '<div class="feed-item">No current listings</div>';
                     return;
                 }
-                
-                // Process each feature
-                data.features.forEach(feature => {
-                    const a = feature.attributes;
-                    
-                    // Get resource type icon
-                    let resourceIcon = "📌";
-                    let resourceName = "Resource";
-                    if (a.resource_type) {
-                        const resourceTypes = a.resource_type.split(';');
-                        resourceIcon = resourceTypes.map(type => resourceIcons[type] || "📌")[0];
-                        resourceName = resourceTypes[0].replace(/_/g, ' ');
-                        // Capitalize first letter
-                        resourceName = resourceName.charAt(0).toUpperCase() + resourceName.slice(1);
-                    } else if (a.is_yard_sale === "yes") {
-                        resourceIcon = "🛍️";
-                        resourceName = "Yard Sale";
-                    } else if (a.is_classified === "yes") {
-                        resourceIcon = "📢";
-                        resourceName = "Classified";
+
+                for(const feature of data.features) {
+                    try {
+                        const photos = await fetchAttachments(feature.attributes.OBJECTID);
+                        feed.appendChild(createFeatureCard(feature.attributes, photos));
+                    } catch(error) {
+                        console.error("Feature render error:", error);
                     }
-                    
-                    // Format date
-                    const creationDate = a.CreationDate ? new Date(a.CreationDate).toLocaleDateString() : "";
-                    
-                    // Payment methods
-                    const paymentMethods = [];
-                    if (a.ebt_snap === "yes") paymentMethods.push("✓ EBT/SNAP");
-                    if (a.wic === "yes") paymentMethods.push("✓ WIC");
-                    if (a.sliding_scale === "yes") paymentMethods.push("✓ Sliding Scale");
-                    if (a.barter_trade === "yes") paymentMethods.push("✓ Barter/Trade");
-                    if (a.delivery === "yes") paymentMethods.push("✓ Delivery");
-                    
-                    // Create a new feed item
-                    const itemHtml = `
-                        <div class="feed-header">
-                            <div class="feed-avatar">${resourceIcon}</div>
-                            <div>
-                                <div class="feed-author">${a.name || "Community Resource"}</div>
-                                <div class="feed-meta">${resourceName} • ${creationDate}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="feed-content">
-                            ${a.address ? `<p>📍 <strong>Location:</strong> ${a.address}, ${a.city || ""} ${a.county ? a.county + " County" : ""} ${a.zip || ""}</p>` : ""}
-                            ${a.contact_name ? `<p>👤 <strong>Contact:</strong> ${a.contact_name}${a.phone ? " • " + a.phone : ""}${a.email ? " • " + a.email : ""}</p>` : ""}
-                            ${a.business_hours ? `<p>⏰ <strong>Hours:</strong> ${a.business_hours}</p>` : ""}
-                            ${a.web ? `<p>🌐 <strong>Website:</strong> <a href="${a.web}" style="color:var(--accent);" target="_blank">${a.web}</a></p>` : ""}
-                            ${a.add_info ? `<p>ℹ️ <strong>Details:</strong> ${a.add_info}</p>` : ""}
-                            ${a.onsite_production === "yes" ? `<p>🌱 <strong>On-site production</strong>${a.heritage_crops === "yes" ? " with heritage crops" : ""}</p>` : ""}
-                        </div>
-                        
-                        ${paymentMethods.length > 0 ? `
-                            <div class="payment-options">
-                                ${paymentMethods.map(method => `<div class="payment-option">${method}</div>`).join('')}
-                            </div>
-                        ` : ''}
-                        
-                        <div class="feed-footer">
-                            <div class="footer-action">👍 Like</div>
-                            <div class="footer-action">💬 Comment</div>
-                            <div class="footer-action">↗️ Share</div>
-                        </div>
-                    `;
-                    
-                    // Create the element and add to feed
-                    const feedItem = document.createElement("div");
-                    feedItem.className = "feed-item";
-                    feedItem.innerHTML = itemHtml;
-                    feed.appendChild(feedItem);
-                });
+                }
                 
-                // Try to load images (will be implemented when image issues are resolved)
-                loadImages();
-                
-            } catch (error) {
-                console.error("Error loading feed:", error);
+            } catch(error) {
+                console.error("Feed load error:", error);
                 document.getElementById("feed").innerHTML = `
-                    <div class="feed-item">
-                        <div class="feed-author" style="text-align: center;">Unable to Load Feed</div>
-                        <p>There was an issue loading the community feed. Please try again later.</p>
-                        <p style="color: #aaa; font-size: 0.9em;">Technical details: ${error.message}</p>
-                        <p style="margin-top: 20px; text-align: center;">
-                            <button onclick="location.reload()" style="background: var(--accent); color: var(--background); border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Try Again</button>
-                        </p>
+                    <div class="feed-item" style="color:#ff4444">
+                        Error loading feed: ${error.message}<br>
+                        <button onclick="location.reload()">Retry</button>
                     </div>
                 `;
             }
         }
-        
-        // Function to load images from related tables
-        async function loadImages() {
-            // This will be implemented when we resolve the related table access
-            // For now, we'll just show the text content
-        }
-        
-        // Load feed when the page loads
+
+        // Initial Load
         document.addEventListener("DOMContentLoaded", loadFeed);
+        
+        // Refresh Button
+        document.getElementById("refresh").addEventListener("click", () => {
+            document.getElementById("feed").innerHTML = '<div class="loader"></div>';
+            loadFeed();
+        });
+
+        });
     </script>
 </body>
 </html>
