@@ -14,7 +14,7 @@
             background: var(--primary);
             margin: 0;
             color: var(--text);
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
         }
         .feed-container {
             max-width: 800px;
@@ -27,7 +27,6 @@
             border-radius: 8px;
             margin: 20px 0;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
         }
         .feed-header {
             display: flex;
@@ -64,8 +63,8 @@
         }
         #refresh {
             position: fixed;
-            bottom: 25px;
-            right: 25px;
+            bottom: 20px;
+            right: 20px;
             padding: 12px 20px;
             background: var(--accent);
             color: var(--primary);
@@ -98,19 +97,22 @@
         require(["esri/config", "esri/request"], 
         (esriConfig, esriRequest) => {
 
-        // ======== Configuration ========
+        // Configuration
         const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-        const VALID_PHOTO_TABLES = [1,2]; // Verified existing tables
+        const PHOTO_TABLES = [1,2,3,4];
 
-        // ======== Core Functionality ========
+        // Core functionality
         async function loadFeed() {
             const feed = document.getElementById("feed");
             try {
-                // Fetch features
+                feed.innerHTML = '<div class="loader"></div>';
+                
+                // Fetch main features
                 const { data } = await esriRequest(`${SERVICE_URL}/query`, {
                     query: {
                         where: "1=1",
                         outFields: "*",
+                        orderByFields: "CreationDate DESC",
                         f: "json"
                     }
                 });
@@ -120,13 +122,14 @@
                     return;
                 }
 
-                // Clear loader
                 feed.innerHTML = '';
-
+                
                 // Process features
-                for (const feature of data.features) {
+                const cards = await Promise.all(data.features.map(async (feature) => {
                     const card = document.createElement('div');
                     card.className = 'feed-item';
+                    
+                    // Header
                     card.innerHTML = `
                         <div class="feed-header">
                             <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '📌'}</div>
@@ -148,13 +151,15 @@
                         card.appendChild(gallery);
                     }
 
-                    feed.appendChild(card);
-                }
+                    return card;
+                }));
+
+                cards.forEach(card => feed.appendChild(card));
 
             } catch (error) {
                 feed.innerHTML = `
                     <div class="feed-item" style="color:#ff4444">
-                        Error loading feed: ${error.message}
+                        Error: ${error.message}<br>
                         <button onclick="location.reload()">Retry</button>
                     </div>
                 `;
@@ -162,30 +167,40 @@
         }
 
         async function getPhotos(objectId) {
-            const photos = [];
-            for (const tableId of VALID_PHOTO_TABLES) {
-                try {
-                    const { data } = await esriRequest(
-                        `${SERVICE_URL.replace('/0', `/${tableId}`)}/query`, 
-                        { query: { where: `ParentObjectID=${objectId}`, f: 'json' } }
-                    );
-                    
-                    for (const feature of data.features) {
-                        const { data: attachments } = await esriRequest(
-                            `${SERVICE_URL.replace('/0', `/${tableId}`)}/${feature.attributes.OBJECTID}/attachments?f=json`
+            try {
+                const photoRequests = PHOTO_TABLES.map(tableId => 
+                    esriRequest(`${SERVICE_URL.replace('/0', `/${tableId}`)}/query`, {
+                        query: {
+                            where: `ParentObjectID=${objectId}`,
+                            outFields: "OBJECTID",
+                            f: "json"
+                        }
+                    })
+                );
+
+                const responses = await Promise.all(photoRequests);
+                
+                const photos = [];
+                for (const [index, response] of responses.entries()) {
+                    const features = response.data.features || [];
+                    for (const feature of features) {
+                        const attachments = await esriRequest(
+                            `${SERVICE_URL.replace('/0', `/${PHOTO_TABLES[index]}`)}/${feature.attributes.OBJECTID}/attachments?f=json`
                         );
-                        photos.push(...attachments.attachmentInfos.map(a => 
-                            `${SERVICE_URL.replace('/0', `/${tableId}`)}/${feature.attributes.OBJECTID}/attachments/${a.id}`
+                        photos.push(...attachments.data.attachmentInfos.map(a => 
+                            `${SERVICE_URL.replace('/0', `/${PHOTO_TABLES[index]}`)}/${feature.attributes.OBJECTID}/attachments/${a.id}`
                         ));
                     }
-                } catch (error) {
-                    console.log(`Skipped table ${tableId}:`, error.message);
                 }
+                return photos;
+
+            } catch (error) {
+                console.error("Photo load error:", error);
+                return [];
             }
-            return photos;
         }
 
-        // ======== Initialization ========
+        // Event handlers
         document.addEventListener("DOMContentLoaded", loadFeed);
         document.getElementById("refresh").addEventListener("click", () => {
             document.getElementById("feed").innerHTML = '<div class="loader"></div>';
