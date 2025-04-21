@@ -282,21 +282,21 @@
         });
 
         // Error Handling
-      window.addEventListener('error', (e) => {
-        const feed = document.getElementById("feed");
-        if (feed && feed.innerHTML.includes('loader')) {
-            setTimeout(() => {
-                if (feed.innerHTML.includes('loader')) {
-                    feed.innerHTML = `
-                        <div class="feed-item" style="text-align:center">
-                            ⚠️ System Error: ${e.message || 'Unknown error'}<br>
-                            <button onclick="location.reload()" style="margin-top:15px">
-                                Refresh Page
-                            </button>
-                        </div>
-                    `;
-                }
-            }, 5000);
-        }
-    });
-</script>
+                  window.addEventListener('error', (e) => {
+         const feed = document.getElementById("feed");
+         if (feed && feed.innerHTML.includes('loader')) {
+             setTimeout(() => {
+                 if (feed.innerHTML.includes('loader')) {
+                     feed.innerHTML = `
+                         <div class="feed-item" style="text-align:center">
+                             ⚠️ System Error: ${e.message || 'Unknown error'}<br>
+                             <button onclick="location.reload()" style="margin-top:15px">
+                                 Refresh Page
+                             </button>
+                         </div>
+                     `;
+                 }
+             }, 5000);
+         }
+     });
+ </script>
