@@ -120,7 +120,6 @@
         require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
         function(esriConfig, esriId, esriRequest) {
             
-        // Validated Feature Service Configuration
         const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
         const ATTACHMENT_TABLES = [
             { index: 1, name: 'yard_sale_photos' },
@@ -129,7 +128,6 @@
             { index: 4, name: 'business_photos' }
         ];
 
-        // Authentication Handler
         esriConfig.request.interceptors.push({
             urls: /services7.arcgis.com/,
             before: async (params) => {
@@ -148,7 +146,6 @@
             }
         });
 
-        // Core Data Fetching
         async function fetchFeatures() {
             try {
                 const response = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
@@ -193,7 +190,6 @@
             return images;
         }
 
-        // UI Rendering
         function createFeatureCard(attributes, images) {
             const card = document.createElement('div');
             card.className = 'feed-item';
@@ -214,7 +210,9 @@
                 </div>` : ''}
                 <div class="payment-options">
                     ${['ebt_snap', 'wic', 'barter_trade'].map(field => 
-                        attributes[field] === 'yes' ? `✓ ${field.replace('_', ' ').toUpperCase()}` : `✗ ${field.replace('_', ' ').toUpperCase()}`
+                        attributes[field] === 'yes' ? 
+                        `✓ ${field.replace('_', ' ').toUpperCase()}` : 
+                        `✗ ${field.replace('_', ' ').toUpperCase()}`
                     ).join(' ')}
                 </div>
             `;
@@ -228,7 +226,6 @@
             return '📌';
         }
 
-        // Feed Management
         async function loadFeed() {
             const feed = document.getElementById("feed");
             try {
@@ -260,11 +257,12 @@
             }
         }
 
-        // Event Handlers
         document.addEventListener("DOMContentLoaded", loadFeed);
-        document.getElementById("refresh").addEventListener("click", loadFeed);
+        document.getElementById("refresh").addEventListener("click", () => {
+            document.getElementById("feed").innerHTML = '<div class="loader"></div>';
+            loadFeed();
+        });
 
-        // Error Monitoring
         window.addEventListener('error', (event) => {
             console.error('Global error:', event.error);
             if(document.querySelector('.loader')) {
