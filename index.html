@@ -1,66 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Test</title>
+    <title>Image Feed Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        .image-container {
+        .image-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 15px;
             padding: 20px;
         }
-        .feed-photo {
+        .image-item {
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .image-item img {
             width: 100%;
             height: 200px;
             object-fit: cover;
-            border: 2px solid #ffd700;
-            border-radius: 6px;
         }
     </style>
 </head>
 <body>
-    <div class="image-container" id="imageContainer">
+    <div class="image-grid" id="imageContainer">
         <div class="loader">Loading images...</div>
     </div>
 
     <script>
         require(["esri/request"], (esriRequest) => {
-            // Configuration
+            // Simplified configuration
             const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-
+            
             async function loadImages() {
                 try {
-                    // 1. Get features
-                    const { data } = await esriRequest(`${SERVICE_URL}/query`, {
-                        query: {
-                            where: "1=1",
-                            outFields: "OBJECTID",
-                            f: "json"
-                        }
+                    // 1. Get first feature's ID
+                    const { data: features } = await esriRequest(`${SERVICE_URL}/query`, {
+                        query: { where: "1=1", outFields: "OBJECTID", f: "json" }
                     });
+                    
+                    const firstObjectId = features.features[0].attributes.OBJECTID;
 
-                    // 2. Get images from first feature
-                    const firstFeatureId = data.features[0].attributes.OBJECTID;
+                    // 2. Get attachments from first table
                     const { data: attachments } = await esriRequest(
-                        `${SERVICE_URL}/1/${firstFeatureId}/attachments?f=json`
+                        `${SERVICE_URL}/1/${firstObjectId}/attachments?f=json`
                     );
 
-                    // 3. Display images
+                    // 3. Build image grid
                     const container = document.getElementById("imageContainer");
                     container.innerHTML = ''; // Clear loader
                     
                     attachments.attachmentInfos.forEach(attachment => {
-                        const img = document.createElement('img');
-                        img.className = 'feed-photo';
-                        img.src = `${SERVICE_URL}/1/${firstFeatureId}/attachments/${attachment.id}`;
+                        const img = document.createElement('div');
+                        img.className = 'image-item';
+                        img.innerHTML = `<img src="${SERVICE_URL}/1/${firstObjectId}/attachments/${attachment.id}" loading="lazy">`;
                         container.appendChild(img);
                     });
 
                 } catch(error) {
                     console.error("Error:", error);
                     document.getElementById("imageContainer").innerHTML = 
-                        "Failed to load images - Check console";
+                        "Failed to load images - Check console logs";
                 }
             }
 
