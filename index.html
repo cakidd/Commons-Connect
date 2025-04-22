@@ -1,72 +1,172 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Feed Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Community Feed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        .image-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
         }
-        .image-item {
-            border: 2px solid #ffd700;
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
             border-radius: 8px;
-            overflow: hidden;
+            margin: 20px 0;
+            padding: 20px;
         }
-        .image-item img {
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feed-photo {
             width: 100%;
             height: 200px;
             object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid var(--accent);
+        }
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="image-grid" id="imageContainer">
-        <div class="loader">Loading images...</div>
+    <div class="feed-container" id="feed">
+        <div class="loader"></div>
     </div>
 
     <script>
-        require(["esri/request"], (esriRequest) => {
-            // Simplified configuration
-            const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        (esriConfig, esriId, esriRequest) => {
             
-            async function loadImages() {
-                try {
-                    // 1. Get first feature's ID
-                    const { data: features } = await esriRequest(`${SERVICE_URL}/query`, {
-                        query: { where: "1=1", outFields: "OBJECTID", f: "json" }
-                    });
-                    
-                    const firstObjectId = features.features[0].attributes.OBJECTID;
+        // ======== SERVICE CONFIGURATION ========
+        const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+        const PHOTO_TABLES = [1,2,3,4];
+        let currentToken = null;
 
-                    // 2. Get attachments from first table
-                    const { data: attachments } = await esriRequest(
-                        `${SERVICE_URL}/1/${firstObjectId}/attachments?f=json`
+        // ======== AUTHENTICATION HANDLING ========
+        esriConfig.request.interceptors.push({
+            urls: /services7.arcgis.com/,
+            before: async (params) => {
+                if (!currentToken) {
+                    currentToken = await esriId.getToken(SERVICE_URL);
+                }
+                params.requestOptions.query = {
+                    ...params.requestOptions.query,
+                    token: currentToken
+                };
+                return params;
+            }
+        });
+
+        // ======== IMAGE LOADING CORE ========
+        async function loadImages() {
+            const feed = document.getElementById("feed");
+            try {
+                // 1. Get Features
+                const { data } = await esriRequest(`${SERVICE_URL}/query`, {
+                    query: {
+                        where: "1=1",
+                        outFields: "OBJECTID",
+                        f: "json"
+                    }
+                });
+
+                if (!data.features?.length) {
+                    feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
+                    return;
+                }
+
+                // 2. Process First Feature
+                const firstFeature = data.features[0];
+                const photos = await getAttachments(firstFeature.attributes.OBJECTID);
+                
+                // 3. Build Gallery
+                feed.innerHTML = ''; // Clear loader
+                const gallery = document.createElement('div');
+                gallery.className = 'feed-photos';
+                
+                photos.forEach(url => {
+                    const img = document.createElement('img');
+                    img.className = 'feed-photo';
+                    img.src = url;
+                    img.loading = 'lazy';
+                    img.onerror = () => img.style.display = 'none';
+                    gallery.appendChild(img);
+                });
+                
+                feed.appendChild(gallery);
+
+            } catch(error) {
+                console.error("Image Load Error:", error);
+                feed.innerHTML = '<div class="feed-item">❌ Error loading images</div>';
+            }
+        }
+
+        // ======== ATTACHMENT HANDLING ========
+        async function getAttachments(objectId) {
+            const photos = [];
+            
+            for (const tableId of PHOTO_TABLES) {
+                try {
+                    const { data } = await esriRequest(
+                        `${SERVICE_URL}/${tableId}/query`, 
+                        {
+                            query: {
+                                where: `ParentObjectID=${objectId}`,
+                                outFields: "OBJECTID",
+                                f: "json"
+                            }
+                        }
                     );
 
-                    // 3. Build image grid
-                    const container = document.getElementById("imageContainer");
-                    container.innerHTML = ''; // Clear loader
-                    
-                    attachments.attachmentInfos.forEach(attachment => {
-                        const img = document.createElement('div');
-                        img.className = 'image-item';
-                        img.innerHTML = `<img src="${SERVICE_URL}/1/${firstObjectId}/attachments/${attachment.id}" loading="lazy">`;
-                        container.appendChild(img);
-                    });
-
+                    for (const feature of data.features) {
+                        const { data: attachments } = await esriRequest(
+                            `${SERVICE_URL}/${tableId}/${feature.attributes.OBJECTID}/attachments`,
+                            { query: { f: "json" } }
+                        );
+                        
+                        attachments.attachmentInfos.forEach(attachment => {
+                            photos.push(
+                                `${SERVICE_URL}/${tableId}/${feature.attributes.OBJECTID}/attachments/${attachment.id}`
+                            );
+                        });
+                    }
                 } catch(error) {
-                    console.error("Error:", error);
-                    document.getElementById("imageContainer").innerHTML = 
-                        "Failed to load images - Check console logs";
+                    console.warn(`Skipped table ${tableId}:`, error.message);
                 }
             }
+            return photos;
+        }
 
-            // Initial load
-            loadImages();
+        // Initial load
+        loadImages();
         });
     </script>
 </body>
