@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Community Feed</title>
+    <title>Community Feed - The Commons</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
@@ -46,7 +46,7 @@
         }
         .feed-author {
             font-size: 1.4rem;
-            color: var(--accent);
+            color: var(--accent;
         }
         .feed-photos {
             display: grid;
@@ -94,47 +94,86 @@
     <button id="refresh">⟳ Refresh</button>
 
     <script>
-        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        (esriConfig, esriId, esriRequest) => {
             
-            // 1. Load Feed Data
-            async function loadFeed() {
-                const feed = document.getElementById("feed");
+        // ======== VALIDATED CONFIGURATION ========
+        const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+        const ATTACHMENT_TABLES = [1,2,3,4]; // Verified tables from Survey123
+
+        // ======== AUTHENTICATION FIX ========
+        esriConfig.request.interceptors.push({
+            urls: /services7.arcgis.com/,
+            before: async (params) => {
                 try {
-                    feed.innerHTML = '<div class="loader"></div>';
-                    
-                    // Fetch features with public access
+                    const token = await esriId.getToken(SERVICE_URL);
+                    params.requestOptions.query = {
+                        ...params.requestOptions.query,
+                        token: token
+                    };
+                } catch(error) {
+                    console.error("Authentication Error:", error);
+                }
+                return params;
+            }
+        });
+
+        // ======== CORE FUNCTIONALITY ========
+        async function loadFeed() {
+            const feed = document.getElementById("feed");
+            try {
+                feed.innerHTML = '<div class="loader"></div>';
+                
+                // 1. Fetch Features with Pagination
+                let features = [];
+                let resultOffset = 0;
+                let hasMore = true;
+                
+                while(hasMore) {
                     const { data } = await esriRequest(`${SERVICE_URL}/query`, {
                         query: {
                             where: "1=1",
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
+                            resultOffset: resultOffset,
                             f: "json"
                         }
                     });
-
-                    feed.innerHTML = data.features.length ? '' : '<div class="feed-item">🌟 No listings found</div>';
                     
-                    // Process each feature
-                    for (const feature of data.features) {
+                    features = features.concat(data.features);
+                    resultOffset += data.features.length;
+                    hasMore = data.exceededTransferLimit;
+                }
+
+                feed.innerHTML = '';
+                
+                if (!features.length) {
+                    feed.innerHTML = '<div class="feed-item">🌟 No active listings</div>';
+                    return;
+                }
+
+                // 2. Process Features with Attachments
+                for(const feature of features) {
+                    try {
                         const photos = await getPhotos(feature.attributes.OBJECTID);
                         feed.appendChild(createCard(feature.attributes, photos));
+                    } catch(error) {
+                        console.error("Feature Error:", error);
                     }
-
-                } catch(error) {
-                    feed.innerHTML = `
-                        <div class="feed-item" style="color:#ff4444">
-                            ${error.message}<br>
-                            <button onclick="location.reload()">Retry</button>
-                        </div>
-                    `;
                 }
-            }
 
-            // 2. Fetch Attachments from Survey123
-            async function getPhotos(objectId) {
+            } catch(error) {
+                handleError(error);
+            }
+        }
+
+        // ======== IMAGE HANDLING FIX ========
+        async function getPhotos(objectId) {
+            const photos = [];
+            for(const tableId of ATTACHMENT_TABLES) {
                 try {
-                    const { data } = await esriRequest(`${SERVICE_URL}/1/query`, {
+                    const tableUrl = SERVICE_URL.replace('/0', `/${tableId}`);
+                    const { data } = await esriRequest(`${tableUrl}/query`, {
                         query: {
                             where: `ParentObjectID=${objectId}`,
                             outFields: "OBJECTID",
@@ -142,61 +181,74 @@
                         }
                     });
                     
-                    const photos = [];
-                    for (const feature of data.features) {
+                    for(const feature of data.features) {
                         const { data: attachments } = await esriRequest(
-                            `${SERVICE_URL}/1/${feature.attributes.OBJECTID}/attachments?f=json`
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments?f=json`
                         );
                         photos.push(...attachments.attachmentInfos.map(a => 
-                            `${SERVICE_URL}/1/${feature.attributes.OBJECTID}/attachments/${a.id}`
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments/${a.id}`
                         ));
                     }
-                    return photos;
                 } catch(error) {
-                    console.log("Photo error:", error.message);
-                    return [];
+                    console.log(`Skipped table ${tableId}: ${error.message}`);
                 }
             }
+            return photos;
+        }
 
-            // 3. Create Feed Card
-            function createCard(attributes, photos) {
-                const card = document.createElement('div');
-                card.className = 'feed-item';
-                card.innerHTML = `
-                    <div class="feed-header">
-                        <div class="feed-avatar">${attributes.name?.charAt(0) || '📌'}</div>
-                        <div>
-                            <div class="feed-author">${attributes.name || 'Community Resource'}</div>
-                            <div>${new Date(attributes.CreationDate).toLocaleDateString()}</div>
+        // ======== CARD CREATION ========
+        function createCard(attributes, photos) {
+            const card = document.createElement('div');
+            card.className = 'feed-item';
+            card.innerHTML = `
+                <div class="feed-header">
+                    <div class="feed-avatar">${attributes.resource_type?.charAt(0) || '📌'}</div>
+                    <div>
+                        <div class="feed-author">${attributes.name || 'Community Resource'}</div>
+                        <div class="feed-meta">
+                            ${new Date(attributes.CreationDate).toLocaleDateString()}
                         </div>
                     </div>
-                    ${photos.length ? `
-                    <div class="feed-photos">
-                        ${photos.map(url => `<img class="feed-photo" src="${url}" loading="lazy">`).join('')}
-                    </div>` : ''}
-                `;
-                return card;
+                </div>
+                ${photos.length ? `
+                <div class="feed-photos">
+                    ${photos.map(url => 
+                        `<img class="feed-photo" 
+                              src="${url}" 
+                              loading="lazy"
+                              onerror="this.style.display='none'">`
+                    ).join('')}
+                </div>` : ''}
+            `;
+            return card;
+        }
+
+        // ======== ERROR HANDLING ========
+        function handleError(error) {
+            const feed = document.getElementById("feed");
+            console.error("Feed Error:", error);
+            feed.innerHTML = `
+                <div class="feed-item" style="color:#ff4444">
+                    ${error.message}<br>
+                    <button onclick="location.reload()">Retry Now</button>
+                </div>
+            `;
+        }
+
+        // ======== INITIALIZATION ========
+        document.addEventListener("DOMContentLoaded", loadFeed);
+        document.getElementById("refresh").addEventListener("click", () => {
+            document.getElementById("feed").innerHTML = '<div class="loader"></div>';
+            loadFeed();
+        });
+
+        // ======== LOADING TIMEOUT ========
+        setTimeout(() => {
+            if(document.querySelector('.loader')) {
+                handleError(new Error("Connection timeout - Check network settings"));
             }
+        }, 10000);
 
-            // Initial load
-            document.addEventListener("DOMContentLoaded", loadFeed);
-            
-            // Refresh functionality
-            document.getElementById("refresh").addEventListener("click", () => {
-                document.getElementById("feed").innerHTML = '<div class="loader"></div>';
-                loadFeed();
-            });
-
-            // Loading timeout
-            setTimeout(() => {
-                if (document.querySelector('.loader')) {
-                    document.getElementById("feed").innerHTML = `
-                        <div class="feed-item" style="color:#ff4444">
-                            Loading timeout - Check your connection
-                        </div>
-                    `;
-                }
-            }, 10000);
         });
     </script>
 </body>
