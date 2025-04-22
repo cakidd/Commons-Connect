@@ -1,195 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Community Feed - The Commons</title>
+    <title>Survey123 Related Table Image Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        :root {
-            --primary: #2d4739;
-            --accent: #ffd700;
-            --text: rgba(255,255,255,0.9);
-        }
-        body {
-            background: var(--primary);
-            margin: 0;
-            color: var(--text);
-            font-family: Arial, sans-serif;
-        }
-        .feed-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .feed-item {
-            background: rgba(30,51,40,0.7);
-            border-left: 4px solid var(--accent);
-            border-radius: 8px;
-            margin: 20px 0;
-            padding: 20px;
-        }
-        .feed-photos {
+        .image-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 15px;
-            margin: 20px 0;
+            padding: 20px;
         }
-        .feed-photo {
+        .image-grid img {
             width: 100%;
             height: 200px;
             object-fit: cover;
+            border: 2px solid #ffd700;
             border-radius: 6px;
-            border: 2px solid var(--accent);
-        }
-        .loader {
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 40px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
     </style>
+    <script src="https://js.arcgis.com/4.28/"></script>
 </head>
 <body>
-    <div class="feed-container" id="feed">
-        <div class="loader"></div>
-    </div>
-
+    <div class="image-grid" id="imageGrid">Loading images...</div>
     <script>
-        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
-        (esriConfig, esriId, esriRequest) => {
-            
-        // ======== SERVICE CONFIGURATION ========
-        const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-        const ATTACHMENT_TABLES = [1,2,3,4];
-        let authToken = null;
+        require(["esri/request"], function(esriRequest) {
+            const MAIN_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+            const RELATED_TABLES = [
+                { index: 2, name: "classified_photos" },
+                { index: 3, name: "business_photos2" }
+            ];
 
-        // ======== AUTHENTICATION HANDLER ========
-        const getAuthToken = async () => {
-            if(!authToken) {
-                authToken = await esriId.getToken(SERVICE_URL);
-            }
-            return authToken;
-        };
-
-        esriConfig.request.interceptors.push({
-            urls: /services7.arcgis.com/,
-            before: async (params) => {
-                params.requestOptions.query = {
-                    ...params.requestOptions.query,
-                    token: await getAuthToken()
-                };
-                return params;
-            }
-        });
-
-        // ======== CORE FUNCTIONALITY ========
-        async function loadFeed() {
-            const feed = document.getElementById("feed");
-            try {
-                showLoader();
-                
-                // 1. Fetch Features
-                const features = await fetchFeatures();
-                if(!features.length) return showEmptyState();
-                
-                // 2. Process Features
-                feed.innerHTML = '';
-                for(const feature of features) {
-                    const photos = await fetchAttachments(feature.attributes.OBJECTID);
-                    if(photos.length) createPhotoGrid(photos);
-                }
-
-            } catch(error) {
-                handleError(error);
-            }
-        }
-
-        async function fetchFeatures() {
-            const { data } = await esriRequest(`${SERVICE_URL}/query`, {
-                query: {
-                    where: "1=1",
-                    outFields: "*",
-                    orderByFields: "CreationDate DESC",
-                    f: "json"
-                }
-            });
-            return data.features || [];
-        }
-
-        async function fetchAttachments(objectId) {
-            const photos = [];
-            for(const tableId of ATTACHMENT_TABLES) {
+            async function showRelatedImages() {
+                const container = document.getElementById("imageGrid");
                 try {
-                    const tableUrl = `${SERVICE_URL.replace('/0', '')}/${tableId}`;
-                    const { data } = await esriRequest(`${tableUrl}/query`, {
-                        query: {
-                            where: `ParentObjectID=${objectId}`,
-                            outFields: "OBJECTID",
-                            f: "json"
-                        }
+                    // 1. Get all OBJECTIDs from main table
+                    const { data } = await esriRequest(`${MAIN_URL}/query`, {
+                        query: { where: "1=1", outFields: "OBJECTID", f: "json" }
                     });
-                    
-                    for(const feature of data.features) {
-                        const { data: attachments } = await esriRequest(
-                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments?f=json`
-                        );
-                        photos.push(...attachments.attachmentInfos.map(a => 
-                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments/${a.id}`
-                        ));
+                    let found = false;
+                    container.innerHTML = "";
+
+                    for (const feature of data.features) {
+                        const oid = feature.attributes.OBJECTID;
+                        // 2. For each related table
+                        for (const tbl of RELATED_TABLES) {
+                            const relatedUrl = MAIN_URL.replace("/0", "/" + tbl.index);
+                            // 3. Find related photo records
+                            const { data: rel } = await esriRequest(`${relatedUrl}/query`, {
+                                query: { where: `ParentObjectID=${oid}`, outFields: "OBJECTID", f: "json" }
+                            });
+                            for (const photoRec of rel.features) {
+                                // 4. Get attachments for each related record
+                                const { data: atts } = await esriRequest(`${relatedUrl}/${photoRec.attributes.OBJECTID}/attachments?f=json`);
+                                if (atts.attachmentInfos && atts.attachmentInfos.length) {
+                                    found = true;
+                                    atts.attachmentInfos.forEach(att => {
+                                        const img = document.createElement("img");
+                                        img.src = `${relatedUrl}/${photoRec.attributes.OBJECTID}/attachments/${att.id}`;
+                                        img.alt = tbl.name + " photo";
+                                        container.appendChild(img);
+                                    });
+                                }
+                            }
+                        }
                     }
-                } catch(error) {
-                    console.warn(`Skipped table ${tableId}:`, error.message);
+                    if (!found) container.innerHTML = "No images found in related tables.";
+                } catch (err) {
+                    console.error(err);
+                    container.innerHTML = "Error loading images from related tables. See console.";
                 }
             }
-            return photos;
-        }
-
-        // ======== UI HELPERS ========
-        function showLoader() {
-            document.getElementById("feed").innerHTML = '<div class="loader"></div>';
-        }
-
-        function showEmptyState() {
-            document.getElementById("feed").innerHTML = 
-                '<div class="feed-item">🌟 No active listings found</div>';
-        }
-
-        function createPhotoGrid(photoUrls) {
-            const container = document.getElementById("feed");
-            const gallery = document.createElement('div');
-            gallery.className = 'feed-photos';
-            
-            photoUrls.forEach(url => {
-                const img = document.createElement('img');
-                img.className = 'feed-photo';
-                img.src = url;
-                img.loading = 'lazy';
-                img.onerror = () => img.remove();
-                gallery.appendChild(img);
-            });
-            
-            container.appendChild(gallery);
-        }
-
-        function handleError(error) {
-            console.error("Feed Error:", error);
-            document.getElementById("feed").innerHTML = `
-                <div class="feed-item" style="color:#ff4444">
-                    ${error.message}<br>
-                    <button onclick="location.reload()">Reload Page</button>
-                </div>
-            `;
-        }
-
-        // Initial load
-        loadFeed();
+            showRelatedImages();
         });
     </script>
 </body>
