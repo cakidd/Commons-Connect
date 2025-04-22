@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Community Feed</title>
+    <title>Community Feed - The Commons</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
@@ -67,96 +67,82 @@
             
         // ======== SERVICE CONFIGURATION ========
         const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-        const PHOTO_TABLES = [1,2,3,4];
-        let currentToken = null;
+        const ATTACHMENT_TABLES = [1,2,3,4];
+        let authToken = null;
 
-        // ======== AUTHENTICATION HANDLING ========
+        // ======== AUTHENTICATION HANDLER ========
+        const getAuthToken = async () => {
+            if(!authToken) {
+                authToken = await esriId.getToken(SERVICE_URL);
+            }
+            return authToken;
+        };
+
         esriConfig.request.interceptors.push({
             urls: /services7.arcgis.com/,
             before: async (params) => {
-                if (!currentToken) {
-                    currentToken = await esriId.getToken(SERVICE_URL);
-                }
                 params.requestOptions.query = {
                     ...params.requestOptions.query,
-                    token: currentToken
+                    token: await getAuthToken()
                 };
                 return params;
             }
         });
 
-        // ======== IMAGE LOADING CORE ========
-        async function loadImages() {
+        // ======== CORE FUNCTIONALITY ========
+        async function loadFeed() {
             const feed = document.getElementById("feed");
             try {
-                // 1. Get Features
-                const { data } = await esriRequest(`${SERVICE_URL}/query`, {
-                    query: {
-                        where: "1=1",
-                        outFields: "OBJECTID",
-                        f: "json"
-                    }
-                });
-
-                if (!data.features?.length) {
-                    feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
-                    return;
+                showLoader();
+                
+                // 1. Fetch Features
+                const features = await fetchFeatures();
+                if(!features.length) return showEmptyState();
+                
+                // 2. Process Features
+                feed.innerHTML = '';
+                for(const feature of features) {
+                    const photos = await fetchAttachments(feature.attributes.OBJECTID);
+                    if(photos.length) createPhotoGrid(photos);
                 }
 
-                // 2. Process First Feature
-                const firstFeature = data.features[0];
-                const photos = await getAttachments(firstFeature.attributes.OBJECTID);
-                
-                // 3. Build Gallery
-                feed.innerHTML = ''; // Clear loader
-                const gallery = document.createElement('div');
-                gallery.className = 'feed-photos';
-                
-                photos.forEach(url => {
-                    const img = document.createElement('img');
-                    img.className = 'feed-photo';
-                    img.src = url;
-                    img.loading = 'lazy';
-                    img.onerror = () => img.style.display = 'none';
-                    gallery.appendChild(img);
-                });
-                
-                feed.appendChild(gallery);
-
             } catch(error) {
-                console.error("Image Load Error:", error);
-                feed.innerHTML = '<div class="feed-item">❌ Error loading images</div>';
+                handleError(error);
             }
         }
 
-        // ======== ATTACHMENT HANDLING ========
-        async function getAttachments(objectId) {
-            const photos = [];
-            
-            for (const tableId of PHOTO_TABLES) {
-                try {
-                    const { data } = await esriRequest(
-                        `${SERVICE_URL}/${tableId}/query`, 
-                        {
-                            query: {
-                                where: `ParentObjectID=${objectId}`,
-                                outFields: "OBJECTID",
-                                f: "json"
-                            }
-                        }
-                    );
+        async function fetchFeatures() {
+            const { data } = await esriRequest(`${SERVICE_URL}/query`, {
+                query: {
+                    where: "1=1",
+                    outFields: "*",
+                    orderByFields: "CreationDate DESC",
+                    f: "json"
+                }
+            });
+            return data.features || [];
+        }
 
-                    for (const feature of data.features) {
+        async function fetchAttachments(objectId) {
+            const photos = [];
+            for(const tableId of ATTACHMENT_TABLES) {
+                try {
+                    const tableUrl = `${SERVICE_URL.replace('/0', '')}/${tableId}`;
+                    const { data } = await esriRequest(`${tableUrl}/query`, {
+                        query: {
+                            where: `ParentObjectID=${objectId}`,
+                            outFields: "OBJECTID",
+                            f: "json"
+                        }
+                    });
+                    
+                    for(const feature of data.features) {
                         const { data: attachments } = await esriRequest(
-                            `${SERVICE_URL}/${tableId}/${feature.attributes.OBJECTID}/attachments`,
-                            { query: { f: "json" } }
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments?f=json`
                         );
-                        
-                        attachments.attachmentInfos.forEach(attachment => {
-                            photos.push(
-                                `${SERVICE_URL}/${tableId}/${feature.attributes.OBJECTID}/attachments/${attachment.id}`
-                            );
-                        });
+                        photos.push(...attachments.attachmentInfos.map(a => 
+                            `${tableUrl}/${feature.attributes.OBJECTID}/attachments/${a.id}`
+                        ));
                     }
                 } catch(error) {
                     console.warn(`Skipped table ${tableId}:`, error.message);
@@ -165,8 +151,45 @@
             return photos;
         }
 
+        // ======== UI HELPERS ========
+        function showLoader() {
+            document.getElementById("feed").innerHTML = '<div class="loader"></div>';
+        }
+
+        function showEmptyState() {
+            document.getElementById("feed").innerHTML = 
+                '<div class="feed-item">🌟 No active listings found</div>';
+        }
+
+        function createPhotoGrid(photoUrls) {
+            const container = document.getElementById("feed");
+            const gallery = document.createElement('div');
+            gallery.className = 'feed-photos';
+            
+            photoUrls.forEach(url => {
+                const img = document.createElement('img');
+                img.className = 'feed-photo';
+                img.src = url;
+                img.loading = 'lazy';
+                img.onerror = () => img.remove();
+                gallery.appendChild(img);
+            });
+            
+            container.appendChild(gallery);
+        }
+
+        function handleError(error) {
+            console.error("Feed Error:", error);
+            document.getElementById("feed").innerHTML = `
+                <div class="feed-item" style="color:#ff4444">
+                    ${error.message}<br>
+                    <button onclick="location.reload()">Reload Page</button>
+                </div>
+            `;
+        }
+
         // Initial load
-        loadImages();
+        loadFeed();
         });
     </script>
 </body>
