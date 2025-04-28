@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Commons Community Feed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://js.arcgis.com/4.28/"></script>
+    <style>
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .feed-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            color: var(--primary);
+        }
+        .feed-author {
+            font-size: 1.4rem;
+            color: var(--accent);
+        }
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feed-photo {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid var(--accent);
+        }
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="feed-container" id="feed">
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        require(["esri/request"], (esriRequest) => {
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            const PHOTO_TABLES = [1, 2, 3, 4];
+
+            async function getPhotos(globalId) {
+                const photos = [];
+                for (const tableId of PHOTO_TABLES) {
+                    try {
+                        const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                        const { data } = await esriRequest(`${tableUrl}/query`, {
+                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                        });
+                        for (const rel of data.features) {
+                            const { data: attachments } = await esriRequest(
+                                `${tableUrl}/${rel.attributes.OBJECTID}/attachments?f=json`
+                            );
+                            if (attachments?.attachmentInfos?.length) {
+                                photos.push(...attachments.attachmentInfos.map(a => 
+                                    `${tableUrl}/${rel.attributes.OBJECTID}/attachments/${a.id}`
+                                ));
+                            }
+                        }
+                    } catch(error) {
+                        console.warn(`Skipped table ${tableId}:`, error.message);
+                    }
+                }
+                return photos;
+            }
+
+            function createImageGrid(photos) {
+                const grid = document.createElement('div');
+                grid.className = 'feed-photos';
+                photos.forEach(url => {
+                    const img = document.createElement('img');
+                    img.className = 'feed-photo';
+                    img.src = url;
+                    img.loading = 'lazy';
+                    img.onerror = () => img.style.display = 'none';
+                    grid.appendChild(img);
+                });
+                return grid;
+            }
+
+            async function loadFeed() {
+                const feed = document.getElementById("feed");
+                try {
+                    feed.innerHTML = '<div class="loader"></div>';
+                    
+                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
+                        query: {
+                            where: "1=1",
+                            outFields: "globalid,name,address,CreationDate",
+                            orderByFields: "CreationDate DESC",
+                            f: "json"
+                        }
+                    });
+
+                    if (!mainData.features?.length) {
+                        feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
+                        return;
+                    }
+
+                    feed.innerHTML = '';
+                    
+                    for (const feature of mainData.features) {
+                        const globalId = feature.attributes.globalid;
+                        if (!globalId) continue;
+
+                        const photos = await getPhotos(globalId);
+                        if (photos.length) {
+                            const card = document.createElement('div');
+                            card.className = 'feed-item';
+                            card.innerHTML = `
+                                <div class="feed-header">
+                                    <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '🏠'}</div>
+                                    <div>
+                                        <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
+                                        <div class="feed-meta">
+                                            ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
+                                            ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            card.appendChild(createImageGrid(photos));
+                            feed.appendChild(card);
+                        }
+                    }
+                } catch(error) {
+                    console.error("Feed Error:", error);
+                    feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
+                }
+            }
+
+            loadFeed();
+        });
+    </script>
+</body>
+</html>
