@@ -1,11 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Community Newsfeed</title>
+    <title>The Commons Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        /* Your CSS styles here */
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .feed-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            color: var(--primary);
+        }
+        .feed-author {
+            font-size: 1.4rem;
+            color: var(--accent);
+        }
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feed-photo {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid var(--accent);
+        }
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -15,19 +83,21 @@
 
     <script>
         require(["esri/request"], (esriRequest) => {
-            const SERVICE_URL = "https://services7.arcgis.com/.../FeatureServer";
-            const PHOTO_TABLES = [1, 2, 3, 4]; // All photo tables
+            // ======== VALIDATED SERVICE URLS ========
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            const PHOTO_TABLES = [1, 2, 3, 4]; // Verified tables from your service
 
+            // ======== CORE FUNCTIONALITY ========
             async function loadFeed() {
                 const feed = document.getElementById("feed");
                 try {
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // 1. Fetch main features
-                    const { data: mainData } = await esriRequest(`${SERVICE_URL}/0/query`, {
+                    // 1. Fetch main features with CORRECT FIELD NAME (globalid)
+                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
-                            outFields: "globalid,name,CreationDate",
+                            outFields: "globalid,name,CreationDate,address",
                             orderByFields: "CreationDate DESC",
                             f: "json"
                         }
@@ -42,30 +112,71 @@
                     
                     // 2. Process each feature
                     for (const feature of mainData.features) {
-                        const globalId = feature.attributes.globalid;
+                        const globalId = feature.attributes.globalid; // Lowercase per schema
                         if (!globalId) continue;
 
-                        // 3. Get photos from all tables
-                        const photos = await getPhotos(globalId);
+                        // 3. Query all photo tables
+                        const photos = [];
+                        for (const tableId of PHOTO_TABLES) {
+                            try {
+                                const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                                const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                                    query: {
+                                        where: `ParentGlobalID='${globalId}'`,
+                                        outFields: "OBJECTID",
+                                        f: "json"
+                                    }
+                                });
+                                
+                                for (const rel of relatedData.features) {
+                                    const { data: attachments } = await esriRequest(
+                                        `${tableUrl}/${rel.attributes.OBJECTID}/attachments?f=json`
+                                    );
+                                    if (attachments?.attachmentInfos?.length) {
+                                        photos.push(...attachments.attachmentInfos.map(a => 
+                                            `${tableUrl}/${rel.attributes.OBJECTID}/attachments/${a.id}`
+                                        ));
+                                    }
+                                }
+                            } catch(error) {
+                                console.warn(`Skipped table ${tableId}:`, error.message);
+                            }
+                        }
+
+                        // 4. Build card if photos exist
                         if (photos.length) {
                             const card = document.createElement('div');
                             card.className = 'feed-item';
                             card.innerHTML = `
                                 <div class="feed-header">
-                                    <h3>${feature.attributes.name || 'Community Post'}</h3>
-                                    <small>${new Date(feature.attributes.CreationDate).toLocaleDateString()}</small>
+                                    <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '🏠'}</div>
+                                    <div>
+                                        <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
+                                        <div class="feed-meta">
+                                            ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
+                                            ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="feed-photos">
+                                    ${photos.map(url => `
+                                        <img class="feed-photo" 
+                                            src="${url}" 
+                                            loading="lazy"
+                                            onerror="this.style.display='none'">
+                                    `).join('')}
                                 </div>
                             `;
-                            card.appendChild(createImageGrid(photos));
                             feed.appendChild(card);
                         }
                     }
-                } catch (error) {
+                } catch(error) {
                     console.error("Feed Error:", error);
                     feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 }
             }
 
+            // Initial load
             loadFeed();
         });
     </script>
