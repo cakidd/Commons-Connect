@@ -16,9 +16,10 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.9);
             justify-content: center;
             align-items: center;
+            touch-action: pan-y;
         }
         
         .lightbox.active {
@@ -42,23 +43,16 @@
             cursor: pointer;
             padding: 20px;
             user-select: none;
+            background: rgba(19,59,6,0.7);
+            border-radius: 50%;
         }
 
         .lightbox-prev {
-            left: 10px;
+            left: 20px;
         }
 
         .lightbox-next {
-            right: 10px;
-        }
-
-        .lightbox-close {
-            position: absolute;
-            top: 20px;
-            right: 35px;
-            color: var(--accent-gold);
-            font-size: 40px;
-            cursor: pointer;
+            right: 20px;
         }
 
         .lightbox-loader {
@@ -86,6 +80,9 @@
             transform: translateX(-50%);
             color: var(--accent-gold);
             font-size: 1.2rem;
+            background: rgba(19,59,6,0.7);
+            padding: 5px 15px;
+            border-radius: 20px;
         }
     </style>
 </head>
@@ -94,7 +91,6 @@
 
     <!-- Enhanced Lightbox -->
     <div id="lightbox-modal" class="lightbox">
-        <span class="lightbox-close">&times;</span>
         <div class="lightbox-loader" id="lightbox-spinner"></div>
         <span class="lightbox-nav lightbox-prev">❮</span>
         <span class="lightbox-nav lightbox-next">❯</span>
@@ -105,7 +101,7 @@
     <script>
         // Existing carousel code remains unchanged
 
-        // ======== ENHANCED LIGHTBOX FUNCTIONALITY ========
+        // ======== LIGHTBOX ENHANCEMENTS ========
         const lightbox = document.getElementById('lightbox-modal');
         const lightboxImg = document.getElementById('lightbox-image');
         const lightboxSpinner = document.getElementById('lightbox-spinner');
@@ -114,29 +110,7 @@
         let currentLightboxIndex = 0;
         let touchStartX = 0;
 
-        // Lightbox Controls
-        document.querySelectorAll('.lightbox-nav').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (e.target.classList.contains('lightbox-prev')) {
-                    showPrevImage();
-                } else {
-                    showNextImage();
-                }
-            });
-        });
-
-        // Open lightbox with clicked image
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('feed-photo')) {
-                const postIndex = currentPostIndex;
-                currentLightboxImages = Array.from(posts[postIndex].querySelectorAll('.feed-photo'))
-                    .map(img => img.src);
-                currentLightboxIndex = currentLightboxImages.indexOf(e.target.src);
-                openLightbox();
-            }
-        });
-
-        // Swipe handling for lightbox
+        // Touch handling for lightbox
         lightbox.addEventListener('touchstart', e => {
             touchStartX = e.touches[0].clientX;
         });
@@ -149,12 +123,32 @@
             }
         });
 
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            if (lightbox.classList.contains('active')) {
-                if (e.key === 'ArrowLeft') showPrevImage();
-                if (e.key === 'ArrowRight') showNextImage();
-                if (e.key === 'Escape') closeLightbox();
+        // Click handlers for images
+        document.addEventListener('click', e => {
+            if (e.target.classList.contains('feed-photo')) {
+                const postIndex = currentPostIndex;
+                currentLightboxImages = Array.from(posts[postIndex].querySelectorAll('.feed-photo'))
+                    .map(img => img.src);
+                currentLightboxIndex = currentLightboxImages.indexOf(e.target.src);
+                openLightbox();
+            }
+        });
+
+        // Navigation controls
+        document.querySelectorAll('.lightbox-nav').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.contains('lightbox-prev') ? showPrevImage() : showNextImage();
+            });
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', e => {
+            if (!lightbox.classList.contains('active')) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft': showPrevImage(); break;
+                case 'ArrowRight': showNextImage(); break;
+                case 'Escape': closeLightbox(); break;
             }
         });
 
@@ -192,14 +186,15 @@
                 lightboxImg.src = img.src;
                 lightboxSpinner.classList.remove('active');
             };
+            img.onerror = () => {
+                lightboxSpinner.classList.remove('active');
+            };
             img.src = currentLightboxImages[index];
         }
 
         function updateCounter() {
             lightboxCounter.textContent = `${currentLightboxIndex + 1}/${currentLightboxImages.length}`;
         }
-
-        // Close lightbox handlers remain unchanged
     </script>
 </body>
 </html>
