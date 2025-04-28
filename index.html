@@ -84,17 +84,23 @@
     <script>
         require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
         (esriConfig, esriId, esriRequest) => {
-            
-            // ======== VALIDATED CONFIGURATION ========
-            const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer";
-            const PHOTO_TABLES = [1, 2, 3]; // Tables 1-3 only (table 4 is empty)
+            // ======== VALIDATED SERVICE URLS ========
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            const PHOTO_TABLES = [3]; // Focus on business_photos2 table only
 
             // ======== AUTHENTICATION HANDLER ========
             esriConfig.request.interceptors.push({
                 urls: /services7.arcgis.com/,
                 before: async (params) => {
-                    const token = await esriId.getToken(SERVICE_URL);
-                    if (token) params.requestOptions.query.token = token;
+                    try {
+                        const token = await esriId.getToken(MAIN_LAYER_URL);
+                        if (token) params.requestOptions.query = {
+                            ...params.requestOptions.query,
+                            token: token
+                        };
+                    } catch(error) {
+                        console.error("Auth Error:", error);
+                    }
                     return params;
                 }
             });
@@ -104,12 +110,16 @@
                 const photos = [];
                 for (const tableId of PHOTO_TABLES) {
                     try {
-                        const tableUrl = `${SERVICE_URL}/${tableId}`;
-                        const { data } = await esriRequest(`${tableUrl}/query`, {
-                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                        const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                            query: {
+                                where: `ParentGlobalID='${globalId}'`,
+                                outFields: "OBJECTID",
+                                f: "json"
+                            }
                         });
                         
-                        for (const rel of data.features) {
+                        for (const rel of relatedData.features) {
                             const { data: attachments } = await esriRequest(
                                 `${tableUrl}/${rel.attributes.OBJECTID}/attachments?f=json`
                             );
@@ -134,7 +144,7 @@
                     img.className = 'feed-photo';
                     img.src = url;
                     img.loading = 'lazy';
-                    img.onerror = () => img.remove();
+                    img.onerror = () => img.style.display = 'none';
                     grid.appendChild(img);
                 });
                 return grid;
@@ -146,8 +156,8 @@
                 try {
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // 1. Get main features
-                    const { data: mainData } = await esriRequest(`${SERVICE_URL}/0/query`, {
+                    // 1. Fetch main features
+                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
                             outFields: "globalid,name,address,CreationDate",
@@ -168,7 +178,7 @@
                         const globalId = feature.attributes.globalid; // lowercase
                         if (!globalId) continue;
 
-                        // 3. Get photos from all tables
+                        // 3. Get photos from target table
                         const photos = await getPhotos(globalId);
                         if (photos.length) {
                             const card = document.createElement('div');
