@@ -1,109 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Feed</title>
+    <title>Community Newsfeed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        /* Your existing CSS */
+        /* Your CSS styles here */
     </style>
 </head>
 <body>
-    <div id="feed"><div class="loader"></div></div>
-    <script>
-        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
-        (esriConfig, esriId, esriRequest) => {
-            const MAIN_LAYER = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
-            const BUSINESS_PHOTOS2 = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/3";
+    <div class="feed-container" id="feed">
+        <div class="loader"></div>
+    </div>
 
-            // Authentication (if needed)
-            esriConfig.request.interceptors.push({
-                urls: /services7.arcgis.com/,
-                before: async (params) => {
-                    const token = await esriId.getToken(MAIN_LAYER);
-                    if(token) params.requestOptions.query = { ...params.requestOptions.query, token };
-                    return params;
-                }
-            });
+    <script>
+        require(["esri/request"], (esriRequest) => {
+            const SERVICE_URL = "https://services7.arcgis.com/.../FeatureServer";
+            const PHOTO_TABLES = [1, 2, 3, 4]; // All photo tables
 
             async function loadFeed() {
+                const feed = document.getElementById("feed");
                 try {
-                    const feed = document.getElementById("feed");
+                    feed.innerHTML = '<div class="loader"></div>';
                     
-                    // 1. Get main features
-                    const { data: mainData } = await esriRequest(`${MAIN_LAYER}/query`, {
+                    // 1. Fetch main features
+                    const { data: mainData } = await esriRequest(`${SERVICE_URL}/0/query`, {
                         query: {
                             where: "1=1",
-                            outFields: "GlobalID,name,CreationDate,address",
+                            outFields: "globalid,name,CreationDate",
                             orderByFields: "CreationDate DESC",
                             f: "json"
                         }
                     });
 
+                    if (!mainData.features?.length) {
+                        feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
+                        return;
+                    }
+
                     feed.innerHTML = '';
                     
                     // 2. Process each feature
-                    for(const feature of mainData.features) {
-                        const globalId = feature.attributes.GlobalID;
-                        
-                        // 3. Get related business_photos2 records
-                        const { data: relatedData } = await esriRequest(`${BUSINESS_PHOTOS2}/query`, {
-                            query: {
-                                where: `ParentGlobalID='${globalId}'`,
-                                outFields: "OBJECTID",
-                                f: "json"
-                            }
-                        });
+                    for (const feature of mainData.features) {
+                        const globalId = feature.attributes.globalid;
+                        if (!globalId) continue;
 
-                        if(!relatedData.features?.length) continue;
-
-                        // 4. Get attachments
-                        const photos = [];
-                        for(const rel of relatedData.features) {
-                            try {
-                                const { data: attachments } = await esriRequest(
-                                    `${BUSINESS_PHOTOS2}/${rel.attributes.OBJECTID}/attachments?f=json`
-                                );
-                                photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${BUSINESS_PHOTOS2}/${rel.attributes.OBJECTID}/attachments/${a.id}`
-                                ));
-                            } catch(error) {
-                                console.warn("Attachment error:", error);
-                            }
-                        }
-
-                        // 5. Build card
-                        if(photos.length) {
+                        // 3. Get photos from all tables
+                        const photos = await getPhotos(globalId);
+                        if (photos.length) {
                             const card = document.createElement('div');
                             card.className = 'feed-item';
                             card.innerHTML = `
                                 <div class="feed-header">
-                                    <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '🏠'}</div>
-                                    <div>
-                                        <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
-                                        <div class="feed-meta">
-                                            ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
-                                            ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="feed-photos">
-                                    ${photos.map(url => `
-                                        <img class="feed-photo" 
-                                             src="${url}" 
-                                             loading="lazy"
-                                             onerror="this.style.display='none'">
-                                    `).join('')}
+                                    <h3>${feature.attributes.name || 'Community Post'}</h3>
+                                    <small>${new Date(feature.attributes.CreationDate).toLocaleDateString()}</small>
                                 </div>
                             `;
+                            card.appendChild(createImageGrid(photos));
                             feed.appendChild(card);
                         }
                     }
-                } catch(error) {
+                } catch (error) {
                     console.error("Feed Error:", error);
-                    document.getElementById("feed").innerHTML = "Error loading feed";
+                    feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 }
             }
+
             loadFeed();
         });
     </script>
