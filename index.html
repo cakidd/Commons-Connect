@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        /* ...your CSS... */
+        /* Your CSS remains unchanged */
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
+
     <script>
         require(["esri/request"], (esriRequest) => {
             const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
@@ -21,6 +22,8 @@
                 const feed = document.getElementById("feed");
                 try {
                     feed.innerHTML = '<div class="loader"></div>';
+                    
+                    // 1. Fetch main features
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -30,19 +33,24 @@
                         }
                     });
 
+                    console.log("Main layer features:", mainData.features);
+                    
                     if (!mainData.features?.length) {
                         feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
                         return;
                     }
-                    feed.innerHTML = '';
 
+                    feed.innerHTML = '';
+                    
+                    // 2. Process each feature
                     for (const feature of mainData.features) {
-                        const globalId = feature.attributes.globalid; // <-- lowercase!
+                        const globalId = feature.attributes.globalid; // Lowercase
                         if (!globalId) {
-                            console.warn("Missing globalid for feature:", feature);
+                            console.warn("Skipping feature without globalid:", feature);
                             continue;
                         }
 
+                        // 3. Get photos from all tables
                         const photos = [];
                         for (const tableId of PHOTO_TABLES) {
                             try {
@@ -53,7 +61,7 @@
 
                                 for (const rel of relatedData.features || []) {
                                     try {
-                                        const oid = rel.attributes.objectid; // <-- lowercase!
+                                        const oid = rel.attributes.objectid; // Lowercase
                                         const { data: attachments } = await esriRequest(
                                             `${tableUrl}/${oid}/attachments?f=json`
                                         );
@@ -71,6 +79,7 @@
                             }
                         }
 
+                        // 4. Build card
                         if (photos.length) {
                             const card = document.createElement('div');
                             card.className = 'feed-item';
@@ -102,6 +111,7 @@
                     feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 }
             }
+
             loadFeed();
         });
     </script>
