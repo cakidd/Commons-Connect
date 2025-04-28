@@ -1,169 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Community Feed</title>
+    <title>The Commons Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        body {
-            background: #2d4739;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            margin: 0;
-        }
-        .feed-container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-        .feed-item {
-            background: rgba(30,51,40,0.85);
-            border-left: 4px solid #ffd700;
-            border-radius: 8px;
-            margin: 24px 0;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-        }
-        .feed-header {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 16px;
-        }
-        .feed-avatar {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            background: #ffd700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: #2d4739;
-            font-weight: bold;
-        }
-        .feed-author {
-            font-size: 1.2rem;
-            color: #ffd700;
-            font-weight: bold;
-        }
-        .feed-meta {
-            color: #ccc;
-            font-size: 0.95rem;
-        }
-        .feed-photos {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 14px;
-            margin: 18px 0;
-        }
-        .feed-photo {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 2px solid #ffd700;
-            background: #fff;
-        }
-        .loader {
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid #ffd700;
-            border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            animation: spin 1s linear infinite;
-            margin: 40px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg);}
-            100% { transform: rotate(360deg);}
-        }
-        @media (max-width: 700px) {
-            .feed-container { padding: 8px; }
-            .feed-item { padding: 12px; }
-            .feed-header { gap: 10px; }
-            .feed-photos { grid-template-columns: 1fr; }
-        }
+        /* Your existing CSS */
     </style>
 </head>
 <body>
-    <div class="feed-container" id="feed">
-        <div class="loader"></div>
-    </div>
+    <div id="feed"><div class="loader"></div></div>
     <script>
-        require(["esri/request"], function(esriRequest) {
-            // Service URLs
-            const FEATURE_SERVICE = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer";
-            const MAIN_LAYER = `${FEATURE_SERVICE}/0`;
-            const BUSINESS_PHOTOS2 = `${FEATURE_SERVICE}/3`;
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        (esriConfig, esriId, esriRequest) => {
+            const MAIN_LAYER = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            const BUSINESS_PHOTOS2 = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/3";
+
+            // Authentication (if needed)
+            esriConfig.request.interceptors.push({
+                urls: /services7.arcgis.com/,
+                before: async (params) => {
+                    const token = await esriId.getToken(MAIN_LAYER);
+                    if(token) params.requestOptions.query = { ...params.requestOptions.query, token };
+                    return params;
+                }
+            });
 
             async function loadFeed() {
-                const feed = document.getElementById("feed");
                 try {
-                    // Fetch all features from main layer (get GlobalID, name, address, city, zip, CreationDate)
+                    const feed = document.getElementById("feed");
+                    
+                    // 1. Get main features
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER}/query`, {
                         query: {
                             where: "1=1",
-                            outFields: "GlobalID,name,address,city,zip,CreationDate,contact_name",
+                            outFields: "GlobalID,name,CreationDate,address",
                             orderByFields: "CreationDate DESC",
                             f: "json"
                         }
                     });
 
                     feed.innerHTML = '';
-                    if (!mainData.features?.length) {
-                        feed.innerHTML = '<div class="feed-item">No community listings found</div>';
-                        return;
-                    }
-
-                    // For each main feature, look up related business_photos2 records
-                    for (const feature of mainData.features) {
-                        const attr = feature.attributes;
-                        const globalId = attr.GlobalID;
-
-                        // Query business_photos2 for records with matching ParentGlobalID
+                    
+                    // 2. Process each feature
+                    for(const feature of mainData.features) {
+                        const globalId = feature.attributes.GlobalID;
+                        
+                        // 3. Get related business_photos2 records
                         const { data: relatedData } = await esriRequest(`${BUSINESS_PHOTOS2}/query`, {
                             query: {
                                 where: `ParentGlobalID='${globalId}'`,
-                                outFields: "OBJECTID,CreationDate",
+                                outFields: "OBJECTID",
                                 f: "json"
                             }
                         });
 
-                        if (!relatedData.features?.length) continue;
+                        if(!relatedData.features?.length) continue;
 
-                        // For each related record, get attachments
-                        let photos = [];
-                        for (const rel of relatedData.features) {
-                            const relId = rel.attributes.OBJECTID;
+                        // 4. Get attachments
+                        const photos = [];
+                        for(const rel of relatedData.features) {
                             try {
                                 const { data: attachments } = await esriRequest(
-                                    `${BUSINESS_PHOTOS2}/${relId}/attachments`,
-                                    { query: { f: "json" } }
+                                    `${BUSINESS_PHOTOS2}/${rel.attributes.OBJECTID}/attachments?f=json`
                                 );
-                                if (attachments.attachmentInfos?.length) {
-                                    attachments.attachmentInfos.forEach(att => {
-                                        photos.push(`${BUSINESS_PHOTOS2}/${relId}/attachments/${att.id}`);
-                                    });
-                                }
-                            } catch (err) {
-                                // Ignore missing attachments
+                                photos.push(...attachments.attachmentInfos.map(a => 
+                                    `${BUSINESS_PHOTOS2}/${rel.attributes.OBJECTID}/attachments/${a.id}`
+                                ));
+                            } catch(error) {
+                                console.warn("Attachment error:", error);
                             }
                         }
 
-                        if (photos.length) {
-                            // Build the newsfeed card
+                        // 5. Build card
+                        if(photos.length) {
                             const card = document.createElement('div');
                             card.className = 'feed-item';
                             card.innerHTML = `
                                 <div class="feed-header">
-                                    <div class="feed-avatar">${(attr.name && attr.name[0]) ? attr.name[0].toUpperCase() : "🖼"}</div>
+                                    <div class="feed-avatar">${feature.attributes.name?.charAt(0) || '🏠'}</div>
                                     <div>
-                                        <div class="feed-author">${attr.name || 'Community Member'}</div>
+                                        <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
                                         <div class="feed-meta">
-                                            ${attr.address ? `${attr.address}, ${attr.city || ''} ${attr.zip || ''}` : ''}
-                                            <br>
-                                            ${attr.CreationDate ? new Date(attr.CreationDate).toLocaleDateString() : ''}
+                                            ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
+                                            ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -171,29 +91,19 @@
                                     ${photos.map(url => `
                                         <img class="feed-photo" 
                                              src="${url}" 
-                                             loading="lazy" 
-                                             onerror="this.style.display='none'"
-                                             alt="Community photo">
+                                             loading="lazy"
+                                             onerror="this.style.display='none'">
                                     `).join('')}
                                 </div>
                             `;
                             feed.appendChild(card);
                         }
                     }
-
-                    if (feed.children.length === 0) {
-                        feed.innerHTML = '<div class="feed-item">No community photos found</div>';
-                    }
-                } catch (error) {
-                    console.error("Feed error:", error);
-                    feed.innerHTML = `
-                        <div class="feed-item" style="color:#ff4444">
-                            Error loading community feed. Please try again later.
-                        </div>
-                    `;
+                } catch(error) {
+                    console.error("Feed Error:", error);
+                    document.getElementById("feed").innerHTML = "Error loading feed";
                 }
             }
-
             loadFeed();
         });
     </script>
