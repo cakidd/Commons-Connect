@@ -109,17 +109,6 @@
         }
         .lightbox-prev { left: 20px; }
         .lightbox-next { right: 20px; }
-        .lightbox-counter {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--accent-gold);
-            font-size: 1.2rem;
-            background: rgba(19,59,6,0.7);
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
             border-top: 4px solid var(--accent-gold);
@@ -144,7 +133,6 @@
         <span class="lightbox-nav lightbox-prev">❮</span>
         <span class="lightbox-nav lightbox-next">❯</span>
         <img class="lightbox-content" id="lightbox-image">
-        <div class="lightbox-counter" id="lightbox-counter"></div>
     </div>
 
     <script>
@@ -171,9 +159,8 @@
         require(["esri/request"], (esriRequest) => {
             const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
-            let currentPostIndex = 0;
-            let posts = [];
-            let touchStartX = 0;
+            let currentLightboxImages = [];
+            let currentLightboxIndex = 0;
 
             async function loadFeed() {
                 try {
@@ -195,18 +182,22 @@
                     }
 
                     feed.innerHTML = '';
-                    posts = data.features.map(createFeatureCard);
-                    posts.forEach(post => feed.appendChild(post));
+                    
+                    // Process features sequentially
+                    for (const feature of data.features) {
+                        const card = await createFeatureCard(feature);
+                        feed.appendChild(card);
+                    }
                 } catch(error) {
                     console.error("Feed Error:", error);
                     document.getElementById("feed").innerHTML = '<div class="feed-item">⚠️ Error loading feed</div>';
                 }
             }
 
-            function createFeatureCard(feature) {
+            async function createFeatureCard(feature) {
                 const category = feature.attributes.category?.toLowerCase() || '';
                 const categoryIcon = CATEGORY_ICONS[category] || CATEGORY_ICONS.default;
-                const photos = getPhotosForFeature(feature);
+                const photos = await getPhotosForFeature(feature);
                 
                 const card = document.createElement('div');
                 card.className = 'feed-item';
@@ -240,29 +231,60 @@
                 const photos = [];
                 const globalId = feature.attributes.globalid;
 
-                for(const tableId of PHOTO_TABLES) {
+                for (const tableId of PHOTO_TABLES) {
                     try {
-                        const { data } = await esriRequest(
-                            `${SERVICE_URL.replace("/0", `/${tableId}`)}/query?where=ParentGlobalID='${globalId}'&f=json`
-                        );
-                        for(const rel of data.features || []) {
-                            const { data: attachments } = await esriRequest(
-                                `${SERVICE_URL.replace("/0", `/${tableId}`)}/${rel.attributes.objectid}/attachments?f=json`
-                            );
-                            if (attachments?.attachmentInfos?.length) {
-                                photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${SERVICE_URL.replace("/0", `/${tableId}`)}/${rel.attributes.objectid}/attachments/${a.id}`
-                                ));
+                        const tableUrl = SERVICE_URL.replace("/0", `/${tableId}`);
+                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                        });
+
+                        for (const rel of relatedData.features || []) {
+                            try {
+                                const { data: attachments } = await esriRequest(
+                                    `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
+                                );
+                                if (attachments?.attachmentInfos?.length) {
+                                    photos.push(...attachments.attachmentInfos.map(a => 
+                                        `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
+                                    ));
+                                }
+                            } catch (error) {
+                                console.warn(`Attachment error in table ${tableId}:`, error);
                             }
                         }
-                    } catch(error) {
-                        console.warn(`Skipped table ${tableId}:`, error.message);
+                    } catch (error) {
+                        console.warn(`Table ${tableId} query failed:`, error);
                     }
                 }
                 return photos;
             }
 
-            // Lightbox functionality remains unchanged from previous implementation
+            function openLightbox(images, startIndex) {
+                currentLightboxImages = images;
+                currentLightboxIndex = startIndex;
+                const lightbox = document.getElementById("lightbox");
+                lightbox.classList.add("active");
+                updateLightboxImage();
+            }
+
+            function updateLightboxImage() {
+                document.getElementById("lightbox-image").src = currentLightboxImages[currentLightboxIndex];
+            }
+
+            document.querySelectorAll('.lightbox-nav').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    currentLightboxIndex += e.target.classList.contains('lightbox-prev') ? -1 : 1;
+                    if (currentLightboxIndex < 0) currentLightboxIndex = currentLightboxImages.length - 1;
+                    if (currentLightboxIndex >= currentLightboxImages.length) currentLightboxIndex = 0;
+                    updateLightboxImage();
+                });
+            });
+
+            document.getElementById("lightbox").addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    e.currentTarget.classList.remove("active");
+                }
+            });
 
             loadFeed();
         });
