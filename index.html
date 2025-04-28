@@ -83,8 +83,8 @@
 
     <script>
         require(["esri/request"], (esriRequest) => {
-            // ======== VALIDATED SERVICE CONFIGURATION ========
-            const MAIN_LAYER = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            // ======== VALIDATED CONFIGURATION ========
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4]; // All photo tables
 
             // ======== CORE FUNCTIONALITY ========
@@ -93,11 +93,11 @@
                 try {
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // 1. Get main features with CORRECT FIELD NAME (GlobalID)
-                    const { data: mainData } = await esriRequest(`${MAIN_LAYER}/query`, {
+                    // 1. Fetch main features with CORRECT FIELD NAME (GlobalID)
+                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
-                            outFields: "GlobalID,name,address,CreationDate",
+                            outFields: "*", // Fetch all fields
                             orderByFields: "CreationDate DESC",
                             f: "json"
                         }
@@ -114,41 +114,30 @@
                     
                     // 2. Process each feature
                     for (const feature of mainData.features) {
-                        const globalId = feature.attributes.GlobalID; // Correct case
-                        if (!globalId) {
-                            console.warn("Missing GlobalID for feature:", feature);
-                            continue;
-                        }
+                        const globalId = feature.attributes.GlobalID; // Uppercase
+                        if (!globalId) continue;
 
-                        // 3. Query all photo tables
+                        // 3. Get photos from all tables
                         const photos = [];
                         for (const tableId of PHOTO_TABLES) {
                             try {
-                                const tableUrl = MAIN_LAYER.replace("/0", `/${tableId}`);
+                                const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                                 const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                                    query: {
-                                        where: `ParentGlobalID='${globalId}'`,
-                                        outFields: "OBJECTID",
-                                        f: "json"
-                                    }
+                                    query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
                                 });
-
-                                console.log(`Table ${tableId} features for ${globalId}:`, relatedData.features);
                                 
                                 for (const rel of relatedData.features) {
-                                    try {
-                                        const { data: attachments } = await esriRequest(
-                                            `${tableUrl}/${rel.attributes.OBJECTID}/attachments?f=json`
-                                        );
+                                    const { data: attachments } = await esriRequest(
+                                        `${tableUrl}/${rel.attributes.OBJECTID}/attachments?f=json`
+                                    );
+                                    if (attachments?.attachmentInfos?.length) {
                                         photos.push(...attachments.attachmentInfos.map(a => 
                                             `${tableUrl}/${rel.attributes.OBJECTID}/attachments/${a.id}`
                                         ));
-                                    } catch(error) {
-                                        console.warn(`Attachment Error (Table ${tableId}):`, error);
                                     }
                                 }
                             } catch(error) {
-                                console.warn(`Table ${tableId} Error:`, error);
+                                console.warn(`Skipped table ${tableId}:`, error.message);
                             }
                         }
 
@@ -179,7 +168,6 @@
                             feed.appendChild(card);
                         }
                     }
-
                 } catch(error) {
                     console.error("Feed Error:", error);
                     feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
