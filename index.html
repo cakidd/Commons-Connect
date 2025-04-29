@@ -27,10 +27,6 @@
             border-radius: 8px;
             margin: 20px 0;
             padding: 20px;
-            transition: transform 0.3s ease;
-        }
-        .feed-item:hover {
-            transform: translateY(-3px);
         }
         .feed-header {
             display: flex;
@@ -50,7 +46,7 @@
         }
         .feed-author {
             font-size: 1.4rem;
-            color: var(--accent);
+            color: var(--accent); /* FIXED SYNTAX */
         }
         .feed-photos {
             display: grid;
@@ -78,57 +74,31 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .refresh-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--primary);
-            color: var(--accent);
-            padding: 10px 20px;
-            border-radius: 20px;
-            display: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
-    <div class="refresh-indicator" id="refreshIndicator">🔄 Loading New Posts...</div>
 
     <script>
         require(["esri/request"], (esriRequest) => {
             const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
-            let currentPosts = new Set();
-
-            // ======== BRAND EMOJI MAPPING ========
+            const PHOTO_TABLES = [1, 2, 3, 4]; // All photo tables
             const CATEGORY_ICONS = {
-                yard_sale: '🏷️',
-                classified: '📦',
-                business: '🏢',
-                csa: '🧺',
-                farmers_market: '🥕',
-                community_garden: '🌱',
-                food_pantry: '🥫',
-                farm_stand: '🚜',
-                restaurant: '🍽️',
-                educational_program: '🎓',
-                artisinal: '🧀',
-                barter_swap: '🤝',
-                preservation: '🫙',
-                community_kitchen: '🍲',
-                home_health_center: '🏥',
-                government_resource: '🏛️',
-                default: '✨'
+                yard_sale: '🏷️', classified: '📦', business: '🏢',
+                csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
+                food_pantry: '🥫', farm_stand: '🚜', restaurant: '🍽️',
+                educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
+                preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
 
-            async function loadFeed(isRefresh = false) {
+            async function loadFeed() {
+                const feed = document.getElementById("feed");
                 try {
-                    const feed = document.getElementById("feed");
-                    if (!isRefresh) feed.innerHTML = '<div class="loader"></div>';
+                    feed.innerHTML = '<div class="loader"></div>';
                     
+                    // 1. Get main features
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -143,26 +113,15 @@
                         return;
                     }
 
-                    const newPosts = mainData.features.filter(f => 
-                        !currentPosts.has(f.attributes.OBJECTID)
-                    );
-
-                    if (isRefresh && newPosts.length === 0) {
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                        return;
-                    }
-
-                    currentPosts = new Set(mainData.features.map(f => f.attributes.OBJECTID));
-                    const fragment = document.createDocumentFragment();
-
+                    feed.innerHTML = '';
+                    
+                    // 2. Process each feature
                     for (const feature of mainData.features) {
                         const globalId = feature.attributes.globalid;
                         if (!globalId) continue;
 
-                        const category = feature.attributes.category?.toLowerCase() || '';
-                        const categoryIcon = CATEGORY_ICONS[category] || CATEGORY_ICONS.default;
+                        // 3. Get photos from all tables
                         const photos = [];
-
                         for (const tableId of PHOTO_TABLES) {
                             try {
                                 const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
@@ -185,12 +144,16 @@
                             }
                         }
 
+                        // 4. Build card with emojis
                         if (photos.length) {
+                            const category = feature.attributes.category?.toLowerCase() || '';
                             const card = document.createElement('div');
                             card.className = 'feed-item';
                             card.innerHTML = `
                                 <div class="feed-header">
-                                    <div class="feed-avatar">${categoryIcon}</div>
+                                    <div class="feed-avatar">
+                                        ${CATEGORY_ICONS[category] || CATEGORY_ICONS.default}
+                                    </div>
                                     <div>
                                         <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
                                         <div class="feed-meta">
@@ -208,43 +171,24 @@
                                     `).join('')}
                                 </div>
                             `;
-                            fragment.appendChild(card);
+                            feed.appendChild(card);
                         }
                     }
 
-                    feed.innerHTML = '';
-                    feed.appendChild(fragment);
-
-                    if (isRefresh) {
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                    }
+                    // Auto-refresh after 30 seconds
+                    setTimeout(() => {
+                        feed.innerHTML = '<div class="loader"></div>';
+                        loadFeed();
+                    }, 30000);
 
                 } catch(error) {
                     console.error("Feed Error:", error);
-                    if (!isRefresh) {
-                        feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
-                    }
+                    feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 }
             }
 
-            function checkScroll() {
-                const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-                if (scrollTop + clientHeight >= scrollHeight - 100) {
-                    showRefreshIndicator();
-                    setTimeout(() => loadFeed(true), 1000);
-                }
-            }
-
-            function showRefreshIndicator() {
-                const indicator = document.getElementById("refreshIndicator");
-                indicator.style.display = "block";
-                setTimeout(() => indicator.style.display = "none", 3000);
-            }
-
-            // Initial load and auto-refresh
+            // Initial load
             loadFeed();
-            window.addEventListener("scroll", checkScroll);
-            setInterval(() => loadFeed(true), 300000);
         });
     </script>
 </body>
