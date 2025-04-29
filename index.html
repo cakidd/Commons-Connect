@@ -53,15 +53,6 @@
             overflow-x: auto;
             gap: 10px;
             padding: 10px 0;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent) var(--primary);
-        }
-        .feed-photos::-webkit-scrollbar {
-            height: 8px;
-        }
-        .feed-photos::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 4px;
         }
         .feed-photo {
             height: 200px;
@@ -69,7 +60,6 @@
             object-fit: cover;
             border-radius: 8px;
             border: 2px solid var(--accent);
-            cursor: pointer;
         }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
@@ -84,25 +74,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .lightbox {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .lightbox.active { display: flex; }
-        .lightbox-img {
-            max-width: 90%;
-            max-height: 90%;
-            border: 3px solid var(--accent);
-            border-radius: 8px;
-        }
     </style>
 </head>
 <body>
@@ -110,16 +81,10 @@
         <div class="loader"></div>
     </div>
 
-    <div class="lightbox" id="lightbox">
-        <img class="lightbox-img" id="lightboxImage">
-    </div>
-
     <script>
         require(["esri/request"], (esriRequest) => {
             const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
-            
-            // ======== BRAND EMOJI MAPPING ========
             const CATEGORY_ICONS = {
                 yard_sale: '🏷️', classified: '📦', business: '🏢',
                 csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
@@ -142,44 +107,71 @@
                         }
                     });
 
-                    if (!mainData.features?.length) {
-                        feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
-                        return;
-                    }
-
                     feed.innerHTML = '';
                     
                     for (const feature of mainData.features) {
                         const attrs = feature.attributes;
-                        const photos = await getPhotosForFeature(feature);
-                        
-                        const listingType = attrs.is_yard_sale ? 'yard_sale' : 
-                                          attrs.is_classified ? 'classified' : 
-                                          attrs.category?.toLowerCase() || 'default';
-                        const categoryIcon = CATEGORY_ICONS[listingType] || CATEGORY_ICONS.default;
+                        const photos = [];
+                        const globalId = attrs.globalid;
 
+                        for (const tableId of PHOTO_TABLES) {
+                            const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                            try {
+                                const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                                    query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                                });
+                                
+                                for (const rel of relatedData.features || []) {
+                                    const { data: attachments } = await esriRequest(
+                                        `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
+                                    );
+                                    if (attachments?.attachmentInfos?.length) {
+                                        photos.push(...attachments.attachmentInfos.map(a => 
+                                            `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
+                                        ));
+                                    }
+                                }
+                            } catch(error) {
+                                console.warn(`Table ${tableId} error:`, error.message);
+                            }
+                        }
+
+                        const category = attrs.is_yard_sale ? 'yard_sale' : 
+                                      attrs.is_classified ? 'classified' : 
+                                      attrs.category?.toLowerCase() || 'default';
+                        
                         const card = document.createElement('div');
                         card.className = 'feed-item';
                         card.innerHTML = `
                             <div class="feed-header">
-                                <div class="feed-avatar">${categoryIcon}</div>
+                                <div class="feed-avatar">
+                                    ${CATEGORY_ICONS[category] || CATEGORY_ICONS.default}
+                                </div>
                                 <div>
                                     <div class="feed-author">${attrs.name || 'Community Member'}</div>
                                     <div class="feed-meta">
                                         ${attrs.is_yard_sale ? `
-                                            <div>📅 ${formatDate(attrs.sale_start)} - ${formatDate(attrs.sale_end)}</div>
-                                            <div>📝 ${attrs.yard_sale_notes || 'No details'}</div>
+                                            <div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>
+                                            <div>📝 ${attrs.yard_sale_notes || ''}</div>
                                         ` : ''}
                                         ${attrs.is_classified ? `
-                                            <div>💰 $${attrs.price?.toFixed(2) || '0.00'}</div>
-                                            <div>🏷️ ${attrs.item_name || 'Unnamed Item'}</div>
-                                            <div>📋 ${attrs.classified_description || 'No description'}</div>
-                                            <div>⏳ Expires: ${formatDate(attrs.expiration_date)}</div>
+                                            <div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>
+                                            <div>🏷️ ${attrs.item_name || ''}</div>
+                                            <div>📋 ${attrs.classified_description || ''}</div>
+                                            <div>⏳ ${new Date(attrs.expiration_date).toLocaleDateString()}</div>
                                         ` : ''}
                                         <div>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</div>
                                     </div>
+                                    ${attrs.phone || attrs.contact_name || attrs.email ? `
+                                    <div class="contact-info">
+                                        ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
+                                        ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>` : ''}
+                                        ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>` : ''}
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
+                            ${photos.length ? `
                             <div class="feed-photos">
                                 ${photos.map(url => `
                                     <img class="feed-photo" 
@@ -188,11 +180,8 @@
                                         onerror="this.style.display='none'">
                                 `).join('')}
                             </div>
+                            ` : ''}
                         `;
-
-                        card.querySelectorAll('.feed-photo').forEach(img => {
-                            img.addEventListener('click', () => showLightbox(photos, img.src));
-                        });
                         feed.appendChild(card);
                     }
 
@@ -202,56 +191,6 @@
                 }
             }
 
-            async function getPhotosForFeature(feature) {
-                const photos = [];
-                const globalId = feature.attributes.globalid;
-
-                for (const tableId of PHOTO_TABLES) {
-                    const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
-                    try {
-                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
-                        });
-                        
-                        for (const rel of relatedData.features || []) {
-                            const { data: attachments } = await esriRequest(
-                                `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
-                            );
-                            if (attachments?.attachmentInfos?.length) {
-                                photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
-                                ));
-                            }
-                        }
-                    } catch(error) {
-                        console.warn(`Table ${tableId} error:`, error.message);
-                    }
-                }
-                return photos;
-            }
-
-            function formatDate(dateString) {
-                return dateString ? new Date(dateString).toLocaleDateString('en-US') : 'N/A';
-            }
-
-            // Lightbox functionality
-            let currentLightboxIndex = 0;
-            let currentLightboxImages = [];
-            const lightbox = document.getElementById("lightbox");
-            const lightboxImg = document.getElementById("lightboxImage");
-
-            function showLightbox(images, currentSrc) {
-                currentLightboxImages = images;
-                currentLightboxIndex = images.indexOf(currentSrc);
-                lightboxImg.src = currentSrc;
-                lightbox.classList.add('active');
-            }
-
-            lightbox.addEventListener('click', () => {
-                lightbox.classList.remove('active');
-            });
-
-            // Initial load
             loadFeed();
         });
     </script>
