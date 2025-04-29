@@ -94,16 +94,21 @@
             border: 3px solid var(--accent);
             border-radius: 8px;
         }
+        #feed-sentinel {
+            height: 1px;
+            background: transparent;
+        }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
-
     <div class="lightbox" id="lightbox">
         <img class="lightbox-img" id="lightboxImage">
     </div>
+    <!-- Sentinel element OUTSIDE feed container -->
+    <div id="feed-sentinel"></div>
 
     <script>
         require(["esri/request"], (esriRequest) => {
@@ -139,6 +144,7 @@
 
                     feed.innerHTML = '';
                     
+                    // Render cards
                     for (const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
@@ -194,22 +200,25 @@
                         feed.appendChild(card);
                     }
 
-                    // Fixed auto-loop using Intersection Observer
+                    // Auto-loop implementation
                     if(observer) observer.disconnect();
-                    const lastCard = feed.lastElementChild;
-                    if(lastCard) {
-                        observer = new IntersectionObserver(([entry]) => {
-                            if(entry.isIntersecting) {
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 500);
-                            }
-                        }, { threshold: 1 });
-                        observer.observe(sentinel);
-                    }
+                    const sentinel = document.getElementById('feed-sentinel');
+                    
+                    observer = new IntersectionObserver(([entry]) => {
+                        if(entry.isIntersecting) {
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                            setTimeout(loadFeed, 3000); // 3-second delay at top
+                        }
+                    }, {
+                        root: null,
+                        rootMargin: "0px 0px -150px 0px", // Trigger 150px past viewport
+                        threshold: 0.1
+                    });
+                    observer.observe(sentinel);
 
                 } catch(error) {
                     console.error("Feed Error:", error);
-                    feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
+                    document.getElementById("feed").innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 } finally {
                     isLoading = false;
                 }
@@ -249,15 +258,7 @@
                 }
                 return photos;
             }
-            
-            // After rendering all cards:
-            let sentinel = document.getElementById('feed-sentinel');
-            if (sentinel) sentinel.remove(); // Remove old sentinel if present
-                sentinel = document.createElement('div');
-                sentinel.id = 'feed-sentinel';
-                sentinel.style.height = '60px'; // or however much whitespace you want
-                document.getElementById('feed').appendChild(sentinel);
-            
+
             // Lightbox functionality
             let currentLightboxIndex = 0;
             let currentLightboxImages = [];
