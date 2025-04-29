@@ -46,7 +46,7 @@
         }
         .feed-author {
             font-size: 1.4rem;
-            color: var(--accent); /* FIXED SYNTAX */
+            color: var(--accent);
         }
         .feed-photos {
             display: grid;
@@ -84,13 +84,10 @@
     <script>
         require(["esri/request"], (esriRequest) => {
             const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4]; // All photo tables
+            const PHOTO_TABLES = [1, 2, 3, 4];
             const CATEGORY_ICONS = {
                 yard_sale: '🏷️', classified: '📦', business: '🏢',
-                csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
-                food_pantry: '🥫', farm_stand: '🚜', restaurant: '🍽️',
-                educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
-                preservation: '🫙', community_kitchen: '🍲', default: '✨'
+                csa: '🧺', farmers_market: '🥕', default: '✨'
             };
 
             async function loadFeed() {
@@ -98,11 +95,10 @@
                 try {
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // 1. Get main features
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
-                            outFields: "*",
+                            outFields: "globalid,name,address,CreationDate,category",
                             orderByFields: "CreationDate DESC",
                             f: "json"
                         }
@@ -115,20 +111,18 @@
 
                     feed.innerHTML = '';
                     
-                    // 2. Process each feature
                     for (const feature of mainData.features) {
                         const globalId = feature.attributes.globalid;
                         if (!globalId) continue;
 
-                        // 3. Get photos from all tables
                         const photos = [];
                         for (const tableId of PHOTO_TABLES) {
+                            const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                             try {
-                                const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                                 const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
                                     query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
                                 });
-
+                                
                                 for (const rel of relatedData.features || []) {
                                     const { data: attachments } = await esriRequest(
                                         `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
@@ -144,7 +138,6 @@
                             }
                         }
 
-                        // 4. Build card with emojis
                         if (photos.length) {
                             const category = feature.attributes.category?.toLowerCase() || '';
                             const card = document.createElement('div');
@@ -175,9 +168,9 @@
                         }
                     }
 
-                    // Auto-refresh after 30 seconds
+                    // Auto-refresh loop
                     setTimeout(() => {
-                        feed.innerHTML = '<div class="loader"></div>';
+                        window.scrollTo(0, 0);
                         loadFeed();
                     }, 30000);
 
@@ -187,7 +180,6 @@
                 }
             }
 
-            // Initial load
             loadFeed();
         });
     </script>
