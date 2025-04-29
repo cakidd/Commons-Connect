@@ -117,7 +117,13 @@
                 preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
 
+            let isLoading = false;
+            let observer = null;
+
             async function loadFeed() {
+                if (isLoading) return;
+                isLoading = true;
+                
                 try {
                     const feed = document.getElementById("feed");
                     feed.innerHTML = '<div class="loader"></div>';
@@ -188,21 +194,26 @@
                         feed.appendChild(card);
                     }
 
-                    // Enhanced auto-loop with debounce
-                    let isScrolling;
-                    window.addEventListener('scroll', () => {
-                        clearTimeout(isScrolling);
-                        isScrolling = setTimeout(() => {
-                            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 1000);
-                            }
-                        }, 100);
-                    });
+                    // Reliable auto-loop implementation
+                    if (observer) observer.disconnect();
+                    const lastCard = feed.lastElementChild;
+                    if (lastCard) {
+                        observer = new IntersectionObserver((entries) => {
+                            entries.forEach(entry => {
+                                if (entry.isIntersecting && !isLoading) {
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                    setTimeout(() => loadFeed(), 500);
+                                }
+                            });
+                        }, { threshold: 0.1 });
+                        observer.observe(lastCard);
+                    }
 
                 } catch(error) {
                     console.error("Feed Error:", error);
                     feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
+                } finally {
+                    isLoading = false;
                 }
             }
 
@@ -216,18 +227,21 @@
                         const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
                             query: { 
                                 where: `ParentGlobalID='${globalId}'`,
-                                outFields: "objectid", // Critical lowercase
+                                outFields: "objectid,OBJECTID",
                                 f: "json" 
                             }
                         });
                         
                         for (const rel of relatedData.features || []) {
+                            const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
+                            if (!oid) continue;
+                            
                             const { data: attachments } = await esriRequest(
-                                `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
+                                `${tableUrl}/${oid}/attachments?f=json`
                             );
                             if (attachments?.attachmentInfos?.length) {
                                 photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
+                                    `${tableUrl}/${oid}/attachments/${a.id}`
                                 ));
                             }
                         }
