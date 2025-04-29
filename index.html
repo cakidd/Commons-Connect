@@ -201,9 +201,9 @@
                         observer = new IntersectionObserver(([entry]) => {
                             if(entry.isIntersecting) {
                                 window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 1000);
+                                setTimeout(loadFeed, 500);
                             }
-                        }, { threshold: 0.05 });
+                        }, { threshold: 0.1 });
                         observer.observe(lastCard);
                     }
 
