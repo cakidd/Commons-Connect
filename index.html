@@ -5,7 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        /* Previous CSS remains unchanged */
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .feed-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            color: var(--primary);
+        }
+        .feed-author {
+            font-size: 1.4rem;
+            color: var(--accent);
+        }
+        .feed-photos {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .feed-photo {
+            height: 200px;
+            min-width: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+        }
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 90%;
+            border: 3px solid var(--accent);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -52,18 +140,60 @@
                         const card = document.createElement('div');
                         card.className = 'feed-item';
                         card.innerHTML = `
-                            <!-- Card content unchanged from previous version -->
+                            <div class="feed-header">
+                                <div class="feed-avatar">
+                                    ${CATEGORY_ICONS[attrs.is_yard_sale ? 'yard_sale' : 
+                                    attrs.is_classified ? 'classified' : 
+                                    attrs.category?.toLowerCase() || 'default'] || CATEGORY_ICONS.default}
+                                </div>
+                                <div>
+                                    <div class="feed-author">${attrs.name || 'Community Member'}</div>
+                                    <div class="feed-meta">
+                                        ${attrs.is_yard_sale ? `
+                                            <div>📅 ${new Date(attrs.sale_start).toLocaleDateString()} - ${new Date(attrs.sale_end).toLocaleDateString()}</div>
+                                            <div>📝 ${attrs.yard_sale_notes || ''}</div>
+                                        ` : ''}
+                                        ${attrs.is_classified ? `
+                                            <div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>
+                                            <div>🏷️ ${attrs.item_name || ''}</div>
+                                            <div>📋 ${attrs.classified_description || ''}</div>
+                                            <div>⏳ ${new Date(attrs.expiration_date).toLocaleDateString()}</div>
+                                        ` : ''}
+                                        <div>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</div>
+                                    </div>
+                                    ${attrs.phone || attrs.contact_name || attrs.email ? `
+                                    <div class="contact-info">
+                                        ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
+                                        ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>` : ''}
+                                        ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>` : ''}
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            ${photos.length ? `
+                            <div class="feed-photos">
+                                ${photos.map(url => `
+                                    <img class="feed-photo" 
+                                        src="${url}" 
+                                        loading="lazy"
+                                        onerror="this.style.display='none'">
+                                `).join('')}
+                            </div>
+                            ` : ''}
                         `;
-                        
+
+                        card.querySelectorAll('.feed-photo').forEach(img => {
+                            img.addEventListener('click', () => showLightbox(photos, img.src));
+                        });
                         feed.appendChild(card);
                     }
 
-                    // Enhanced auto-loop logic
+                    // Auto-loop when scrolled to bottom
                     let isScrolling;
                     window.addEventListener('scroll', () => {
-                        window.clearTimeout(isScrolling);
+                        clearTimeout(isScrolling);
                         isScrolling = setTimeout(() => {
-                            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
                                 window.scrollTo({ top: 0, behavior: "smooth" });
                                 setTimeout(loadFeed, 1000);
                             }
@@ -86,7 +216,7 @@
                         const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
                             query: { 
                                 where: `ParentGlobalID='${globalId}'`,
-                                outFields: "objectid",  // Corrected case sensitivity
+                                outFields: "objectid",
                                 f: "json" 
                             }
                         });
@@ -108,7 +238,28 @@
                 return photos;
             }
 
-            // Rest of lightbox and initialization code unchanged
+            // Lightbox functionality
+            let currentLightboxIndex = 0;
+            let currentLightboxImages = [];
+            const lightbox = document.getElementById("lightbox");
+            const lightboxImg = document.getElementById("lightboxImage");
+
+            function showLightbox(images, currentSrc) {
+                currentLightboxImages = images;
+                currentLightboxIndex = images.indexOf(currentSrc);
+                lightboxImg.src = currentSrc;
+                lightbox.classList.add('active');
+            }
+
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) lightbox.classList.remove('active');
+            });
+
+            // Auto-refresh every 5 minutes
+            setInterval(() => loadFeed(), 300000);
+
+            // Initial load
+            loadFeed();
         });
     </script>
 </body>
