@@ -197,7 +197,7 @@
                     if (sentinel) sentinel.remove(); // Remove old sentinel if present
                     sentinel = document.createElement('div');
                     sentinel.id = 'feed-sentinel';
-                    sentinel.style.height = '80px'; // More whitespace at bottom
+                    sentinel.style.height = '40px'; // More whitespace at bottom
                     feed.appendChild(sentinel);
 
                     if(observer) observer.disconnect();
@@ -205,13 +205,13 @@
                         if(entry.isIntersecting) {
                             setTimeout(() => {
                                 window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 1000); // 1s at top before reload
+                                setTimeout(loadFeed, 500); // 1s at top before reload
                             }, 5000); // 5s at bottom before reset
                         }
                     }, {
                         root: null,
                         rootMargin: "0px 0px 0px 0px",
-                        threshold: 0.1
+                        threshold: 1
                     });
                     observer.observe(sentinel);
 
