@@ -15,6 +15,7 @@
             margin: 0;
             color: var(--text);
             font-family: Arial, sans-serif;
+            touch-action: pan-y;
         }
         .feed-container {
             max-width: 800px;
@@ -53,6 +54,15 @@
             overflow-x: auto;
             gap: 10px;
             padding: 10px 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) var(--primary);
+        }
+        .feed-photos::-webkit-scrollbar {
+            height: 8px;
+        }
+        .feed-photos::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
         }
         .feed-photo {
             height: 200px;
@@ -60,6 +70,7 @@
             object-fit: cover;
             border-radius: 8px;
             border: 2px solid var(--accent);
+            cursor: pointer;
         }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
@@ -74,6 +85,25 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 90%;
+            border: 3px solid var(--accent);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -81,10 +111,16 @@
         <div class="loader"></div>
     </div>
 
+    <div class="lightbox" id="lightbox">
+        <img class="lightbox-img" id="lightboxImage">
+    </div>
+
     <script>
         require(["esri/request"], (esriRequest) => {
             const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
+            
+            // ======== BRAND EMOJI MAPPING ========
             const CATEGORY_ICONS = {
                 yard_sale: '🏷️', classified: '📦', business: '🏢',
                 csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
@@ -107,13 +143,19 @@
                         }
                     });
 
+                    if (!mainData.features?.length) {
+                        feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
+                        return;
+                    }
+
                     feed.innerHTML = '';
                     
                     for (const feature of mainData.features) {
                         const attrs = feature.attributes;
-                        const photos = [];
                         const globalId = attrs.globalid;
+                        if (!globalId) continue;
 
+                        const photos = [];
                         for (const tableId of PHOTO_TABLES) {
                             const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                             try {
@@ -182,8 +224,15 @@
                             </div>
                             ` : ''}
                         `;
+                        
+                        card.querySelectorAll('.feed-photo').forEach(img => {
+                            img.addEventListener('click', () => showLightbox(photos, img.src));
+                        });
                         feed.appendChild(card);
                     }
+
+                    // Auto-refresh every 5 minutes
+                    setInterval(() => loadFeed(), 300000);
 
                 } catch(error) {
                     console.error("Feed Error:", error);
@@ -191,6 +240,24 @@
                 }
             }
 
+            // Lightbox functionality
+            let currentLightboxIndex = 0;
+            let currentLightboxImages = [];
+            const lightbox = document.getElementById("lightbox");
+            const lightboxImg = document.getElementById("lightboxImage");
+
+            function showLightbox(images, currentSrc) {
+                currentLightboxImages = images;
+                currentLightboxIndex = images.indexOf(currentSrc);
+                lightboxImg.src = currentSrc;
+                lightbox.classList.add('active');
+            }
+
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) lightbox.classList.remove('active');
+            });
+
+            // Initial load
             loadFeed();
         });
     </script>
