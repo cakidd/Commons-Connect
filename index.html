@@ -15,7 +15,7 @@
             margin: 0;
             color: var(--text);
             font-family: Arial, sans-serif;
-            touch-action: pan-y;
+            overflow-y: scroll;
         }
         .feed-container {
             max-width: 800px;
@@ -127,27 +127,29 @@
                 preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
 
+            let currentPage = 1;
+            let isLoading = false;
+
             async function loadFeed() {
+                if(isLoading) return;
+                isLoading = true;
+                
                 try {
                     const feed = document.getElementById("feed");
-                    feed.innerHTML = '<div class="loader"></div>';
+                    if(currentPage === 1) feed.innerHTML = '<div class="loader"></div>';
                     
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
+                            resultOffset: (currentPage - 1) * 10,
                             f: "json"
                         }
                     });
 
-                    if (!mainData.features?.length) {
-                        feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
-                        return;
-                    }
+                    if(currentPage === 1) feed.innerHTML = '';
 
-                    feed.innerHTML = '';
-                    
                     for (const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
@@ -199,25 +201,30 @@
 
                         card.querySelectorAll('.feed-photo').forEach(img => {
                             img.addEventListener('click', () => showLightbox(photos, img.src));
-                            img.addEventListener('touchstart', handleTouchStart);
-                            img.addEventListener('touchend', handleTouchEnd);
                         });
                         feed.appendChild(card);
                     }
 
                     // Auto-loop when scrolled to bottom
-                    window.addEventListener('scroll', () => {
-                        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
-                            setTimeout(() => {
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                                loadFeed();
-                            }, 1000);
-                        }
-                    });
+                    window.addEventListener('scroll', handleScroll);
+                    currentPage++;
 
                 } catch(error) {
                     console.error("Feed Error:", error);
                     feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
+                } finally {
+                    isLoading = false;
+                }
+            }
+
+            function handleScroll() {
+                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !isLoading) {
+                    window.removeEventListener('scroll', handleScroll);
+                    setTimeout(() => {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        currentPage = 1;
+                        loadFeed();
+                    }, 1500);
                 }
             }
 
@@ -229,16 +236,20 @@
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
                         const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                            query: { 
+                                where: `ParentGlobalID='${globalId}'`,
+                                outFields: "OBJECTID",
+                                f: "json" 
+                            }
                         });
                         
                         for (const rel of relatedData.features || []) {
                             const { data: attachments } = await esriRequest(
-                                `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
+                                `${tableUrl}/${rel.attributes.OBJECTID}/attachments?f=json`
                             );
                             if (attachments?.attachmentInfos?.length) {
                                 photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
+                                    `${tableUrl}/${rel.attributes.OBJECTID}/attachments/${a.id}`
                                 ));
                             }
                         }
@@ -249,8 +260,7 @@
                 return photos;
             }
 
-            // Lightbox swipe functionality
-            let touchStartX = 0;
+            // Lightbox functionality
             let currentLightboxIndex = 0;
             let currentLightboxImages = [];
             const lightbox = document.getElementById("lightbox");
@@ -263,34 +273,15 @@
                 lightbox.classList.add('active');
             }
 
-            function handleTouchStart(e) {
-                touchStartX = e.touches[0].clientX;
-            }
-
-            function handleTouchEnd(e) {
-                const touchEndX = e.changedTouches[0].clientX;
-                const deltaX = touchEndX - touchStartX;
-                if (Math.abs(deltaX) > 50) {
-                    deltaX > 0 ? prevImage() : nextImage();
-                }
-            }
-
-            function prevImage() {
-                currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
-                lightboxImg.src = currentLightboxImages[currentLightboxIndex];
-            }
-
-            function nextImage() {
-                currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
-                lightboxImg.src = currentLightboxImages[currentLightboxIndex];
-            }
-
             lightbox.addEventListener('click', (e) => {
                 if (e.target === lightbox) lightbox.classList.remove('active');
             });
 
             // Auto-refresh every 5 minutes
-            setInterval(() => loadFeed(), 300000);
+            setInterval(() => {
+                currentPage = 1;
+                loadFeed();
+            }, 300000);
 
             // Initial load
             loadFeed();
