@@ -49,17 +49,27 @@
             color: var(--accent);
         }
         .feed-photos {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            display: flex;
             gap: 15px;
             margin: 20px 0;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) var(--primary);
+        }
+        .feed-photos::-webkit-scrollbar {
+            height: 8px;
+        }
+        .feed-photos::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
         }
         .feed-photo {
-            width: 100%;
+            width: 200px;
             height: 200px;
             object-fit: cover;
             border-radius: 6px;
             border: 2px solid var(--accent);
+            cursor: pointer;
         }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
@@ -74,6 +84,50 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Lightbox styles */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.95);
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox.active {
+            display: flex;
+        }
+        .lightbox-img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border: 4px solid var(--accent);
+            border-radius: 12px;
+            background: #fff;
+        }
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            color: var(--accent);
+            background: rgba(0,0,0,0.2);
+            border: none;
+            cursor: pointer;
+            z-index: 10000;
+            padding: 0 20px;
+        }
+        .lightbox-prev { left: 10px; }
+        .lightbox-next { right: 10px; }
+        .lightbox-close {
+            position: absolute;
+            top: 20px; right: 30px;
+            font-size: 3rem;
+            color: var(--accent);
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 10001;
+        }
     </style>
 </head>
 <body>
@@ -81,20 +135,58 @@
         <div class="loader"></div>
     </div>
 
+    <!-- Lightbox for image zoom/swipe -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev">&#10094;</button>
+        <img class="lightbox-img" id="lightboxImg" src="">
+        <button class="lightbox-nav lightbox-next" id="lightboxNext">&#10095;</button>
+        <button class="lightbox-close" id="lightboxClose">&times;</button>
+    </div>
+
     <script>
-        require(["esri/request"], (esriRequest) => {
+        require(["esri/config", "esri/identity/IdentityManager", "esri/request"], 
+        (esriConfig, esriId, esriRequest) => {
+            // ======== SERVICE CONFIGURATION ========
             const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
+            const BUSINESS_PHOTOS2_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/3";
+
+            // ======== BRAND EMOJI MAPPING ========
             const CATEGORY_ICONS = {
                 yard_sale: '🏷️', classified: '📦', business: '🏢',
-                csa: '🧺', farmers_market: '🥕', default: '✨'
+                csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
+                food_pantry: '🥫', farm_stand: '🚜', restaurant: '🍽️',
+                educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
+                preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
 
-            async function loadFeed() {
+            // ======== AUTHENTICATION HANDLER ========
+            esriConfig.request.interceptors.push({
+                urls: /services7.arcgis.com/,
+                before: async (params) => {
+                    try {
+                        const token = await esriId.getToken(MAIN_LAYER_URL);
+                        if(token) params.requestOptions.query = {
+                            ...params.requestOptions.query,
+                            token: token
+                        };
+                    } catch(error) {
+                        console.error("Auth Error:", error);
+                    }
+                    return params;
+                }
+            });
+
+            // ======== FEED LOOPING STATE ========
+            let feedFeatures = [];
+            let feedIndex = 0;
+
+            // ======== CORE FUNCTIONALITY ========
+            async function loadFeed(isLoop = false) {
                 const feed = document.getElementById("feed");
                 try {
-                    feed.innerHTML = '<div class="loader"></div>';
+                    if (!isLoop) feed.innerHTML = '<div class="loader"></div>';
                     
+                    // 1. Get main features
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -108,78 +200,161 @@
                         feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
                         return;
                     }
-
-                    feed.innerHTML = '';
-                    
-                    for (const feature of mainData.features) {
-                        const globalId = feature.attributes.globalid;
-                        if (!globalId) continue;
-
-                        const photos = [];
-                        for (const tableId of PHOTO_TABLES) {
-                            const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
-                            try {
-                                const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                                    query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
-                                });
-                                
-                                for (const rel of relatedData.features || []) {
-                                    const { data: attachments } = await esriRequest(
-                                        `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
-                                    );
-                                    if (attachments?.attachmentInfos?.length) {
-                                        photos.push(...attachments.attachmentInfos.map(a => 
-                                            `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
-                                        ));
-                                    }
-                                }
-                            } catch(error) {
-                                console.warn(`Table ${tableId} error:`, error.message);
-                            }
-                        }
-
-                        if (photos.length) {
-                            const category = feature.attributes.category?.toLowerCase() || '';
-                            const card = document.createElement('div');
-                            card.className = 'feed-item';
-                            card.innerHTML = `
-                                <div class="feed-header">
-                                    <div class="feed-avatar">
-                                        ${CATEGORY_ICONS[category] || CATEGORY_ICONS.default}
-                                    </div>
-                                    <div>
-                                        <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
-                                        <div class="feed-meta">
-                                            ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
-                                            ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="feed-photos">
-                                    ${photos.map(url => `
-                                        <img class="feed-photo" 
-                                            src="${url}" 
-                                            loading="lazy"
-                                            onerror="this.style.display='none'">
-                                    `).join('')}
-                                </div>
-                            `;
-                            feed.appendChild(card);
-                        }
-                    }
-
-                    // Auto-refresh loop
-                    setTimeout(() => {
-                        window.scrollTo(0, 0);
-                        loadFeed();
-                    }, 30000);
-
+                    feedFeatures = mainData.features;
+                    if (!isLoop) feedIndex = 0;
+                    renderFeed();
                 } catch(error) {
                     console.error("Feed Error:", error);
                     feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 }
             }
 
+            async function renderFeed() {
+                const feed = document.getElementById("feed");
+                feed.innerHTML = '';
+                // Show all posts in order, looping if needed
+                for (let i = 0; i < feedFeatures.length; i++) {
+                    const feature = feedFeatures[(feedIndex + i) % feedFeatures.length];
+                    await renderCard(feature, feed);
+                }
+            }
+
+            async function renderCard(feature, feed) {
+                const globalId = feature.attributes.globalid;
+                if (!globalId) return;
+
+                // Query business_photos2 table for attachments
+                let photos = [];
+                try {
+                    const { data: relatedData } = await esriRequest(`${BUSINESS_PHOTOS2_URL}/query`, {
+                        query: {
+                            where: `ParentGlobalID='${globalId}'`,
+                            outFields: "OBJECTID",
+                            f: "json"
+                        }
+                    });
+                    for (const rel of relatedData.features) {
+                        try {
+                            const { data: attachments } = await esriRequest(
+                                `${BUSINESS_PHOTOS2_URL}/${rel.attributes.OBJECTID}/attachments?f=json`
+                            );
+                            if (attachments?.attachmentInfos?.length) {
+                                photos.push(...attachments.attachmentInfos.map(a => 
+                                    `${BUSINESS_PHOTOS2_URL}/${rel.attributes.OBJECTID}/attachments/${a.id}`
+                                ));
+                            }
+                        } catch(error) {
+                            console.warn("Attachment Error:", error);
+                        }
+                    }
+                } catch(error) {
+                    console.error("Related Table Error:", error);
+                }
+
+                // Build card
+                if (photos.length) {
+                    const category = feature.attributes.category?.toLowerCase() || '';
+                    const card = document.createElement('div');
+                    card.className = 'feed-item';
+                    card.innerHTML = `
+                        <div class="feed-header">
+                            <div class="feed-avatar">${CATEGORY_ICONS[category] || feature.attributes.name?.charAt(0) || '🏠'}</div>
+                            <div>
+                                <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
+                                <div class="feed-meta">
+                                    ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
+                                    ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="feed-photos">
+                            ${photos.map((url, idx) => `
+                                <img class="feed-photo" 
+                                    src="${url}" 
+                                    loading="lazy"
+                                    data-idx="${idx}"
+                                    data-photos='${JSON.stringify(photos)}'
+                                    onerror="this.style.display='none'">
+                            `).join('')}
+                        </div>
+                    `;
+                    // Lightbox event
+                    card.querySelectorAll('.feed-photo').forEach((img, idx) => {
+                        img.addEventListener('click', (e) => {
+                            openLightbox(photos, idx);
+                        });
+                    });
+                    feed.appendChild(card);
+                }
+            }
+
+            // ======== LIGHTBOX FUNCTIONALITY ========
+            let currentLightboxPhotos = [];
+            let currentLightboxIndex = 0;
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightboxImg');
+            const lightboxPrev = document.getElementById('lightboxPrev');
+            const lightboxNext = document.getElementById('lightboxNext');
+            const lightboxClose = document.getElementById('lightboxClose');
+
+            function openLightbox(photos, idx) {
+                currentLightboxPhotos = photos;
+                currentLightboxIndex = idx;
+                showLightboxImage();
+                lightbox.classList.add('active');
+            }
+            function showLightboxImage() {
+                lightboxImg.src = currentLightboxPhotos[currentLightboxIndex];
+            }
+            function closeLightbox() {
+                lightbox.classList.remove('active');
+            }
+            function prevLightboxImage() {
+                currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxPhotos.length) % currentLightboxPhotos.length;
+                showLightboxImage();
+            }
+            function nextLightboxImage() {
+                currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxPhotos.length;
+                showLightboxImage();
+            }
+            lightboxPrev.onclick = prevLightboxImage;
+            lightboxNext.onclick = nextLightboxImage;
+            lightboxClose.onclick = closeLightbox;
+            lightbox.onclick = function(e) {
+                if (e.target === lightbox) closeLightbox();
+            };
+            // Swipe support
+            let startX = 0;
+            lightboxImg.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+            });
+            lightboxImg.addEventListener('touchend', e => {
+                const deltaX = e.changedTouches[0].clientX - startX;
+                if (Math.abs(deltaX) > 50) {
+                    if (deltaX > 0) prevLightboxImage();
+                    else nextLightboxImage();
+                }
+            });
+            // Keyboard support
+            document.addEventListener('keydown', e => {
+                if (!lightbox.classList.contains('active')) return;
+                if (e.key === 'ArrowLeft') prevLightboxImage();
+                if (e.key === 'ArrowRight') nextLightboxImage();
+                if (e.key === 'Escape') closeLightbox();
+            });
+
+            // ======== LOOP ON SCROLL END ========
+            window.addEventListener('scroll', () => {
+                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+                    setTimeout(() => {
+                        feedIndex = 0;
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        loadFeed(true);
+                    }, 750);
+                }
+            });
+
+            // Initial load
             loadFeed();
         });
     </script>
