@@ -188,7 +188,7 @@
                         feed.appendChild(card);
                     }
 
-                    // Auto-loop when scrolled to bottom
+                    // Enhanced auto-loop with debounce
                     let isScrolling;
                     window.addEventListener('scroll', () => {
                         clearTimeout(isScrolling);
@@ -216,7 +216,7 @@
                         const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
                             query: { 
                                 where: `ParentGlobalID='${globalId}'`,
-                                outFields: "objectid",
+                                outFields: "objectid", // Critical lowercase
                                 f: "json" 
                             }
                         });
