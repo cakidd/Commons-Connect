@@ -203,8 +203,8 @@
                                 window.scrollTo({ top: 0, behavior: "smooth" });
                                 setTimeout(loadFeed, 500);
                             }
-                        }, { threshold: 1, rootMargin: "0px 0px -1000% 0px" });
-                        observer.observe(lastCard);
+                        }, { threshold: 1 });
+                        observer.observe(sentinel);
                     }
 
                 } catch(error) {
@@ -249,7 +249,15 @@
                 }
                 return photos;
             }
-
+            
+            // After rendering all cards:
+            let sentinel = document.getElementById('feed-sentinel');
+            if (sentinel) sentinel.remove(); // Remove old sentinel if present
+                sentinel = document.createElement('div');
+                sentinel.id = 'feed-sentinel';
+                sentinel.style.height = '60px'; // or however much whitespace you want
+                document.getElementById('feed').appendChild(sentinel);
+            
             // Lightbox functionality
             let currentLightboxIndex = 0;
             let currentLightboxImages = [];
