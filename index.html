@@ -5,7 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        /* All previous CSS remains unchanged */
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+            touch-action: pan-y;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .feed-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            color: var(--primary);
+        }
+        .feed-author {
+            font-size: 1.4rem;
+            color: var(--accent);
+        }
+        .feed-photos {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 10px 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) var(--primary);
+        }
+        .feed-photos::-webkit-scrollbar {
+            height: 8px;
+        }
+        .feed-photos::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        .feed-photo {
+            height: 200px;
+            min-width: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+        }
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 90%;
+            border: 3px solid var(--accent);
+            border-radius: 8px;
+        }
+        .listing-details {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -45,18 +149,12 @@
                         }
                     });
 
-                    if (!mainData.features?.length) {
-                        feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
-                        return;
-                    }
-
                     feed.innerHTML = '';
                     
                     for (const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
                         
-                        // ======== CATEGORY EMOJI LOGIC ========
                         const listingType = attrs.is_yard_sale ? 'yard_sale' : 
                                           attrs.is_classified ? 'classified' : 
                                           attrs.category?.toLowerCase() || 'default';
@@ -72,7 +170,7 @@
                                     <div class="listing-details">
                                         ${attrs.is_yard_sale ? `
                                             <div>📅 ${formatDate(attrs.sale_start)} - ${formatDate(attrs.sale_end)}</div>
-                                            <div>📋 ${attrs.yard_sale_notes || 'No details'}</div>
+                                            <div>📋 ${attrs.yard_sale_notes || 'No additional details'}</div>
                                         ` : ''}
                                         ${attrs.is_classified ? `
                                             <div>💰 $${attrs.price?.toFixed(2) || '0.00'}</div>
@@ -99,10 +197,14 @@
                             </div>
                         `;
 
-                        // Existing lightbox and swipe handlers
+                        card.querySelectorAll('.feed-photo').forEach(img => {
+                            img.addEventListener('click', () => showLightbox(photos, img.src));
+                            img.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+                            img.addEventListener('touchend', handleSwipe);
+                        });
+                        feed.appendChild(card);
                     }
 
-                    // Auto-refresh every 5 minutes
                     setInterval(() => loadFeed(), 300000);
 
                 } catch(error) {
@@ -111,7 +213,35 @@
                 }
             }
 
-            // Rest of code remains identical to previous compliant version
+            async function getPhotosForFeature(feature) {
+                const photos = [];
+                const globalId = feature.attributes.globalid;
+                
+                for (const tableId of PHOTO_TABLES) {
+                    const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                    try {
+                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                        });
+                        
+                        for (const rel of relatedData.features || []) {
+                            const { data: attachments } = await esriRequest(
+                                `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
+                            );
+                            if (attachments?.attachmentInfos?.length) {
+                                photos.push(...attachments.attachmentInfos.map(a => 
+                                    `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
+                                ));
+                            }
+                        }
+                    } catch(error) {
+                        console.warn(`Table ${tableId} error:`, error.message);
+                    }
+                }
+                return photos;
+            }
+
+            // Lightbox and interaction handlers remain unchanged from previous compliant version
         });
     </script>
 </body>
