@@ -6,18 +6,15 @@
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #1a5f3e 0%, #0a2e1b 100%);
-            --accent-gold: #d4a017;
-            --neutral-dark: #133B06;
-            --neutral-light: #FFFFFF;
-            --font-heading: Arial, sans-serif;
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
         }
         body {
-            background: var(--primary-gradient);
+            background: var(--primary);
             margin: 0;
-            color: var(--neutral-light);
-            font-family: var(--font-heading);
-            line-height: 1.6;
+            color: var(--text);
+            font-family: Arial, sans-serif;
         }
         .feed-container {
             max-width: 800px;
@@ -25,93 +22,52 @@
             padding: 20px;
         }
         .feed-item {
-            background: var(--neutral-dark);
-            border-radius: 12px;
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
             margin: 20px 0;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .feed-item:hover {
+            transform: translateY(-3px);
         }
         .feed-header {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        .category-badge {
-            font-size: 2rem;
-            background: var(--accent-gold);
-            padding: 12px;
-            border-radius: 8px;
-            min-width: 60px;
-            text-align: center;
+        .feed-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            color: var(--primary);
+        }
+        .feed-author {
+            font-size: 1.4rem;
+            color: var(--accent);
         }
         .feed-photos {
-            display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 10px 0;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-gold) var(--neutral-dark);
-        }
-        .feed-photos::-webkit-scrollbar {
-            height: 8px;
-        }
-        .feed-photos::-webkit-scrollbar-thumb {
-            background: var(--accent-gold);
-            border-radius: 4px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
         }
         .feed-photo {
-            height: 200px;
-            min-width: 250px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 2px solid var(--accent-gold);
-        }
-        .meta-info {
-            color: rgba(255,255,255,0.9);
-            font-size: 0.9rem;
-            margin-top: 8px;
-        }
-        .meta-info span {
-            display: inline-block;
-            margin-right: 15px;
-        }
-        .lightbox {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid var(--accent);
         }
-        .lightbox.active { display: flex; }
-        .lightbox-content {
-            max-width: 90%;
-            max-height: 90%;
-            border: 3px solid var(--accent-gold);
-            border-radius: 8px;
-        }
-        .lightbox-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--accent-gold);
-            font-size: 40px;
-            cursor: pointer;
-            padding: 20px;
-            background: rgba(19,59,6,0.7);
-            border-radius: 50%;
-        }
-        .lightbox-prev { left: 20px; }
-        .lightbox-next { right: 20px; }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid var(--accent-gold);
+            border-top: 4px solid var(--accent);
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -122,52 +78,58 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: var(--accent);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
-
-    <div id="lightbox" class="lightbox">
-        <span class="lightbox-nav lightbox-prev">❮</span>
-        <span class="lightbox-nav lightbox-next">❯</span>
-        <img class="lightbox-content" id="lightbox-image">
-    </div>
+    <div class="refresh-indicator" id="refreshIndicator">🔄 Loading New Posts...</div>
 
     <script>
-        const CATEGORY_ICONS = {
-            yard_sale: '🏷️',
-            classified: '📦',
-            business: '🏢',
-            csa: '🧺',
-            farmers_market: '🥕',
-            community_garden: '🌱',
-            food_pantry: '🥫',
-            farm_stand: '🚜',
-            restaurant: '🍽️',
-            educational_program: '🎓',
-            artisinal: '🧀',
-            barter_swap: '🤝',
-            preservation: '🫙',
-            community_kitchen: '🍲',
-            home_health_center: '🏥',
-            government_resource: '🏛️',
-            default: '✨'
-        };
-
         require(["esri/request"], (esriRequest) => {
-            const SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
-            let currentLightboxImages = [];
-            let currentLightboxIndex = 0;
+            let currentPosts = new Set();
 
-            async function loadFeed() {
+            // ======== BRAND EMOJI MAPPING ========
+            const CATEGORY_ICONS = {
+                yard_sale: '🏷️',
+                classified: '📦',
+                business: '🏢',
+                csa: '🧺',
+                farmers_market: '🥕',
+                community_garden: '🌱',
+                food_pantry: '🥫',
+                farm_stand: '🚜',
+                restaurant: '🍽️',
+                educational_program: '🎓',
+                artisinal: '🧀',
+                barter_swap: '🤝',
+                preservation: '🫙',
+                community_kitchen: '🍲',
+                home_health_center: '🏥',
+                government_resource: '🏛️',
+                default: '✨'
+            };
+
+            async function loadFeed(isRefresh = false) {
                 try {
                     const feed = document.getElementById("feed");
-                    feed.innerHTML = '<div class="loader"></div>';
+                    if (!isRefresh) feed.innerHTML = '<div class="loader"></div>';
                     
-                    const { data } = await esriRequest(`${SERVICE_URL}/query`, {
+                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
                             outFields: "*",
@@ -176,117 +138,113 @@
                         }
                     });
 
-                    if (!data.features?.length) {
+                    if (!mainData.features?.length) {
                         feed.innerHTML = '<div class="feed-item">🌟 No listings found</div>';
                         return;
                     }
 
-                    feed.innerHTML = '';
-                    
-                    // Process features sequentially
-                    for (const feature of data.features) {
-                        const card = await createFeatureCard(feature);
-                        feed.appendChild(card);
+                    const newPosts = mainData.features.filter(f => 
+                        !currentPosts.has(f.attributes.OBJECTID)
+                    );
+
+                    if (isRefresh && newPosts.length === 0) {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        return;
                     }
-                } catch(error) {
-                    console.error("Feed Error:", error);
-                    document.getElementById("feed").innerHTML = '<div class="feed-item">⚠️ Error loading feed</div>';
-                }
-            }
 
-            async function createFeatureCard(feature) {
-                const category = feature.attributes.category?.toLowerCase() || '';
-                const categoryIcon = CATEGORY_ICONS[category] || CATEGORY_ICONS.default;
-                const photos = await getPhotosForFeature(feature);
-                
-                const card = document.createElement('div');
-                card.className = 'feed-item';
-                card.innerHTML = `
-                    <div class="feed-header">
-                        <div class="category-badge">
-                            ${categoryIcon}
-                        </div>
-                        <div>
-                            <h3>${feature.attributes.name || 'Community Post'}</h3>
-                            <div class="meta-info">
-                                ${feature.attributes.county ? `<span>📍 ${feature.attributes.county}</span>` : ''}
-                                ${feature.attributes.city ? `<span>🏙️ ${feature.attributes.city}</span>` : ''}
-                                ${feature.attributes.listing_duration ? `<span>📅 ${feature.attributes.listing_duration} days</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="feed-photos">
-                        ${photos.map(url => `<img src="${url}" class="feed-photo">`).join('')}
-                    </div>
-                `;
+                    currentPosts = new Set(mainData.features.map(f => f.attributes.OBJECTID));
+                    const fragment = document.createDocumentFragment();
 
-                card.querySelectorAll('.feed-photo').forEach((img, index) => {
-                    img.addEventListener('click', () => openLightbox(photos, index));
-                });
+                    for (const feature of mainData.features) {
+                        const globalId = feature.attributes.globalid;
+                        if (!globalId) continue;
 
-                return card;
-            }
+                        const category = feature.attributes.category?.toLowerCase() || '';
+                        const categoryIcon = CATEGORY_ICONS[category] || CATEGORY_ICONS.default;
+                        const photos = [];
 
-            async function getPhotosForFeature(feature) {
-                const photos = [];
-                const globalId = feature.attributes.globalid;
-
-                for (const tableId of PHOTO_TABLES) {
-                    try {
-                        const tableUrl = SERVICE_URL.replace("/0", `/${tableId}`);
-                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                            query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
-                        });
-
-                        for (const rel of relatedData.features || []) {
+                        for (const tableId of PHOTO_TABLES) {
                             try {
-                                const { data: attachments } = await esriRequest(
-                                    `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
-                                );
-                                if (attachments?.attachmentInfos?.length) {
-                                    photos.push(...attachments.attachmentInfos.map(a => 
-                                        `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
-                                    ));
+                                const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                                const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                                    query: { where: `ParentGlobalID='${globalId}'`, f: "json" }
+                                });
+
+                                for (const rel of relatedData.features || []) {
+                                    const { data: attachments } = await esriRequest(
+                                        `${tableUrl}/${rel.attributes.objectid}/attachments?f=json`
+                                    );
+                                    if (attachments?.attachmentInfos?.length) {
+                                        photos.push(...attachments.attachmentInfos.map(a => 
+                                            `${tableUrl}/${rel.attributes.objectid}/attachments/${a.id}`
+                                        ));
+                                    }
                                 }
-                            } catch (error) {
-                                console.warn(`Attachment error in table ${tableId}:`, error);
+                            } catch(error) {
+                                console.warn(`Table ${tableId} error:`, error.message);
                             }
                         }
-                    } catch (error) {
-                        console.warn(`Table ${tableId} query failed:`, error);
+
+                        if (photos.length) {
+                            const card = document.createElement('div');
+                            card.className = 'feed-item';
+                            card.innerHTML = `
+                                <div class="feed-header">
+                                    <div class="feed-avatar">${categoryIcon}</div>
+                                    <div>
+                                        <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
+                                        <div class="feed-meta">
+                                            ${new Date(feature.attributes.CreationDate).toLocaleDateString()}
+                                            ${feature.attributes.address ? `• ${feature.attributes.address}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="feed-photos">
+                                    ${photos.map(url => `
+                                        <img class="feed-photo" 
+                                            src="${url}" 
+                                            loading="lazy"
+                                            onerror="this.style.display='none'">
+                                    `).join('')}
+                                </div>
+                            `;
+                            fragment.appendChild(card);
+                        }
+                    }
+
+                    feed.innerHTML = '';
+                    feed.appendChild(fragment);
+
+                    if (isRefresh) {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+
+                } catch(error) {
+                    console.error("Feed Error:", error);
+                    if (!isRefresh) {
+                        feed.innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                     }
                 }
-                return photos;
             }
 
-            function openLightbox(images, startIndex) {
-                currentLightboxImages = images;
-                currentLightboxIndex = startIndex;
-                const lightbox = document.getElementById("lightbox");
-                lightbox.classList.add("active");
-                updateLightboxImage();
-            }
-
-            function updateLightboxImage() {
-                document.getElementById("lightbox-image").src = currentLightboxImages[currentLightboxIndex];
-            }
-
-            document.querySelectorAll('.lightbox-nav').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    currentLightboxIndex += e.target.classList.contains('lightbox-prev') ? -1 : 1;
-                    if (currentLightboxIndex < 0) currentLightboxIndex = currentLightboxImages.length - 1;
-                    if (currentLightboxIndex >= currentLightboxImages.length) currentLightboxIndex = 0;
-                    updateLightboxImage();
-                });
-            });
-
-            document.getElementById("lightbox").addEventListener('click', (e) => {
-                if (e.target === e.currentTarget) {
-                    e.currentTarget.classList.remove("active");
+            function checkScroll() {
+                const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+                if (scrollTop + clientHeight >= scrollHeight - 100) {
+                    showRefreshIndicator();
+                    setTimeout(() => loadFeed(true), 1000);
                 }
-            });
+            }
 
+            function showRefreshIndicator() {
+                const indicator = document.getElementById("refreshIndicator");
+                indicator.style.display = "block";
+                setTimeout(() => indicator.style.display = "none", 3000);
+            }
+
+            // Initial load and auto-refresh
             loadFeed();
+            window.addEventListener("scroll", checkScroll);
+            setInterval(() => loadFeed(true), 300000);
         });
     </script>
 </body>
