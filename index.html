@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-        :root {
+       :root {
             --primary: #2d4739;
             --accent: #ffd700;
             --text: rgba(255,255,255,0.9);
@@ -15,6 +15,14 @@
             margin: 0;
             color: var(--text);
             font-family: Arial, sans-serif;
+        }
+        /* ADDED LINK COLOR RULE */
+        a, a:visited, a:active {
+            color: #fff !important;
+            text-decoration: underline;
+        }
+        a:hover {
+            color: var(--accent) !important;
         }
         .feed-container {
             max-width: 800px;
