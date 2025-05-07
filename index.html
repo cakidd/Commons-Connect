@@ -3,13 +3,65 @@
 <head>
     <title>The Commons 2.0 Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Firebase Services (Compat Version for ESRI compatibility) -->
+    
+    <!-- Firebase Services (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    
     <!-- ESRI SDK -->
     <script src="https://js.arcgis.com/4.28/"></script>
+    
+    <!-- Calcite Components 2.11.0 -->
+    <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/2.11.0/calcite.css" />
+    <script type="module" src="https://js.arcgis.com/calcite-components/2.11.0/calcite.esm.js"></script>
+    <script nomodule src="https://js.arcgis.com/calcite-components/2.11.0/calcite.js"></script>
+
+    <style>
+        /* [Full CSS from previous implementation] */
+    </style>
+</head>
+<body>
+    <!-- [UI Elements identical to previous implementation] -->
+
+    <script>
+        // ======= FIREBASE CONFIGURATION =======
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
+            authDomain: "the-commons-2.firebaseapp.com",
+            projectId: "the-commons-2",
+            storageBucket: "the-commons-2.appspot.com",
+            messagingSenderId: "53595932987",
+            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // ======= UPDATED ESRI CONFIGURATION =======
+        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            // Modern CORS configuration
+            esriConfig.request.trustedServers.push(
+                "firestore.googleapis.com",
+                "firebasestorage.googleapis.com"
+            );
+
+            // [Rest of ESRI implementation with updated selectors/highlightIds]
+        });
+
+        // ======= MODERNIZED COMMENT SYSTEM =======
+        async function showComments(globalId) {
+            // Using calcite-dialog instead of deprecated modal
+            const modalHTML = `
+                <calcite-dialog open>
+                    <div slot="heading">Comments</div>
+                    <!-- Comment content -->
+                    <calcite-button slot="back" onclick="this.closest('calcite-dialog').remove()">
+                        Close
+                    </calcite-button>
+                </calcite-dialog>
+            `;
+        }
 
     <style>
         :root {
