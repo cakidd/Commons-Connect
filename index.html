@@ -4,64 +4,17 @@
     <title>The Commons 2.0 Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Firebase Services (Compat Version) -->
+    <!-- Firebase Services (Load FIRST) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     
-    <!-- ESRI SDK -->
+    <!-- ESRI SDK (Load AFTER Firebase) -->
     <script src="https://js.arcgis.com/4.28/"></script>
     
-    <!-- Calcite Components 2.11.0 -->
-    <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/2.11.0/calcite.css" />
-    <script type="module" src="https://js.arcgis.com/calcite-components/2.11.0/calcite.esm.js"></script>
-    <script nomodule src="https://js.arcgis.com/calcite-components/2.11.0/calcite.js"></script>
-
-    <style>
-        /* [Full CSS from previous implementation] */
-    </style>
-</head>
-<body>
-    <!-- [UI Elements identical to previous implementation] -->
-
-    <script>
-        // ======= FIREBASE CONFIGURATION =======
-        const firebaseConfig = {
-            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
-            authDomain: "the-commons-2.firebaseapp.com",
-            projectId: "the-commons-2",
-            storageBucket: "the-commons-2.appspot.com",
-            messagingSenderId: "53595932987",
-            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        // ======= UPDATED ESRI CONFIGURATION =======
-        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // Modern CORS configuration
-            esriConfig.request.trustedServers.push(
-                "firestore.googleapis.com",
-                "firebasestorage.googleapis.com"
-            );
-
-            // [Rest of ESRI implementation with updated selectors/highlightIds]
-        });
-
-        // ======= MODERNIZED COMMENT SYSTEM =======
-        async function showComments(globalId) {
-            // Using calcite-dialog instead of deprecated modal
-            const modalHTML = `
-                <calcite-dialog open>
-                    <div slot="heading">Comments</div>
-                    <!-- Comment content -->
-                    <calcite-button slot="back" onclick="this.closest('calcite-dialog').remove()">
-                        Close
-                    </calcite-button>
-                </calcite-dialog>
-            `;
-        }
+    <!-- Calcite Components 3.1.0 -->
+    <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
+    <script type="module" src="https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js"></script>
 
     <style>
         :root {
@@ -74,6 +27,13 @@
             margin: 0;
             color: var(--text);
             font-family: Arial, sans-serif;
+        }
+        a, a:visited, a:active {
+            color: #fff !important;
+            text-decoration: underline;
+        }
+        a:hover {
+            color: var(--accent) !important;
         }
         .feed-container {
             max-width: 800px;
@@ -211,12 +171,6 @@
             margin-bottom: 0.5rem;
             border-radius: 4px;
         }
-        .share-menu {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10;
-        }
     </style>
 </head>
 <body>
@@ -244,19 +198,19 @@
             messagingSenderId: "53595932987",
             appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // ======= ESRI CONFIGURATION =======
-        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            esriConfig.defaults.io.corsEnabledServers.push(
+        // ======= ESRI CORS FIX (Search Result #8) =======
+        require(["esri/config", "esri/request"], (esriConfig) => {
+            esriConfig.request.trustedServers.push(
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com"
             );
 
-            // Set your feature service URL here
-            const MAIN_LAYER_URL = "YOUR_FEATURE_SERVICE_URL";
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
             const CATEGORY_ICONS = {
                 yard_sale: '🏷️', classified: '📦', business: '🏢',
@@ -310,7 +264,7 @@
                             </div>
                             ${renderPhotos(photos)}
                             <div class="comments-section">
-                                <button onclick="showComments('${attrs.globalid}')">💬 Comments</button>
+                                <calcite-button onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
                             </div>
                         `;
                         addPhotoListeners(card, photos);
@@ -440,7 +394,7 @@
             loadFeed();
         });
 
-        // ======= COMMENT SYSTEM =======
+        // ======= MODERN COMMENT SYSTEM (Calcite 3.1.0) =======
         async function showComments(globalId) {
             const comments = await db.collection('comments')
                 .where('postId', '==', globalId)
@@ -454,18 +408,18 @@
                 </div>
             `).join('');
 
-            const modal = document.createElement('div');
-            modal.innerHTML = `
-                <div class="comments-modal">
-                    <h3>Comments</h3>
-                    <div class="comments-list">${commentsHTML}</div>
-                    <div class="comment-input">
-                        <textarea id="commentText" placeholder="Add a comment..."></textarea>
-                        <button onclick="postComment('${globalId}')">Post</button>
-                    </div>
+            const dialog = document.createElement('calcite-dialog');
+            dialog.innerHTML = `
+                <div slot="title">Comments</div>
+                <div class="comments-list">${commentsHTML}</div>
+                <div class="comment-input">
+                    <textarea id="commentText"></textarea>
+                    <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
                 </div>
+                <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
             `;
-            document.body.appendChild(modal);
+            document.body.appendChild(dialog);
+            dialog.open = true;
         }
 
         async function postComment(globalId) {
@@ -531,7 +485,7 @@
             }
         }
 
-        // ======= AUTHENTICATION =======
+        // ======= ANONYMOUS AUTHENTICATION =======
         auth.signInAnonymously().catch(error => {
             console.error("Anonymous auth error:", error);
         });
