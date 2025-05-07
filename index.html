@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Commons Community Feed</title>
+    <style>
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .feed-item {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .feed-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .feed-author {
+            font-weight: bold;
+            color: #2c4f90;
+        }
+        .feed-timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="feed-container" id="feed"></div>
+
+    <script>
+        // Configuration - REPLACE WITH YOUR ACTUAL URL
+        const config = {
+            featureLayerUrl: "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_9a9cf88c4584462f9286b85b7c30038b/FeatureServer/0"
+        };
+
+        // Fetch attachments for a feature
+        async function getFirstAttachmentUrl(objectId) {
+            try {
+                const response = await fetch(`${config.featureLayerUrl}/${objectId}/attachments?f=json`);
+                const data = await response.json();
+                if (data.attachmentInfos?.length > 0) {
+                    return `${config.featureLayerUrl}/${objectId}/attachments/${data.attachmentInfos[0].id}`;
+                }
+                return null;
+            } catch (error) {
+                console.error("Attachment error:", error);
+                return null;
+            }
+        }
+
+        // Load and display feed
+        async function loadFeed() {
+            try {
+                const response = await fetch(`${config.featureLayerUrl}/query?where=1=1&outFields=*&orderByFields=CreatedDate DESC&f=json`);
+                const data = await response.json();
+                const feed = document.getElementById("feed");
+
+                // Clear loading state
+                feed.innerHTML = "";
+
+                // Process each feature
+                for (const feature of data.features) {
+                    const attributes = feature.attributes;
+                    const feedItem = document.createElement("div");
+                    feedItem.className = "feed-item";
+
+                    // Get first attachment
+                    const imageUrl = await getFirstAttachmentUrl(attributes.OBJECTID);
+
+                    // Build HTML
+                    feedItem.innerHTML = `
+                        <div class="feed-author">${attributes.Name || "Anonymous"}</div>
+                        <div class="feed-timestamp">
+                            ${new Date(attributes.CreatedDate).toLocaleDateString()} 
+                            ${new Date(attributes.CreatedDate).toLocaleTimeString()}
+                        </div>
+                        <p>${attributes.Comment || "No comment provided"}</p>
+                        ${imageUrl ? `<img src="${imageUrl}" alt="Submission photo">` : ""}
+                    `;
+
+                    feed.appendChild(feedItem);
+                }
+
+            } catch (error) {
+                console.error("Feed load error:", error);
+                document.getElementById("feed").innerHTML = `
+                    <div class="error">
+                        ⚠️ Failed to load feed. Verify:<br>
+                        1. Feature layer is shared publicly<br>
+                        2. CORS is enabled on your server
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize
+        loadFeed();
+    </script>
+</body>
+</html>
