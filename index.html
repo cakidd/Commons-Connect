@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Commons Community Feed</title>
+    <title>The Commons 2.0 Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Firebase Services (Compat Version for ESRI compatibility) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <!-- ESRI SDK -->
     <script src="https://js.arcgis.com/4.28/"></script>
+
     <style>
         :root {
             --primary: #2d4739;
@@ -15,13 +22,6 @@
             margin: 0;
             color: var(--text);
             font-family: Arial, sans-serif;
-        }
-        a, a:visited, a:active {
-            color: #fff !important;
-            text-decoration: underline;
-        }
-        a:hover {
-            color: var(--accent) !important;
         }
         .feed-container {
             max-width: 800px;
@@ -54,7 +54,7 @@
         }
         .feed-author {
             font-size: 1.4rem;
-            color: var(--accent;
+            color: var(--accent);
         }
         .feed-photos {
             display: flex;
@@ -63,12 +63,16 @@
             padding: 10px 0;
         }
         .feed-photo {
-            height: 200px;
-            min-width: 250px;
+            width: 150px;
+            height: 150px;
             object-fit: cover;
             border-radius: 8px;
             border: 2px solid var(--accent);
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .feed-photo:hover {
+            transform: scale(1.05);
         }
         .loader {
             border: 4px solid rgba(255,255,255,0.1);
@@ -96,48 +100,70 @@
             z-index: 1000;
         }
         .lightbox.active { display: flex; }
-        .lightbox-img {
+        .lightbox-content {
             max-width: 90%;
             max-height: 90%;
+            position: relative;
+        }
+        .lightbox-img {
+            max-width: 100%;
+            max-height: 80vh;
             border: 3px solid var(--accent);
             border-radius: 8px;
         }
-        /* Share Menu Styles */
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 1rem;
+            cursor: pointer;
+            border: none;
+            font-size: 2rem;
+        }
+        .lightbox-prev { left: 0; }
+        .lightbox-next { right: 0; }
+        .lightbox-share {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            display: flex;
+            gap: 1rem;
+        }
+        .comments-section {
+            margin-top: 1rem;
+            border-top: 1px solid var(--accent);
+            padding-top: 1rem;
+        }
+        .comment-input {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .comment-input textarea {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        .comment {
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+        }
         .share-menu {
             position: absolute;
             top: 20px;
             right: 20px;
-        }
-        .share-button {
-            background: none;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-        .share-options {
-            display: none;
-            position: absolute;
-            right: 0;
-            background: var(--primary);
-            border: 1px solid var(--accent);
-            border-radius: 4px;
-            padding: 8px;
-            z-index: 100;
-            white-space: nowrap;
-        }
-        .share-options.show {
-            display: block;
-        }
-        .share-options a {
-            margin: 0 4px;
-            color: var(--accent) !important;
-            text-decoration: none !important;
-            font-size: 1.2rem;
-        }
-        @keyframes highlight {
-            0% { background: rgba(255,215,0,0.3); }
-            100% { background: transparent; }
+            z-index: 10;
         }
     </style>
 </head>
@@ -146,12 +172,39 @@
         <div class="loader"></div>
     </div>
     <div class="lightbox" id="lightbox">
-        <img class="lightbox-img" id="lightboxImage">
+        <div class="lightbox-content">
+            <button class="lightbox-nav lightbox-prev" onclick="changeSlide(-1)">❮</button>
+            <img class="lightbox-img" id="lightboxImage">
+            <button class="lightbox-nav lightbox-next" onclick="changeSlide(1)">❯</button>
+            <div class="lightbox-share">
+                <button onclick="shareCurrentImage()">📤 Share Image</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        require(["esri/request"], (esriRequest) => {
-            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+        // ======= FIREBASE CONFIGURATION =======
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
+            authDomain: "the-commons-2.firebaseapp.com",
+            projectId: "the-commons-2",
+            storageBucket: "the-commons-2.appspot.com",
+            messagingSenderId: "53595932987",
+            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // ======= ESRI CONFIGURATION =======
+        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            esriConfig.defaults.io.corsEnabledServers.push(
+                "firestore.googleapis.com",
+                "firebasestorage.googleapis.com"
+            );
+
+            // Set your feature service URL here
+            const MAIN_LAYER_URL = "YOUR_FEATURE_SERVICE_URL";
             const PHOTO_TABLES = [1, 2, 3, 4];
             const CATEGORY_ICONS = {
                 yard_sale: '🏷️', classified: '📦', business: '🏢',
@@ -160,21 +213,18 @@
                 educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
                 preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
-
+            
             let isLoading = false;
             let observer = null;
+            let currentLightboxIndex = 0;
+            let currentLightboxImages = [];
 
-            // Handle deep linking
-            const urlParams = new URLSearchParams(window.location.search);
-            const featureId = urlParams.get('featureID');
-
+            // ======= FEED LOADING =======
             async function loadFeed() {
                 if(isLoading) return;
                 isLoading = true;
                 try {
                     const feed = document.getElementById("feed");
-                    feed.innerHTML = '<div class="loader"></div>';
-
                     const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -185,132 +235,69 @@
                     });
 
                     feed.innerHTML = '';
-
-                    for (const feature of mainData.features) {
+                    
+                    for(const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
-                        const shareLinks = buildShareLinks(feature);
-
+                        
                         const card = document.createElement('div');
                         card.className = 'feed-item';
-                        if(attrs.globalid === featureId) {
-                            card.style.animation = 'highlight 2s ease-out';
-                        }
-                        
                         card.innerHTML = `
                             <div class="share-menu">
-                                <button class="share-button" onclick="toggleShareMenu(event)">🔗</button>
-                                <div class="share-options">
-                                    <a href="${shareLinks.twitter}" target="_blank" title="Share on Twitter">🐦</a>
-                                    <a href="${shareLinks.facebook}" target="_blank" title="Share on Facebook">📘</a>
-                                    <a href="${shareLinks.email}" target="_blank" title="Share via Email">📧</a>
-                                    <a href="#" onclick="copyFeatureLink('${shareLinks.direct}')" title="Copy link">📋</a>
-                                </div>
+                                <button class="share-button" onclick="shareFeature('${attrs.globalid}')">🔗</button>
                             </div>
                             <div class="feed-header">
                                 <div class="feed-avatar">
-                                    ${CATEGORY_ICONS[attrs.is_yard_sale ? 'yard_sale' :
-                                    attrs.is_classified ? 'classified' :
-                                    attrs.category?.toLowerCase() || 'default'] || CATEGORY_ICONS.default}
+                                    ${getCategoryIcon(attrs)}
                                 </div>
                                 <div>
                                     <div class="feed-author">${attrs.name || 'Community Member'}</div>
-                                    <div class="feed-meta">
-                                        ${attrs.is_yard_sale ? `
-                                            <div>📅 ${new Date(attrs.sale_start).toLocaleDateString()} - ${new Date(attrs.sale_end).toLocaleDateString()}</div>
-                                            <div>📝 ${attrs.yard_sale_notes || ''}</div>
-                                        ` : ''}
-                                        ${attrs.is_classified ? `
-                                            <div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>
-                                            <div>🏷️ ${attrs.item_name || ''}</div>
-                                            <div>📋 ${attrs.classified_description || ''}</div>
-                                            <div>⏳ ${new Date(attrs.expiration_date).toLocaleDateString()}</div>
-                                        ` : ''}
-                                        <div>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</div>
-                                    </div>
-                                    ${attrs.phone || attrs.contact_name || attrs.email ? `
-                                    <div class="contact-info">
-                                        ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
-                                        ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>` : ''}
-                                        ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>` : ''}
-                                    </div>
-                                    ` : ''}
+                                    ${renderFeatureDetails(attrs)}
+                                    ${renderContactInfo(attrs)}
                                 </div>
                             </div>
-                            ${photos.length ? `
-                            <div class="feed-photos">
-                                ${photos.map(url => `
-                                    <img class="feed-photo"
-                                        src="${url}"
-                                        loading="lazy"
-                                        onerror="this.style.display='none'">
-                                `).join('')}
+                            ${renderPhotos(photos)}
+                            <div class="comments-section">
+                                <button onclick="showComments('${attrs.globalid}')">💬 Comments</button>
                             </div>
-                            ` : ''}
                         `;
-
-                        card.querySelectorAll('.feed-photo').forEach(img => {
-                            img.addEventListener('click', () => showLightbox(photos, img.src));
-                        });
-                        
-                        if(attrs.globalid === featureId) {
-                            card.scrollIntoView({ behavior: 'smooth' });
-                        }
-                        
+                        addPhotoListeners(card, photos);
                         feed.appendChild(card);
                     }
 
-                    // Sentinel logic
-                    let sentinel = document.getElementById('feed-sentinel');
-                    if (sentinel) sentinel.remove();
-                    sentinel = document.createElement('div');
-                    sentinel.id = 'feed-sentinel';
-                    sentinel.style.height = "40px";
-                    feed.appendChild(sentinel);
-
-                    if(observer) observer.disconnect();
-                    observer = new IntersectionObserver(([entry]) => {
-                        if(entry.isIntersecting) {
-                            setTimeout(() => {
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 500);
-                            }, 5000);
-                        }
-                    }, { threshold: 1 });
-                    observer.observe(sentinel);
-
+                    setupIntersectionObserver();
                 } catch(error) {
                     console.error("Feed Error:", error);
-                    document.getElementById("feed").innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
                 } finally {
                     isLoading = false;
                 }
             }
 
+            // ======= IMAGE HANDLING =======
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
-                const objectId = feature.attributes.objectid || feature.attributes.OBJECTID;
+                const objectId = feature.attributes.objectid;
 
-                // Survey attachments
+                // Related table attachments
                 for(const tableId of PHOTO_TABLES) {
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
                         const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
                             query: {
                                 where: `ParentGlobalID='${globalId}'`,
-                                outFields: "objectid,OBJECTID",
+                                outFields: "objectid",
                                 f: "json"
                             }
                         });
+                        
                         for(const rel of relatedData.features || []) {
-                            const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
-                            if(!oid) continue;
+                            const oid = rel.attributes.objectid;
                             const { data: attachments } = await esriRequest(
                                 `${tableUrl}/${oid}/attachments?f=json`
                             );
                             if(attachments?.attachmentInfos?.length) {
-                                photos.push(...attachments.attachmentInfos.map(a =>
+                                photos.push(...attachments.attachmentInfos.map(a => 
                                     `${tableUrl}/${oid}/attachments/${a.id}`
                                 ));
                             }
@@ -320,14 +307,14 @@
                     }
                 }
 
-                // WebMap direct attachments
+                // Direct feature attachments
                 if(objectId) {
                     try {
                         const { data: directAttachments } = await esriRequest(
                             `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
                         );
                         if(directAttachments?.attachmentInfos?.length) {
-                            photos.push(...directAttachments.attachmentInfos.map(a =>
+                            photos.push(...directAttachments.attachmentInfos.map(a => 
                                 `${MAIN_LAYER_URL}/${objectId}/attachments/${a.id}`
                             ));
                         }
@@ -339,69 +326,168 @@
                 return [...new Set(photos)];
             }
 
-            function buildShareLinks(feature) {
-                const baseUrl = window.location.href.split('?')[0];
-                const featureUrl = `${baseUrl}?featureID=${feature.attributes.globalid}`;
-                const encodedUrl = encodeURIComponent(featureUrl);
-                const title = encodeURIComponent(feature.attributes.name || "Community Listing");
-                const description = encodeURIComponent(feature.attributes.description?.substring(0, 200) || "");
-
-                return {
-                    direct: featureUrl,
-                    twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${title}%20-%20${description}`,
-                    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-                    email: `mailto:?subject=${title}&body=${description}%0A%0AView%20details:%20${encodedUrl}`
-                };
+            // ======= HELPER FUNCTIONS =======
+            function getCategoryIcon(attrs) {
+                const iconKey = attrs.is_yard_sale ? 'yard_sale' :
+                              attrs.is_classified ? 'classified' :
+                              attrs.category?.toLowerCase() || 'default';
+                return CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
             }
 
-            // Lightbox functionality
-            let currentLightboxIndex = 0;
-            let currentLightboxImages = [];
-            const lightbox = document.getElementById("lightbox");
-            const lightboxImg = document.getElementById("lightboxImage");
-
-            function showLightbox(images, currentSrc) {
-                currentLightboxImages = images;
-                currentLightboxIndex = images.indexOf(currentSrc);
-                lightboxImg.src = currentSrc;
-                lightbox.classList.add('active');
+            function renderFeatureDetails(attrs) {
+                let details = '';
+                if(attrs.is_yard_sale) {
+                    details += `<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()} - ${new Date(attrs.sale_end).toLocaleDateString()}</div>`;
+                }
+                if(attrs.is_classified) {
+                    details += `<div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>`;
+                }
+                return details ? `<div class="feed-meta">${details}</div>` : '';
             }
 
-            lightbox.addEventListener('click', (e) => {
-                if(e.target === lightbox) lightbox.classList.remove('active');
-            });
-
-            // Share functionality
-            window.toggleShareMenu = function(event) {
-                const menu = event.target.closest('.share-menu').querySelector('.share-options');
-                menu.classList.toggle('show');
-                event.stopPropagation();
+            function renderContactInfo(attrs) {
+                let info = '';
+                if(attrs.contact_name) info += `<div>👤 ${attrs.contact_name}</div>`;
+                if(attrs.phone) info += `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>`;
+                if(attrs.email) info += `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>`;
+                return info ? `<div class="contact-info">${info}</div>` : '';
             }
 
-            window.copyFeatureLink = function(url) {
-                navigator.clipboard.writeText(url).then(() => {
-                    alert('Link copied to clipboard!');
+            function renderPhotos(photos) {
+                return photos.length ? `
+                    <div class="feed-photos">
+                        ${photos.map((url, index) => `
+                            <img class="feed-photo" 
+                                src="${url}" 
+                                loading="lazy"
+                                onerror="this.style.display='none'">
+                        `).join('')}
+                    </div>
+                ` : '';
+            }
+
+            function addPhotoListeners(card, photos) {
+                card.querySelectorAll('.feed-photo').forEach((img, index) => {
+                    img.addEventListener('click', () => showLightbox(photos, index));
                 });
             }
 
-            document.addEventListener('click', () => {
-                document.querySelectorAll('.share-options').forEach(menu => {
-                    menu.classList.remove('show');
-                });
-            });
-
-            // Auto-refresh every 5 minutes
-            setInterval(() => loadFeed(), 300000);
+            function setupIntersectionObserver() {
+                const sentinel = document.createElement('div');
+                sentinel.id = 'feed-sentinel';
+                document.getElementById("feed").appendChild(sentinel);
+                
+                if(observer) observer.disconnect();
+                observer = new IntersectionObserver(([entry]) => {
+                    if(entry.isIntersecting) loadFeed();
+                }, { threshold: 1.0 });
+                observer.observe(sentinel);
+            }
 
             // Initial load
             loadFeed();
+        });
 
-            // Handle deep link on initial load
-            if(featureId) {
-                const targetCard = document.querySelector(`[data-feature-id="${featureId}"]`);
-                if(targetCard) {
-                    targetCard.scrollIntoView({ behavior: 'smooth' });
+        // ======= COMMENT SYSTEM =======
+        async function showComments(globalId) {
+            const comments = await db.collection('comments')
+                .where('postId', '==', globalId)
+                .orderBy('timestamp', 'desc')
+                .get();
+            
+            const commentsHTML = comments.docs.map(doc => `
+                <div class="comment">
+                    <div>${doc.data().text}</div>
+                    <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
+                </div>
+            `).join('');
+
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div class="comments-modal">
+                    <h3>Comments</h3>
+                    <div class="comments-list">${commentsHTML}</div>
+                    <div class="comment-input">
+                        <textarea id="commentText" placeholder="Add a comment..."></textarea>
+                        <button onclick="postComment('${globalId}')">Post</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function postComment(globalId) {
+            const text = document.getElementById('commentText').value;
+            if (!text.trim()) return;
+
+            await db.collection('comments').add({
+                postId: globalId,
+                text: text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: auth.currentUser?.uid || 'anonymous'
+            });
+            showComments(globalId);
+        }
+
+        // ======= SHARING FUNCTIONALITY =======
+        function shareFeature(globalId) {
+            const url = `${window.location.origin}?featureID=${globalId}`;
+            if(navigator.share) {
+                navigator.share({
+                    title: 'Community Post',
+                    text: 'Check out this community post!',
+                    url: url
+                });
+            } else {
+                prompt('Copy link:', url);
+            }
+        }
+
+        // ======= LIGHTBOX CONTROLS =======
+        function showLightbox(images, startIndex) {
+            currentLightboxImages = images;
+            currentLightboxIndex = startIndex;
+            document.getElementById('lightboxImage').src = images[startIndex];
+            document.getElementById('lightbox').classList.add('active');
+        }
+
+        function changeSlide(offset) {
+            currentLightboxIndex = (currentLightboxIndex + offset + currentLightboxImages.length) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        }
+
+        async function shareCurrentImage() {
+            const imageUrl = document.getElementById('lightboxImage').src;
+            try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], 'community-image.jpg', { type: blob.type });
+                
+                if(navigator.canShare?.({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Shared from The Commons'
+                    });
+                } else {
+                    const link = document.createElement('a');
+                    link.href = imageUrl;
+                    link.download = 'community-image.jpg';
+                    link.click();
                 }
+            } catch(error) {
+                console.error('Sharing failed:', error);
+            }
+        }
+
+        // ======= AUTHENTICATION =======
+        auth.signInAnonymously().catch(error => {
+            console.error("Anonymous auth error:", error);
+        });
+
+        // Close lightbox when clicking outside
+        document.getElementById('lightbox').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('lightbox')) {
+                document.getElementById('lightbox').classList.remove('active');
             }
         });
     </script>
