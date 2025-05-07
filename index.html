@@ -4,12 +4,12 @@
     <title>The Commons 2.0 Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Firebase Services (Load FIRST) -->
+    <!-- Firebase Services (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     
-    <!-- ESRI SDK (Load AFTER Firebase) -->
+    <!-- ESRI SDK -->
     <script src="https://js.arcgis.com/4.28/"></script>
     
     <!-- Calcite Components 3.1.0 -->
@@ -171,6 +171,12 @@
             margin-bottom: 0.5rem;
             border-radius: 4px;
         }
+        .share-menu {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -198,13 +204,12 @@
             messagingSenderId: "53595932987",
             appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // ======= ESRI CORS FIX (Search Result #8) =======
-        require(["esri/config", "esri/request"], (esriConfig) => {
+        // ======= ESRI CORS FIX =======
+        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
             esriConfig.request.trustedServers.push(
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com"
@@ -285,7 +290,6 @@
                 const globalId = feature.attributes.globalid;
                 const objectId = feature.attributes.objectid;
 
-                // Related table attachments
                 for(const tableId of PHOTO_TABLES) {
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
@@ -313,7 +317,6 @@
                     }
                 }
 
-                // Direct feature attachments
                 if(objectId) {
                     try {
                         const { data: directAttachments } = await esriRequest(
@@ -390,28 +393,27 @@
                 observer.observe(sentinel);
             }
 
-            // Initial load
             loadFeed();
         });
 
-        // ======= MODERN COMMENT SYSTEM (Calcite 3.1.0) =======
+        // ======= MODERN COMMENT SYSTEM =======
         async function showComments(globalId) {
             const comments = await db.collection('comments')
                 .where('postId', '==', globalId)
                 .orderBy('timestamp', 'desc')
                 .get();
             
-            const commentsHTML = comments.docs.map(doc => `
-                <div class="comment">
-                    <div>${doc.data().text}</div>
-                    <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
-                </div>
-            `).join('');
-
             const dialog = document.createElement('calcite-dialog');
             dialog.innerHTML = `
                 <div slot="title">Comments</div>
-                <div class="comments-list">${commentsHTML}</div>
+                <div class="comments-list">
+                    ${comments.docs.map(doc => `
+                        <div class="comment">
+                            <div>${doc.data().text}</div>
+                            <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
+                        </div>
+                    `).join('')}
+                </div>
                 <div class="comment-input">
                     <textarea id="commentText"></textarea>
                     <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
@@ -485,7 +487,7 @@
             }
         }
 
-        // ======= ANONYMOUS AUTHENTICATION =======
+        // ======= AUTHENTICATION =======
         auth.signInAnonymously().catch(error => {
             console.error("Anonymous auth error:", error);
         });
