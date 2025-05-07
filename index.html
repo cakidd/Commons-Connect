@@ -4,12 +4,12 @@
     <title>The Commons 2.0 Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Firebase Services (Compat Version) -->
+    <!-- Firebase Services (Load FIRST) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     
-    <!-- ESRI SDK -->
+    <!-- ESRI SDK (Load AFTER Firebase) -->
     <script src="https://js.arcgis.com/4.28/"></script>
     
     <!-- Calcite Components 3.1.0 -->
@@ -210,6 +210,7 @@
 
         // ======= ESRI CORS FIX =======
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            // Modern CORS configuration
             esriConfig.request.trustedServers.push(
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com"
@@ -279,6 +280,7 @@
                     setupIntersectionObserver();
                 } catch(error) {
                     console.error("Feed Error:", error);
+                    document.getElementById("feed").innerHTML = '<div class="feed-item">⚠️ Error loading feed. Please try refreshing.</div>';
                 } finally {
                     isLoading = false;
                 }
