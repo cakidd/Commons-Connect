@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://js.arcgis.com/4.28/"></script>
     <style>
-       :root {
+        :root {
             --primary: #2d4739;
             --accent: #ffd700;
             --text: rgba(255,255,255,0.9);
@@ -16,7 +16,6 @@
             color: var(--text);
             font-family: Arial, sans-serif;
         }
-        /* ADDED LINK COLOR RULE */
         a, a:visited, a:active {
             color: #fff !important;
             text-decoration: underline;
@@ -35,6 +34,7 @@
             border-radius: 8px;
             margin: 20px 0;
             padding: 20px;
+            position: relative;
         }
         .feed-header {
             display: flex;
@@ -54,7 +54,7 @@
         }
         .feed-author {
             font-size: 1.4rem;
-            color: var(--accent);
+            color: var(--accent;
         }
         .feed-photos {
             display: flex;
@@ -102,6 +102,43 @@
             border: 3px solid var(--accent);
             border-radius: 8px;
         }
+        /* Share Menu Styles */
+        .share-menu {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .share-button {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .share-options {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: var(--primary);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 8px;
+            z-index: 100;
+            white-space: nowrap;
+        }
+        .share-options.show {
+            display: block;
+        }
+        .share-options a {
+            margin: 0 4px;
+            color: var(--accent) !important;
+            text-decoration: none !important;
+            font-size: 1.2rem;
+        }
+        @keyframes highlight {
+            0% { background: rgba(255,215,0,0.3); }
+            100% { background: transparent; }
+        }
     </style>
 </head>
 <body>
@@ -111,7 +148,6 @@
     <div class="lightbox" id="lightbox">
         <img class="lightbox-img" id="lightboxImage">
     </div>
-    <!-- Sentinel element will be dynamically added after feed -->
 
     <script>
         require(["esri/request"], (esriRequest) => {
@@ -127,6 +163,10 @@
 
             let isLoading = false;
             let observer = null;
+
+            // Handle deep linking
+            const urlParams = new URLSearchParams(window.location.search);
+            const featureId = urlParams.get('featureID');
 
             async function loadFeed() {
                 if(isLoading) return;
@@ -149,10 +189,24 @@
                     for (const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
+                        const shareLinks = buildShareLinks(feature);
 
                         const card = document.createElement('div');
                         card.className = 'feed-item';
+                        if(attrs.globalid === featureId) {
+                            card.style.animation = 'highlight 2s ease-out';
+                        }
+                        
                         card.innerHTML = `
+                            <div class="share-menu">
+                                <button class="share-button" onclick="toggleShareMenu(event)">🔗</button>
+                                <div class="share-options">
+                                    <a href="${shareLinks.twitter}" target="_blank" title="Share on Twitter">🐦</a>
+                                    <a href="${shareLinks.facebook}" target="_blank" title="Share on Facebook">📘</a>
+                                    <a href="${shareLinks.email}" target="_blank" title="Share via Email">📧</a>
+                                    <a href="#" onclick="copyFeatureLink('${shareLinks.direct}')" title="Copy link">📋</a>
+                                </div>
+                            </div>
                             <div class="feed-header">
                                 <div class="feed-avatar">
                                     ${CATEGORY_ICONS[attrs.is_yard_sale ? 'yard_sale' :
@@ -194,18 +248,24 @@
                             </div>
                             ` : ''}
                         `;
+
                         card.querySelectorAll('.feed-photo').forEach(img => {
                             img.addEventListener('click', () => showLightbox(photos, img.src));
                         });
+                        
+                        if(attrs.globalid === featureId) {
+                            card.scrollIntoView({ behavior: 'smooth' });
+                        }
+                        
                         feed.appendChild(card);
                     }
 
-                    // Sentinel logic for reliable auto-loop
+                    // Sentinel logic
                     let sentinel = document.getElementById('feed-sentinel');
-                    if (sentinel) sentinel.remove(); // Remove old sentinel if present
+                    if (sentinel) sentinel.remove();
                     sentinel = document.createElement('div');
                     sentinel.id = 'feed-sentinel';
-                    sentinel.style.height = '40px'; // More whitespace at bottom
+                    sentinel.style.height = "40px";
                     feed.appendChild(sentinel);
 
                     if(observer) observer.disconnect();
@@ -213,14 +273,10 @@
                         if(entry.isIntersecting) {
                             setTimeout(() => {
                                 window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 500); // 1s at top before reload
-                            }, 5000); // 5s at bottom before reset
+                                setTimeout(loadFeed, 500);
+                            }, 5000);
                         }
-                    }, {
-                        root: null,
-                        rootMargin: "0px 0px 0px 0px",
-                        threshold: 1
-                    });
+                    }, { threshold: 1 });
                     observer.observe(sentinel);
 
                 } catch(error) {
@@ -234,7 +290,9 @@
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
+                const objectId = feature.attributes.objectid || feature.attributes.OBJECTID;
 
+                // Survey attachments
                 for(const tableId of PHOTO_TABLES) {
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
@@ -261,7 +319,39 @@
                         console.warn(`Table ${tableId} error:`, error.message);
                     }
                 }
-                return photos;
+
+                // WebMap direct attachments
+                if(objectId) {
+                    try {
+                        const { data: directAttachments } = await esriRequest(
+                            `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
+                        );
+                        if(directAttachments?.attachmentInfos?.length) {
+                            photos.push(...directAttachments.attachmentInfos.map(a =>
+                                `${MAIN_LAYER_URL}/${objectId}/attachments/${a.id}`
+                            ));
+                        }
+                    } catch(error) {
+                        console.warn("Direct attachments error:", error.message);
+                    }
+                }
+
+                return [...new Set(photos)];
+            }
+
+            function buildShareLinks(feature) {
+                const baseUrl = window.location.href.split('?')[0];
+                const featureUrl = `${baseUrl}?featureID=${feature.attributes.globalid}`;
+                const encodedUrl = encodeURIComponent(featureUrl);
+                const title = encodeURIComponent(feature.attributes.name || "Community Listing");
+                const description = encodeURIComponent(feature.attributes.description?.substring(0, 200) || "");
+
+                return {
+                    direct: featureUrl,
+                    twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${title}%20-%20${description}`,
+                    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+                    email: `mailto:?subject=${title}&body=${description}%0A%0AView%20details:%20${encodedUrl}`
+                };
             }
 
             // Lightbox functionality
@@ -281,11 +371,38 @@
                 if(e.target === lightbox) lightbox.classList.remove('active');
             });
 
+            // Share functionality
+            window.toggleShareMenu = function(event) {
+                const menu = event.target.closest('.share-menu').querySelector('.share-options');
+                menu.classList.toggle('show');
+                event.stopPropagation();
+            }
+
+            window.copyFeatureLink = function(url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Link copied to clipboard!');
+                });
+            }
+
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.share-options').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            });
+
             // Auto-refresh every 5 minutes
             setInterval(() => loadFeed(), 300000);
 
             // Initial load
             loadFeed();
+
+            // Handle deep link on initial load
+            if(featureId) {
+                const targetCard = document.querySelector(`[data-feature-id="${featureId}"]`);
+                if(targetCard) {
+                    targetCard.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
         });
     </script>
 </body>
