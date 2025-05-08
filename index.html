@@ -36,11 +36,57 @@
             padding: 20px;
         }
         .feed-item {
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            position: relative;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: #2d4739;
+        }
+        .feed-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        .feed-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .feed-avatar {
+            font-size: 24px;
+            background: #f0f0f0;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .feed-author {
+            font-weight: 600;
+            font-size: 1.1em;
+            color: var(--primary);
+        }
+        .feed-meta {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .feed-meta div {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .category-tag {
+            background: #e8f5e9;
+            color: #2d4739;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8em;
         }
         .feed-photos {
             display: grid;
@@ -116,6 +162,35 @@
             gap: 10px;
             z-index: 1001;
         }
+        .share-fallback {
+            display: none;
+            position: absolute;
+            right: 50px;
+            top: 15px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        @media (hover: none) {
+            .share-fallback { display: flex; gap: 8px; }
+        }
+        .comments-list {
+            max-height: 50vh;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+        .comment-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .comment-text {
+            margin-bottom: 0.25rem;
+        }
+        .comment-meta {
+            font-size: 0.8em;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -170,13 +245,12 @@
             let currentLightboxImages = [];
             let touchStartX = 0;
 
-            // ======= FIXED IMAGE LOADING =======
+            // ======= IMAGE LOADING =======
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
                 const objectId = feature.attributes.objectid;
 
-                // Direct attachments from main layer
                 try {
                     const { data: directAttachments } = await esriRequest(
                         `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
@@ -190,7 +264,6 @@
                     console.warn("Direct attachments error:", error.message);
                 }
 
-                // Related table attachments
                 for(const tableId of PHOTO_TABLES) {
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
@@ -220,7 +293,7 @@
                 return [...new Set(photos)];
             }
 
-            // ======= IMPROVED LIGHTBOX SYSTEM =======
+            // ======= LIGHTBOX SYSTEM =======
             function showLightbox(photos, startIndex) {
                 currentLightboxImages = photos;
                 currentLightboxIndex = startIndex;
@@ -238,14 +311,12 @@
                     </div>
                 `;
 
-                // Close on background click
                 lightbox.addEventListener('click', (e) => {
                     if(e.target === lightbox) {
                         lightbox.remove();
                     }
                 });
 
-                // Touch controls
                 lightbox.addEventListener('touchstart', handleTouchStart);
                 lightbox.addEventListener('touchend', handleTouchEnd);
                 
@@ -269,7 +340,26 @@
                 }
             }
 
-            // ======= WORKING SHARE FUNCTION =======
+            // ======= SHARE FUNCTIONALITY =======
+            async function shareFeature(globalId) {
+                try {
+                    const shareData = {
+                        title: 'Community Post',
+                        text: 'Check out this community contribution:',
+                        url: `${window.location.href}?post=${globalId}`
+                    };
+
+                    if(navigator.share) {
+                        await navigator.share(shareData);
+                    } else {
+                        await navigator.clipboard.writeText(shareData.url);
+                        showToast("Link copied to clipboard!");
+                    }
+                } catch(error) {
+                    console.log('Sharing failed:', error);
+                }
+            }
+
             async function shareCurrentImage() {
                 try {
                     const imageUrl = document.querySelector('.lightbox-img').src;
@@ -293,7 +383,7 @@
                 }
             }
 
-            // ======= FEED LOADING SYSTEM =======
+            // ======= FEED LOADING =======
             async function loadFeed() {
                 try {
                     const feed = document.getElementById("feed");
@@ -316,7 +406,11 @@
                         card.className = 'feed-item';
                         card.innerHTML = `
                             <div class="share-menu">
-                                <calcite-button icon="link" scale="s" onclick="shareFeature('${attrs.globalid}')"></calcite-button>
+                                <calcite-button icon="share" scale="s" id="shareBtn-${attrs.globalid}"></calcite-button>
+                                <div class="share-fallback">
+                                    <a href="mailto:?body=Check%20this%20post%20${window.location.href}" target="_blank">📧</a>
+                                    <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this community post: ' + window.location.href)}" target="_blank">🐦</a>
+                                </div>
                             </div>
                             <div class="feed-header">
                                 <div class="feed-avatar">
@@ -333,6 +427,7 @@
                             </div>
                         `;
                         addPhotoListeners(card, photos);
+                        initializeShareButtons(card, attrs.globalid);
                         feed.appendChild(card);
                     }
                 } catch(error) {
@@ -342,20 +437,22 @@
 
             function getCategoryIcon(attrs) {
                 const iconKey = attrs.is_yard_sale ? 'yard_sale' :
-                              attrs.is_classified ? 'classified' :
+                              attrs.is_classified ? 'classified' : 
                               attrs.category?.toLowerCase() || 'default';
                 return CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
             }
 
             function renderFeatureDetails(attrs) {
-                let details = '';
-                if(attrs.is_yard_sale) {
-                    details += `<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>`;
-                }
-                if(attrs.is_classified) {
-                    details += `<div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>`;
-                }
-                return details ? `<div class="feed-meta">${details}</div>` : '';
+                let details = [];
+                if(attrs.category) details.push(`<div class="category-tag">${attrs.category}</div>`);
+                if(attrs.sale_start) details.push(`<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>`);
+                if(attrs.price) details.push(`<div>💰 $${Number(attrs.price).toFixed(2)}</div>`);
+                
+                return details.length ? `
+                    <div class="feed-meta">
+                        ${details.join('')}
+                    </div>
+                ` : '';
             }
 
             function renderPhotos(photos) {
@@ -378,34 +475,45 @@
                 });
             }
 
+            function initializeShareButtons(card, globalId) {
+                const btn = card.querySelector(`#shareBtn-${globalId}`);
+                btn.addEventListener('click', () => shareFeature(globalId));
+            }
+
             // ======= COMMENT SYSTEM =======
             async function showComments(globalId) {
                 try {
-                    const comments = await db.collection('comments')
+                    const dialog = document.getElementById('commentDialog');
+                    const commentsList = document.getElementById('commentsList');
+                    const postBtn = document.getElementById('postCommentBtn');
+
+                    // Clear previous listeners
+                    postBtn.replaceWith(postBtn.cloneNode(true));
+                    
+                    // Load comments
+                    const snapshot = await db.collection('comments')
                         .where('postId', '==', globalId)
                         .orderBy('timestamp', 'desc')
                         .get();
 
-                    const dialog = document.getElementById('commentDialog');
-                    dialog.innerHTML = `
-                        <div slot="title">Comments</div>
-                        <div class="comments-list">
-                            ${comments.docs.map(doc => `
-                                <div class="comment">
-                                    <div>${doc.data().text}</div>
-                                    <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
-                                </div>
-                            `).join('')}
+                    commentsList.innerHTML = snapshot.docs.map(doc => `
+                        <div class="comment-item">
+                            <div class="comment-text">${doc.data().text}</div>
+                            <div class="comment-meta">
+                                <span class="comment-time">
+                                    ${new Date(doc.data().timestamp?.toDate()).toLocaleString()}
+                                </span>
+                            </div>
                         </div>
-                        <div class="comment-input">
-                            <textarea id="commentText"></textarea>
-                            <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
-                        </div>
-                        <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
-                    `;
+                    `).join('');
+
+                    // Update post handler
+                    document.getElementById('postCommentBtn').onclick = () => postComment(globalId);
                     dialog.open = true;
+
                 } catch(error) {
-                    console.error("Error loading comments:", error);
+                    console.error("Comment Error:", error);
+                    showToast("Error loading comments", "danger");
                 }
             }
 
@@ -413,13 +521,28 @@
                 const text = document.getElementById('commentText').value;
                 if (!text.trim()) return;
 
-                await db.collection('comments').add({
-                    postId: globalId,
-                    text: text,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    userId: auth.currentUser?.uid || 'anonymous'
-                });
-                showComments(globalId);
+                try {
+                    await db.collection('comments').add({
+                        postId: globalId,
+                        text: text,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        userId: auth.currentUser?.uid || 'anonymous'
+                    });
+                    showComments(globalId);
+                    document.getElementById('commentText').value = '';
+                } catch(error) {
+                    console.error("Error posting comment:", error);
+                    showToast("Failed to post comment", "danger");
+                }
+            }
+
+            // ======= UTILITIES =======
+            function showToast(message, variant = 'success') {
+                const toast = document.createElement('calcite-toast');
+                toast.label = message;
+                toast.kind = variant;
+                toast.autoDismiss = true;
+                document.body.appendChild(toast);
             }
 
             // ======= AUTHENTICATION =======
