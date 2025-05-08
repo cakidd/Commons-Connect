@@ -3,8 +3,8 @@
 <head>
     <title>The Commons 2.0 Community Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+    <meta http-equiv="Permissions-Policy" content="web-share=(self)">
-    
+    <meta http-equiv="Permissions-Policy" content="web-share=(self)">
+
     <!-- Firebase Services (Load FIRST) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -16,85 +16,6 @@
     <!-- Calcite Components 3.1.0 -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script type="module" src="https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js"></script>
-
-    <style>
-        /* [Unchanged CSS] */
-    </style>
-</head>
-<body>
-    <!-- [Unchanged HTML structure] -->
-    <script>
-        // ======= FIREBASE CONFIGURATION =======
-        const firebaseConfig = {
-            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
-            authDomain: "the-commons-2.firebaseapp.com",
-            projectId: "the-commons-2",
-            storageBucket: "the-commons-2.appspot.com",
-            messagingSenderId: "53595932987",
-            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        // ======= ESRI CORS FIX =======
-        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            esriConfig.request.trustedServers.push(
-                "firestore.googleapis.com",
-                "firebasestorage.googleapis.com"
-            );
-
-            // [Rest of ESRI code unchanged]
-        });
-
-        // ======= MODERN COMMENT SYSTEM =======
-        async function showComments(globalId) {
-            const comments = await db.collection('comments')
-                .where('postId', '==', globalId)
-                .orderBy('timestamp', 'desc')
-                .get();
-            
-            const dialog = document.createElement('calcite-dialog');
-+            dialog.modal = true;
-+            dialog.placement = "center";
-            dialog.innerHTML = `
-                <div slot="title">Comments</div>
-                <div class="comments-list">
-                    ${comments.docs.map(doc => `
-                        <div class="comment">
-                            <div>${doc.data().text}</div>
-                            <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="comment-input">
-                    <textarea id="commentText"></textarea>
-                    <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
-                </div>
-                <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
-            `;
-            document.body.appendChild(dialog);
-            dialog.open = true;
-        }
-
-        // ======= SHARING FUNCTIONALITY =======
-        async function shareFeature(globalId) {
-            const url = `${window.location.origin}?featureID=${globalId}`;
-+            if (navigator.share && navigator.canShare?.({ url })) {
-                try {
-                    await navigator.share({
-                        title: 'Community Post',
-                        text: 'Check out this community post!',
-                        url: url
-                    });
-+                } catch(error) {
-+                    console.log('Share canceled:', error);
-+                }
-            } else {
-                prompt('Copy link:', url);
-            }
-        }
-</script>
 
     <style>
         :root {
@@ -290,7 +211,6 @@
 
         // ======= ESRI CORS FIX =======
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // Modern CORS configuration
             esriConfig.request.trustedServers.push(
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com"
@@ -486,6 +406,8 @@
                 .get();
             
             const dialog = document.createElement('calcite-dialog');
+            dialog.modal = true;
+            dialog.placement = "center";
             dialog.innerHTML = `
                 <div slot="title">Comments</div>
                 <div class="comments-list">
@@ -522,12 +444,16 @@
         // ======= SHARING FUNCTIONALITY =======
         function shareFeature(globalId) {
             const url = `${window.location.origin}?featureID=${globalId}`;
-            if(navigator.share) {
-                navigator.share({
-                    title: 'Community Post',
-                    text: 'Check out this community post!',
-                    url: url
-                });
+            if(navigator.share && navigator.canShare?.({ url })) {
+                try {
+                    navigator.share({
+                        title: 'Community Post',
+                        text: 'Check out this community post!',
+                        url: url
+                    });
+                } catch(error) {
+                    console.log('Share canceled:', error);
+                }
             } else {
                 prompt('Copy link:', url);
             }
