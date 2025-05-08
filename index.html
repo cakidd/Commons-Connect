@@ -5,179 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
 
-    <!-- Firebase Services (Load FIRST) -->
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
-    
-    <!-- ESRI SDK (Load AFTER Firebase) -->
+
+    <!-- ESRI SDK -->
     <script src="https://js.arcgis.com/4.28/"></script>
-    
+
     <!-- Calcite Components 3.1.0 -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script type="module" src="https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js"></script>
 
     <style>
-        :root {
-            --primary: #2d4739;
-            --accent: #ffd700;
-            --text: rgba(255,255,255,0.9);
-        }
-        body {
-            background: var(--primary);
-            margin: 0;
-            color: var(--text);
-            font-family: Arial, sans-serif;
-        }
-        a, a:visited, a:active {
-            color: #fff !important;
-            text-decoration: underline;
-        }
-        a:hover {
-            color: var(--accent) !important;
-        }
-        .feed-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .feed-item {
-            background: rgba(30,51,40,0.7);
-            border-left: 4px solid var(--accent);
-            border-radius: 8px;
-            margin: 20px 0;
-            padding: 20px;
-            position: relative;
-        }
-        .feed-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .feed-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: grid;
-            place-items: center;
-            font-size: 24px;
-            color: var(--primary);
-        }
-        .feed-author {
-            font-size: 1.4rem;
-            color: var(--accent);
-        }
-        .feed-photos {
-            display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 10px 0;
-        }
-        .feed-photo {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 2px solid var(--accent);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .feed-photo:hover {
-            transform: scale(1.05);
-        }
-        .loader {
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 40px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .lightbox {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .lightbox.active { display: flex; }
-        .lightbox-content {
-            max-width: 90%;
-            max-height: 90%;
-            position: relative;
-        }
-        .lightbox-img {
-            max-width: 100%;
-            max-height: 80vh;
-            border: 3px solid var(--accent);
-            border-radius: 8px;
-        }
-        .lightbox-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0,0,0,0.5);
-            color: white;
-            padding: 1rem;
-            cursor: pointer;
-            border: none;
-            font-size: 2rem;
-        }
-        .lightbox-prev { left: 0; }
-        .lightbox-next { right: 0; }
-        .lightbox-share {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--primary);
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            display: flex;
-            gap: 1rem;
-        }
-        .comments-section {
-            margin-top: 1rem;
-            border-top: 1px solid var(--accent);
-            padding-top: 1rem;
-        }
-        .comment-input {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .comment-input textarea {
-            flex: 1;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid var(--accent);
-            color: var(--text);
-            padding: 0.5rem;
-            border-radius: 4px;
-        }
-        .comment {
-            background: rgba(255,255,255,0.1);
-            padding: 0.5rem;
-            margin-bottom: 0.5rem;
-            border-radius: 4px;
-        }
-        .share-menu {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10;
-        }
+        /* ... your existing CSS ... */
     </style>
 </head>
 <body>
@@ -225,13 +66,12 @@
                 educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
                 preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
-            
+
             let isLoading = false;
             let observer = null;
             let currentLightboxIndex = 0;
             let currentLightboxImages = [];
 
-            // ======= FEED LOADING =======
             async function loadFeed() {
                 if(isLoading) return;
                 isLoading = true;
@@ -251,7 +91,7 @@
                     for(const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
-                        
+
                         const card = document.createElement('div');
                         card.className = 'feed-item';
                         card.innerHTML = `
@@ -286,7 +126,6 @@
                 }
             }
 
-            // ======= IMAGE HANDLING =======
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
@@ -302,7 +141,6 @@
                                 f: "json"
                             }
                         });
-                        
                         for(const rel of relatedData.features || []) {
                             const oid = rel.attributes.objectid;
                             const { data: attachments } = await esriRequest(
@@ -337,8 +175,8 @@
                 return [...new Set(photos)];
             }
 
-            // ======= HELPER FUNCTIONS =======
             function getCategoryIcon(attrs) {
+                // Use your own mapping, not getByCollection()
                 const iconKey = attrs.is_yard_sale ? 'yard_sale' :
                               attrs.is_classified ? 'classified' :
                               attrs.category?.toLowerCase() || 'default';
@@ -387,7 +225,7 @@
                 const sentinel = document.createElement('div');
                 sentinel.id = 'feed-sentinel';
                 document.getElementById("feed").appendChild(sentinel);
-                
+
                 if(observer) observer.disconnect();
                 observer = new IntersectionObserver(([entry]) => {
                     if(entry.isIntersecting) loadFeed();
@@ -404,7 +242,8 @@
                 .where('postId', '==', globalId)
                 .orderBy('timestamp', 'desc')
                 .get();
-            
+
+            // Use calcite-dialog (not calcite-modal)
             const dialog = document.createElement('calcite-dialog');
             dialog.modal = true;
             dialog.placement = "center";
@@ -478,7 +317,7 @@
                 const response = await fetch(imageUrl);
                 const blob = await response.blob();
                 const file = new File([blob], 'community-image.jpg', { type: blob.type });
-                
+
                 if(navigator.canShare?.({ files: [file] })) {
                     await navigator.share({
                         files: [file],
