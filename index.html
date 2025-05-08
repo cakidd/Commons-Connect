@@ -24,12 +24,14 @@
             --text: rgba(255,255,255,0.9);
             --card-bg: rgba(255,255,255,0.95);
             --category-border: #a3b899;
+            --shadow-light: 0 4px 6px rgba(0,0,0,0.05);
+            --shadow-hover: 0 6px 12px rgba(0,0,0,0.1);
         }
         body {
             background: var(--primary);
             margin: 0;
             color: var(--text);
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             touch-action: pan-y;
         }
         .feed-container {
@@ -42,14 +44,14 @@
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 24px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: #2d4739;
             position: relative;
         }
         .feed-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-hover);
         }
         .feed-header {
             display: flex;
@@ -72,6 +74,7 @@
             font-weight: 600;
             font-size: 1.1em;
             color: var(--primary);
+            letter-spacing: -0.5px;
         }
         .feed-meta {
             display: flex;
@@ -80,18 +83,14 @@
             font-size: 0.9em;
             color: #666;
         }
-        .feed-meta div {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
         .category-tag {
             background: #e8f5e9;
             color: #2d4739;
-            padding: 4px 8px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.8em;
             border: 1px solid var(--category-border);
+            font-weight: 500;
         }
         .feed-photos {
             display: grid;
@@ -197,6 +196,18 @@
             font-size: 0.8em;
             color: #666;
         }
+        .comment-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 1rem;
+        }
+        #commentText {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 60px;
+        }
     </style>
 </head>
 <body>
@@ -208,10 +219,10 @@
         <div slot="title">Comments</div>
         <div class="comments-list" id="commentsList"></div>
         <div class="comment-input">
-            <textarea id="commentText"></textarea>
+            <textarea id="commentText" placeholder="Write your comment..."></textarea>
             <calcite-button id="postCommentBtn">Post</calcite-button>
         </div>
-        <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
+        <calcite-button slot="primary" onclick="document.getElementById('commentDialog').open = false">Close</calcite-button>
     </calcite-dialog>
 
     <script>
@@ -250,6 +261,7 @@
             let currentLightboxIndex = 0;
             let currentLightboxImages = [];
             let touchStartX = 0;
+            let currentPostId = null;
 
             // ======= IMAGE LOADING =======
             async function getPhotosForFeature(feature) {
@@ -403,10 +415,6 @@
                         card.innerHTML = `
                             <div class="share-menu">
                                 <calcite-button icon="share" scale="s" id="shareBtn-${attrs.globalid}"></calcite-button>
-                                <div class="share-fallback">
-                                    <a href="mailto:?body=Check%20this%20post%20${window.location.href}" target="_blank">📧</a>
-                                    <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this community post: ' + window.location.href)}" target="_blank">🐦</a>
-                                </div>
                             </div>
                             <div class="feed-header">
                                 <div class="feed-avatar">
@@ -479,33 +487,42 @@
             // ======= COMMENT SYSTEM =======
             async function showComments(globalId) {
                 try {
-                    const dialog = document.getElementById('commentDialog');
+                    currentPostId = globalId;
                     const commentsList = document.getElementById('commentsList');
                     const postBtn = document.getElementById('postCommentBtn');
 
-                    // Clear previous listeners
-                    postBtn.replaceWith(postBtn.cloneNode(true));
-                    
+                    // Clear existing listeners
+                    const newPostBtn = postBtn.cloneNode(true);
+                    postBtn.parentNode.replaceChild(newPostBtn, postBtn);
+
                     // Load comments
                     const snapshot = await db.collection('comments')
                         .where('postId', '==', globalId)
                         .orderBy('timestamp', 'desc')
                         .get();
 
-                    commentsList.innerHTML = snapshot.docs.map(doc => `
-                        <div class="comment-item">
-                            <div class="comment-text">${doc.data().text}</div>
-                            <div class="comment-meta">
-                                <span class="comment-time">
-                                    ${new Date(doc.data().timestamp?.toDate()).toLocaleString()}
-                                </span>
+                    commentsList.innerHTML = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return `
+                            <div class="comment-item">
+                                <div class="comment-text">${data.text}</div>
+                                <div class="comment-meta">
+                                    <span class="comment-time">
+                                        ${data.timestamp?.toDate().toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
 
-                    // Update post handler
-                    document.getElementById('postCommentBtn').onclick = () => postComment(globalId);
-                    dialog.open = true;
+                    // Set up new listener
+                    newPostBtn.addEventListener('click', postComment);
+                    document.getElementById('commentDialog').open = true;
 
                 } catch(error) {
                     console.error("Comment Error:", error);
@@ -513,19 +530,21 @@
                 }
             }
 
-            async function postComment(globalId) {
-                const text = document.getElementById('commentText').value;
-                if (!text.trim()) return;
+            async function postComment() {
+                const text = document.getElementById('commentText').value.trim();
+                if (!text) return;
 
                 try {
                     await db.collection('comments').add({
-                        postId: globalId,
+                        postId: currentPostId,
                         text: text,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         userId: auth.currentUser?.uid || 'anonymous'
                     });
-                    showComments(globalId);
+                    
                     document.getElementById('commentText').value = '';
+                    showComments(currentPostId); // Refresh comments
+                    showToast("Comment posted successfully!");
                 } catch(error) {
                     console.error("Error posting comment:", error);
                     showToast("Failed to post comment", "danger");
