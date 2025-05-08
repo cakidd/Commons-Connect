@@ -68,6 +68,7 @@
             height: 100%;
             background: rgba(0,0,0,0.95);
             touch-action: none;
+            z-index: 1000;
         }
         .lightbox.active {
             display: flex;
@@ -78,6 +79,13 @@
             position: relative;
             max-width: 90vw;
             max-height: 90vh;
+            text-align: center;
+        }
+        .lightbox-img {
+            max-width: 80vw;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
         }
         .lightbox-nav {
             position: absolute;
@@ -89,7 +97,7 @@
             cursor: pointer;
             border: none;
             font-size: 2rem;
-            z-index: 1000;
+            z-index: 1001;
         }
         .lightbox-prev { left: 10px; }
         .lightbox-next { right: 10px; }
@@ -98,9 +106,7 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--primary);
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
+            z-index: 1001;
         }
         .share-menu {
             position: absolute;
@@ -108,6 +114,7 @@
             right: 15px;
             display: flex;
             gap: 10px;
+            z-index: 1001;
         }
     </style>
 </head>
@@ -137,7 +144,6 @@
             appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
         };
         
-        // Sanitized initialization
         const cleanConfig = JSON.parse(JSON.stringify(firebaseConfig));
         firebase.initializeApp(cleanConfig);
         const db = firebase.firestore();
@@ -164,7 +170,130 @@
             let currentLightboxImages = [];
             let touchStartX = 0;
 
-            // ======= FEED LOADING =======
+            // ======= FIXED IMAGE LOADING =======
+            async function getPhotosForFeature(feature) {
+                const photos = [];
+                const globalId = feature.attributes.globalid;
+                const objectId = feature.attributes.objectid;
+
+                // Direct attachments from main layer
+                try {
+                    const { data: directAttachments } = await esriRequest(
+                        `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
+                    );
+                    if(directAttachments?.attachmentInfos?.length) {
+                        photos.push(...directAttachments.attachmentInfos.map(a => 
+                            `${MAIN_LAYER_URL}/${objectId}/attachments/${a.id}`
+                        ));
+                    }
+                } catch(error) {
+                    console.warn("Direct attachments error:", error.message);
+                }
+
+                // Related table attachments
+                for(const tableId of PHOTO_TABLES) {
+                    const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                    try {
+                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                            query: {
+                                where: `ParentGlobalID='${globalId}'`,
+                                outFields: "objectid",
+                                f: "json"
+                            }
+                        });
+                        
+                        for(const rel of relatedData.features || []) {
+                            const oid = rel.attributes.objectid;
+                            const { data: attachments } = await esriRequest(
+                                `${tableUrl}/${oid}/attachments?f=json`
+                            );
+                            if(attachments?.attachmentInfos?.length) {
+                                photos.push(...attachments.attachmentInfos.map(a => 
+                                    `${tableUrl}/${oid}/attachments/${a.id}`
+                                ));
+                            }
+                        }
+                    } catch(error) {
+                        console.warn(`Table ${tableId} error:`, error.message);
+                    }
+                }
+                return [...new Set(photos)];
+            }
+
+            // ======= IMPROVED LIGHTBOX SYSTEM =======
+            function showLightbox(photos, startIndex) {
+                currentLightboxImages = photos;
+                currentLightboxIndex = startIndex;
+                
+                const lightbox = document.createElement('div');
+                lightbox.className = 'lightbox active';
+                lightbox.innerHTML = `
+                    <button class="lightbox-nav lightbox-prev" onclick="changeSlide(-1)">❮</button>
+                    <div class="lightbox-content">
+                        <img class="lightbox-img" src="${photos[startIndex]}">
+                    </div>
+                    <button class="lightbox-nav lightbox-next" onclick="changeSlide(1)">❯</button>
+                    <div class="lightbox-share">
+                        <calcite-button icon="share" onclick="shareCurrentImage()">Share Image</calcite-button>
+                    </div>
+                `;
+
+                // Close on background click
+                lightbox.addEventListener('click', (e) => {
+                    if(e.target === lightbox) {
+                        lightbox.remove();
+                    }
+                });
+
+                // Touch controls
+                lightbox.addEventListener('touchstart', handleTouchStart);
+                lightbox.addEventListener('touchend', handleTouchEnd);
+                
+                document.body.appendChild(lightbox);
+            }
+
+            function changeSlide(offset) {
+                currentLightboxIndex = (currentLightboxIndex + offset + currentLightboxImages.length) % currentLightboxImages.length;
+                document.querySelector('.lightbox-img').src = currentLightboxImages[currentLightboxIndex];
+            }
+
+            function handleTouchStart(e) {
+                touchStartX = e.touches[0].clientX;
+            }
+
+            function handleTouchEnd(e) {
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+                if(Math.abs(diff) > 50) {
+                    changeSlide(diff > 0 ? 1 : -1);
+                }
+            }
+
+            // ======= WORKING SHARE FUNCTION =======
+            async function shareCurrentImage() {
+                try {
+                    const imageUrl = document.querySelector('.lightbox-img').src;
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+                    const file = new File([blob], 'community-image.jpg', { type: blob.type });
+
+                    if(navigator.canShare?.({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Shared from The Commons'
+                        });
+                    } else {
+                        const link = document.createElement('a');
+                        link.href = imageUrl;
+                        link.download = 'community-image.jpg';
+                        link.click();
+                    }
+                } catch(error) {
+                    console.error('Sharing failed:', error);
+                }
+            }
+
+            // ======= FEED LOADING SYSTEM =======
             async function loadFeed() {
                 try {
                     const feed = document.getElementById("feed");
@@ -211,40 +340,6 @@
                 }
             }
 
-            // ======= IMAGE HANDLING =======
-            async function getPhotosForFeature(feature) {
-                const photos = [];
-                const globalId = feature.attributes.globalid;
-
-                for(const tableId of PHOTO_TABLES) {
-                    const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
-                    try {
-                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                            query: {
-                                where: `ParentGlobalID='${globalId}'`,
-                                outFields: "objectid",
-                                f: "json"
-                            }
-                        });
-                        
-                        for(const rel of relatedData.features || []) {
-                            const oid = rel.attributes.objectid;
-                            const { data: attachments } = await esriRequest(
-                                `${tableUrl}/${oid}/attachments?f=json`
-                            );
-                            if(attachments?.attachmentInfos?.length) {
-                                photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${tableUrl}/${oid}/attachments/${a.id}`
-                                ));
-                            }
-                        }
-                    } catch(error) {
-                        console.warn(`Table ${tableId} error:`, error.message);
-                    }
-                }
-                return [...new Set(photos)];
-            }
-
             function getCategoryIcon(attrs) {
                 const iconKey = attrs.is_yard_sale ? 'yard_sale' :
                               attrs.is_classified ? 'classified' :
@@ -283,129 +378,57 @@
                 });
             }
 
-            // ======= LIGHTBOX SYSTEM =======
-            function showLightbox(photos, startIndex) {
-                currentLightboxImages = photos;
-                currentLightboxIndex = startIndex;
-                
-                const lightbox = document.createElement('div');
-                lightbox.className = 'lightbox active';
-                lightbox.innerHTML = `
-                    <button class="lightbox-nav lightbox-prev" onclick="changeSlide(-1)">❮</button>
-                    <div class="lightbox-content">
-                        <img src="${photos[startIndex]}">
-                    </div>
-                    <button class="lightbox-nav lightbox-next" onclick="changeSlide(1)">❯</button>
-                    <div class="lightbox-share">
-                        <calcite-button icon="share" onclick="shareCurrentImage()">Share Image</calcite-button>
-                    </div>
-                `;
+            // ======= COMMENT SYSTEM =======
+            async function showComments(globalId) {
+                try {
+                    const comments = await db.collection('comments')
+                        .where('postId', '==', globalId)
+                        .orderBy('timestamp', 'desc')
+                        .get();
 
-                lightbox.addEventListener('touchstart', handleTouchStart);
-                lightbox.addEventListener('touchend', handleTouchEnd);
-                document.body.appendChild(lightbox);
-            }
-
-            function handleTouchStart(e) {
-                touchStartX = e.touches[0].clientX;
-            }
-
-            function handleTouchEnd(e) {
-                const touchEndX = e.changedTouches[0].clientX;
-                const diff = touchStartX - touchEndX;
-                if(Math.abs(diff) > 50) {
-                    changeSlide(diff > 0 ? 1 : -1);
-                }
-            }
-
-            function changeSlide(offset) {
-                currentLightboxIndex = (currentLightboxIndex + offset + currentLightboxImages.length) % currentLightboxImages.length;
-                document.querySelector('.lightbox-content img').src = currentLightboxImages[currentLightboxIndex];
-            }
-
-            // ======= SHARING SYSTEM =======
-            function shareFeature(globalId) {
-                const url = `${window.location.origin}/?featureID=${globalId}`;
-                if(navigator.share) {
-                    navigator.share({
-                        title: document.title,
-                        text: 'Check out this community post!',
-                        url: url
-                    });
-                } else {
-                    prompt('Copy link to share:', url);
-                }
-            }
-
-            function shareCurrentImage() {
-                const imageUrl = document.querySelector('.lightbox-content img').src;
-                if(navigator.share) {
-                    navigator.share({
-                        title: 'Shared Image',
-                        files: [new File([imageUrl], 'community-image.jpg', { type: 'image/jpeg' })]
-                    });
-                } else {
-                    const link = document.createElement('a');
-                    link.href = imageUrl;
-                    link.download = 'community-image.jpg';
-                    link.click();
-                }
-            }
-
-            // Initialize
-            loadFeed();
-        });
-
-        // ======= COMMENT SYSTEM =======
-        async function showComments(globalId) {
-            try {
-                const comments = await db.collection('comments')
-                    .where('postId', '==', globalId)
-                    .orderBy('timestamp', 'desc')
-                    .get();
-
-                const dialog = document.getElementById('commentDialog');
-                dialog.innerHTML = `
-                    <div slot="title">Comments</div>
-                    <div class="comments-list">
-                        ${comments.docs.map(doc => {
-                            const data = doc.data();
-                            return `
+                    const dialog = document.getElementById('commentDialog');
+                    dialog.innerHTML = `
+                        <div slot="title">Comments</div>
+                        <div class="comments-list">
+                            ${comments.docs.map(doc => `
                                 <div class="comment">
-                                    <div>${data.text}</div>
-                                    <small>${new Date(data.timestamp?.toDate()).toLocaleString()}</small>
+                                    <div>${doc.data().text}</div>
+                                    <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
                                 </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    <div class="comment-input">
-                        <textarea id="commentText"></textarea>
-                        <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
-                    </div>
-                    <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
-                `;
-                dialog.open = true;
-            } catch(error) {
-                console.error("Error loading comments:", error);
+                            `).join('')}
+                        </div>
+                        <div class="comment-input">
+                            <textarea id="commentText"></textarea>
+                            <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
+                        </div>
+                        <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
+                    `;
+                    dialog.open = true;
+                } catch(error) {
+                    console.error("Error loading comments:", error);
+                }
             }
-        }
 
-        async function postComment(globalId) {
-            const text = document.getElementById('commentText').value;
-            if (!text.trim()) return;
+            async function postComment(globalId) {
+                const text = document.getElementById('commentText').value;
+                if (!text.trim()) return;
 
-            await db.collection('comments').add({
-                postId: globalId,
-                text: text,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: auth.currentUser?.uid || 'anonymous'
+                await db.collection('comments').add({
+                    postId: globalId,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: auth.currentUser?.uid || 'anonymous'
+                });
+                showComments(globalId);
+            }
+
+            // ======= AUTHENTICATION =======
+            auth.signInAnonymously().catch(error => {
+                console.error("Anonymous auth error:", error);
             });
-            showComments(globalId);
-        }
 
-        // ======= AUTHENTICATION =======
-        auth.signInAnonymously().catch(error => {
-            console.error("Anonymous auth error:", error);
+            // Initialize feed
+            loadFeed();
         });
     </script>
 </body>
