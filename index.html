@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
 
-    <!-- Firebase -->
+    <!-- Firebase Services -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -18,7 +18,7 @@
     <script type="module" src="https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js"></script>
 
     <style>
-        /* ... your existing CSS ... */
+        /* [Your CSS remains unchanged] */
     </style>
 </head>
 <body>
@@ -35,6 +35,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Modern Calcite Dialog for Comments -->
+    <calcite-dialog id="commentDialog" modal placement="center"></calcite-dialog>
 
     <script>
         // ======= FIREBASE CONFIGURATION =======
@@ -243,10 +246,7 @@
                 .orderBy('timestamp', 'desc')
                 .get();
 
-            // Use calcite-dialog (not calcite-modal)
-            const dialog = document.createElement('calcite-dialog');
-            dialog.modal = true;
-            dialog.placement = "center";
+            const dialog = document.getElementById('commentDialog');
             dialog.innerHTML = `
                 <div slot="title">Comments</div>
                 <div class="comments-list">
@@ -261,9 +261,8 @@
                     <textarea id="commentText"></textarea>
                     <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
                 </div>
-                <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
+                <calcite-button slot="primary" onclick="document.getElementById('commentDialog').open = false;">Close</calcite-button>
             `;
-            document.body.appendChild(dialog);
             dialog.open = true;
         }
 
