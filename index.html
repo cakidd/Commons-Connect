@@ -22,6 +22,8 @@
             --primary: #2d4739;
             --accent: #ffd700;
             --text: rgba(255,255,255,0.9);
+            --card-bg: rgba(255,255,255,0.95);
+            --category-border: #a3b899;
         }
         body {
             background: var(--primary);
@@ -36,13 +38,14 @@
             padding: 20px;
         }
         .feed-item {
-            background: #ffffff;
+            background: var(--card-bg);
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 24px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: transform 0.2s, box-shadow 0.2s;
             color: #2d4739;
+            position: relative;
         }
         .feed-item:hover {
             transform: translateY(-2px);
@@ -56,13 +59,14 @@
         }
         .feed-avatar {
             font-size: 24px;
-            background: #f0f0f0;
+            background: #ffffff;
             border-radius: 50%;
             width: 48px;
             height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .feed-author {
             font-weight: 600;
@@ -87,6 +91,7 @@
             padding: 4px 8px;
             border-radius: 20px;
             font-size: 0.8em;
+            border: 1px solid var(--category-border);
         }
         .feed-photos {
             display: grid;
@@ -171,9 +176,10 @@
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            gap: 8px;
         }
         @media (hover: none) {
-            .share-fallback { display: flex; gap: 8px; }
+            .share-fallback { display: flex; }
         }
         .comments-list {
             max-height: 50vh;
@@ -343,44 +349,34 @@
             // ======= SHARE FUNCTIONALITY =======
             async function shareFeature(globalId) {
                 try {
-                    const shareData = {
-                        title: 'Community Post',
-                        text: 'Check out this community contribution:',
-                        url: `${window.location.href}?post=${globalId}`
-                    };
-
+                    const postUrl = `https://the-commons-h4hwv.hub.arcgis.com/posts/${globalId}`;
+                    
                     if(navigator.share) {
-                        await navigator.share(shareData);
+                        await navigator.share({
+                            title: 'Community Post',
+                            text: 'Check out this community contribution:',
+                            url: postUrl
+                        });
                     } else {
-                        await navigator.clipboard.writeText(shareData.url);
-                        showToast("Link copied to clipboard!");
+                        const shareMenu = document.createElement('div');
+                        shareMenu.className = 'share-fallback active';
+                        shareMenu.innerHTML = `
+                            <button onclick="copyToClipboard('${postUrl}')">📋 Copy Link</button>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}" target="_blank">Facebook</a>
+                            <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this post: ' + postUrl)}" target="_blank">X</a>
+                            <a href="mailto:?body=Check%20this%20post%20${postUrl}" target="_blank">📧 Email</a>
+                        `;
+                        document.body.appendChild(shareMenu);
                     }
                 } catch(error) {
                     console.log('Sharing failed:', error);
+                    copyToClipboard(postUrl);
                 }
             }
 
-            async function shareCurrentImage() {
-                try {
-                    const imageUrl = document.querySelector('.lightbox-img').src;
-                    const response = await fetch(imageUrl);
-                    const blob = await response.blob();
-                    const file = new File([blob], 'community-image.jpg', { type: blob.type });
-
-                    if(navigator.canShare?.({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Shared from The Commons'
-                        });
-                    } else {
-                        const link = document.createElement('a');
-                        link.href = imageUrl;
-                        link.download = 'community-image.jpg';
-                        link.click();
-                    }
-                } catch(error) {
-                    console.error('Sharing failed:', error);
-                }
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text);
+                showToast("Link copied to clipboard!");
             }
 
             // ======= FEED LOADING =======
