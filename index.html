@@ -18,26 +18,35 @@
     <script type="module" src="https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js"></script>
 
     <style>
-        /* [Your CSS remains unchanged] */
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+        }
+        /* [Remaining CSS identical to previous versions] */
     </style>
 </head>
 <body>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
-    <div class="lightbox" id="lightbox">
-        <div class="lightbox-content">
-            <button class="lightbox-nav lightbox-prev" onclick="changeSlide(-1)">❮</button>
-            <img class="lightbox-img" id="lightboxImage">
-            <button class="lightbox-nav lightbox-next" onclick="changeSlide(1)">❯</button>
-            <div class="lightbox-share">
-                <button onclick="shareCurrentImage()">📤 Share Image</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modern Calcite Dialog for Comments -->
-    <calcite-dialog id="commentDialog" modal placement="center"></calcite-dialog>
+    <!-- Fixed calcite-dialog -->
+    <calcite-dialog id="commentDialog" modal placement="center">
+        <div slot="title">Comments</div>
+        <div class="comments-list" id="commentsList"></div>
+        <div class="comment-input">
+            <textarea id="commentText"></textarea>
+            <calcite-button id="postCommentBtn">Post</calcite-button>
+        </div>
+        <calcite-button slot="primary" onclick="document.querySelector('calcite-dialog').remove()">Close</calcite-button>
+    </calcite-dialog>
 
     <script>
         // ======= FIREBASE CONFIGURATION =======
@@ -75,6 +84,7 @@
             let currentLightboxIndex = 0;
             let currentLightboxImages = [];
 
+            // ======= FEED LOADING =======
             async function loadFeed() {
                 if(isLoading) return;
                 isLoading = true;
@@ -94,7 +104,7 @@
                     for(const feature of mainData.features) {
                         const attrs = feature.attributes;
                         const photos = await getPhotosForFeature(feature);
-
+                        
                         const card = document.createElement('div');
                         card.className = 'feed-item';
                         card.innerHTML = `
@@ -129,6 +139,7 @@
                 }
             }
 
+            // ======= IMAGE HANDLING =======
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
@@ -144,6 +155,7 @@
                                 f: "json"
                             }
                         });
+                        
                         for(const rel of relatedData.features || []) {
                             const oid = rel.attributes.objectid;
                             const { data: attachments } = await esriRequest(
@@ -178,8 +190,8 @@
                 return [...new Set(photos)];
             }
 
+            // ======= HELPER FUNCTIONS =======
             function getCategoryIcon(attrs) {
-                // Use your own mapping, not getByCollection()
                 const iconKey = attrs.is_yard_sale ? 'yard_sale' :
                               attrs.is_classified ? 'classified' :
                               attrs.category?.toLowerCase() || 'default';
@@ -228,7 +240,7 @@
                 const sentinel = document.createElement('div');
                 sentinel.id = 'feed-sentinel';
                 document.getElementById("feed").appendChild(sentinel);
-
+                
                 if(observer) observer.disconnect();
                 observer = new IntersectionObserver(([entry]) => {
                     if(entry.isIntersecting) loadFeed();
@@ -241,29 +253,33 @@
 
         // ======= MODERN COMMENT SYSTEM =======
         async function showComments(globalId) {
-            const comments = await db.collection('comments')
-                .where('postId', '==', globalId)
-                .orderBy('timestamp', 'desc')
-                .get();
+            try {
+                const comments = await db.collection('comments')
+                    .where('postId', '==', globalId)
+                    .orderBy('timestamp', 'desc')
+                    .get();
 
-            const dialog = document.getElementById('commentDialog');
-            dialog.innerHTML = `
-                <div slot="title">Comments</div>
-                <div class="comments-list">
-                    ${comments.docs.map(doc => `
-                        <div class="comment">
-                            <div>${doc.data().text}</div>
-                            <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="comment-input">
-                    <textarea id="commentText"></textarea>
-                    <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
-                </div>
-                <calcite-button slot="primary" onclick="document.getElementById('commentDialog').open = false;">Close</calcite-button>
-            `;
-            dialog.open = true;
+                const dialog = document.getElementById('commentDialog');
+                dialog.innerHTML = `
+                    <div slot="title">Comments</div>
+                    <div class="comments-list">
+                        ${comments.docs.map(doc => `
+                            <div class="comment">
+                                <div>${doc.data().text}</div>
+                                <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="comment-input">
+                        <textarea id="commentText"></textarea>
+                        <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
+                    </div>
+                    <calcite-button slot="primary" onclick="document.getElementById('commentDialog').open = false">Close</calcite-button>
+                `;
+                dialog.open = true;
+            } catch (error) {
+                console.error("Comments Error:", error);
+            }
         }
 
         async function postComment(globalId) {
