@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
 
-    <!-- Firebase -->
+    <!-- Firebase Services -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -28,6 +28,7 @@
             margin: 0;
             color: var(--text);
             font-family: Arial, sans-serif;
+            touch-action: pan-y;
         }
         .feed-container {
             max-width: 800px;
@@ -39,16 +40,24 @@
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
+            position: relative;
         }
         .feed-photos {
             display: grid;
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
             margin-top: 15px;
         }
         .feed-photo {
             width: 100%;
+            height: 120px;
+            object-fit: cover;
             border-radius: 8px;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .feed-photo:hover {
+            transform: scale(1.05);
         }
         .lightbox {
             display: none;
@@ -57,12 +66,48 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
+            touch-action: none;
         }
         .lightbox.active {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 1rem;
+            cursor: pointer;
+            border: none;
+            font-size: 2rem;
+            z-index: 1000;
+        }
+        .lightbox-prev { left: 10px; }
+        .lightbox-next { right: 10px; }
+        .lightbox-share {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+        .share-menu {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
         }
     </style>
 </head>
@@ -71,7 +116,6 @@
         <div class="loader"></div>
     </div>
 
-    <!-- Modern Calcite Dialog -->
     <calcite-dialog id="commentDialog" modal placement="center">
         <div slot="title">Comments</div>
         <div class="comments-list" id="commentsList"></div>
@@ -79,7 +123,7 @@
             <textarea id="commentText"></textarea>
             <calcite-button id="postCommentBtn">Post</calcite-button>
         </div>
-        <calcite-button slot="primary" onclick="document.querySelector('calcite-dialog').remove()">Close</calcite-button>
+        <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
     </calcite-dialog>
 
     <script>
@@ -92,7 +136,10 @@
             messagingSenderId: "53595932987",
             appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
         };
-        firebase.initializeApp(firebaseConfig);
+        
+        // Sanitized initialization
+        const cleanConfig = JSON.parse(JSON.stringify(firebaseConfig));
+        firebase.initializeApp(cleanConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
@@ -113,51 +160,62 @@
                 preservation: '🫙', community_kitchen: '🍲', default: '✨'
             };
 
+            let currentLightboxIndex = 0;
+            let currentLightboxImages = [];
+            let touchStartX = 0;
+
             // ======= FEED LOADING =======
             async function loadFeed() {
-                const feed = document.getElementById("feed");
-                const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
-                    query: {
-                        where: "1=1",
-                        outFields: "*",
-                        orderByFields: "CreationDate DESC",
-                        f: "json"
-                    }
-                });
+                try {
+                    const feed = document.getElementById("feed");
+                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
+                        query: {
+                            where: "1=1",
+                            outFields: "*",
+                            orderByFields: "CreationDate DESC",
+                            f: "json"
+                        }
+                    });
 
-                feed.innerHTML = '';
-                
-                for(const feature of mainData.features) {
-                    const attrs = feature.attributes;
-                    const photos = await getPhotosForFeature(feature);
+                    feed.innerHTML = '';
                     
-                    const card = document.createElement('div');
-                    card.className = 'feed-item';
-                    card.innerHTML = `
-                        <div class="feed-header">
-                            <div class="feed-avatar">
-                                ${getCategoryIcon(attrs)}
+                    for(const feature of mainData.features) {
+                        const attrs = feature.attributes;
+                        const photos = await getPhotosForFeature(feature);
+                        
+                        const card = document.createElement('div');
+                        card.className = 'feed-item';
+                        card.innerHTML = `
+                            <div class="share-menu">
+                                <calcite-button icon="link" scale="s" onclick="shareFeature('${attrs.globalid}')"></calcite-button>
                             </div>
-                            <div>
-                                <div class="feed-author">${attrs.name || 'Community Member'}</div>
-                                ${renderFeatureDetails(attrs)}
+                            <div class="feed-header">
+                                <div class="feed-avatar">
+                                    ${getCategoryIcon(attrs)}
+                                </div>
+                                <div>
+                                    <div class="feed-author">${attrs.name || 'Community Member'}</div>
+                                    ${renderFeatureDetails(attrs)}
+                                </div>
                             </div>
-                        </div>
-                        ${renderPhotos(photos)}
-                        <div class="comments-section">
-                            <calcite-button onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
-                        </div>
-                    `;
-                    addPhotoListeners(card, photos);
-                    feed.appendChild(card);
+                            ${renderPhotos(photos)}
+                            <div class="comments-section">
+                                <calcite-button onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
+                            </div>
+                        `;
+                        addPhotoListeners(card, photos);
+                        feed.appendChild(card);
+                    }
+                } catch(error) {
+                    console.error("Feed Error:", error);
                 }
             }
 
-            // ======= HELPER FUNCTIONS =======
+            // ======= IMAGE HANDLING =======
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
-                
+
                 for(const tableId of PHOTO_TABLES) {
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
@@ -196,8 +254,12 @@
 
             function renderFeatureDetails(attrs) {
                 let details = '';
-                if(attrs.is_yard_sale) details += `<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>`;
-                if(attrs.is_classified) details += `<div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>`;
+                if(attrs.is_yard_sale) {
+                    details += `<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>`;
+                }
+                if(attrs.is_classified) {
+                    details += `<div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>`;
+                }
                 return details ? `<div class="feed-meta">${details}</div>` : '';
             }
 
@@ -208,7 +270,8 @@
                             <img class="feed-photo" 
                                 src="${url}" 
                                 loading="lazy"
-                                onerror="this.style.display='none'">
+                                onerror="this.style.display='none'"
+                                data-index="${index}">
                         `).join('')}
                     </div>
                 ` : '';
@@ -220,6 +283,76 @@
                 });
             }
 
+            // ======= LIGHTBOX SYSTEM =======
+            function showLightbox(photos, startIndex) {
+                currentLightboxImages = photos;
+                currentLightboxIndex = startIndex;
+                
+                const lightbox = document.createElement('div');
+                lightbox.className = 'lightbox active';
+                lightbox.innerHTML = `
+                    <button class="lightbox-nav lightbox-prev" onclick="changeSlide(-1)">❮</button>
+                    <div class="lightbox-content">
+                        <img src="${photos[startIndex]}">
+                    </div>
+                    <button class="lightbox-nav lightbox-next" onclick="changeSlide(1)">❯</button>
+                    <div class="lightbox-share">
+                        <calcite-button icon="share" onclick="shareCurrentImage()">Share Image</calcite-button>
+                    </div>
+                `;
+
+                lightbox.addEventListener('touchstart', handleTouchStart);
+                lightbox.addEventListener('touchend', handleTouchEnd);
+                document.body.appendChild(lightbox);
+            }
+
+            function handleTouchStart(e) {
+                touchStartX = e.touches[0].clientX;
+            }
+
+            function handleTouchEnd(e) {
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+                if(Math.abs(diff) > 50) {
+                    changeSlide(diff > 0 ? 1 : -1);
+                }
+            }
+
+            function changeSlide(offset) {
+                currentLightboxIndex = (currentLightboxIndex + offset + currentLightboxImages.length) % currentLightboxImages.length;
+                document.querySelector('.lightbox-content img').src = currentLightboxImages[currentLightboxIndex];
+            }
+
+            // ======= SHARING SYSTEM =======
+            function shareFeature(globalId) {
+                const url = `${window.location.origin}/?featureID=${globalId}`;
+                if(navigator.share) {
+                    navigator.share({
+                        title: document.title,
+                        text: 'Check out this community post!',
+                        url: url
+                    });
+                } else {
+                    prompt('Copy link to share:', url);
+                }
+            }
+
+            function shareCurrentImage() {
+                const imageUrl = document.querySelector('.lightbox-content img').src;
+                if(navigator.share) {
+                    navigator.share({
+                        title: 'Shared Image',
+                        files: [new File([imageUrl], 'community-image.jpg', { type: 'image/jpeg' })]
+                    });
+                } else {
+                    const link = document.createElement('a');
+                    link.href = imageUrl;
+                    link.download = 'community-image.jpg';
+                    link.click();
+                }
+            }
+
+            // Initialize
             loadFeed();
         });
 
@@ -235,22 +368,25 @@
                 dialog.innerHTML = `
                     <div slot="title">Comments</div>
                     <div class="comments-list">
-                        ${comments.docs.map(doc => `
-                            <div class="comment">
-                                <div>${doc.data().text}</div>
-                                <small>${new Date(doc.data().timestamp?.toDate()).toLocaleString()}</small>
-                            </div>
-                        `).join('')}
+                        ${comments.docs.map(doc => {
+                            const data = doc.data();
+                            return `
+                                <div class="comment">
+                                    <div>${data.text}</div>
+                                    <small>${new Date(data.timestamp?.toDate()).toLocaleString()}</small>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                     <div class="comment-input">
                         <textarea id="commentText"></textarea>
                         <calcite-button onclick="postComment('${globalId}')">Post</calcite-button>
                     </div>
-                    <calcite-button slot="primary" onclick="document.getElementById('commentDialog').open = false">Close</calcite-button>
+                    <calcite-button slot="primary" onclick="this.closest('calcite-dialog').remove()">Close</calcite-button>
                 `;
                 dialog.open = true;
-            } catch (error) {
-                console.error("Comments Error:", error);
+            } catch(error) {
+                console.error("Error loading comments:", error);
             }
         }
 
@@ -267,7 +403,7 @@
             showComments(globalId);
         }
 
-        // ======= FIREBASE AUTH =======
+        // ======= AUTHENTICATION =======
         auth.signInAnonymously().catch(error => {
             console.error("Anonymous auth error:", error);
         });
