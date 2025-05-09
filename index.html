@@ -163,7 +163,7 @@
 
     <calcite-dialog id="commentDialog" label="Comments" modal>
         <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentText" placeholder="Write your comment..." autofocus></calcite-text-area>
+        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
         <calcite-button slot="secondary" onclick="document.getElementById('commentDialog').open = false">Close</calcite-button>
     </calcite-dialog>
@@ -223,7 +223,7 @@
                     }).join('');
 
                     dialog.open = true;
-                    document.getElementById('commentText').setFocus();
+                    setTimeout(() => document.getElementById('commentText').focus(), 100);
                 } catch(error) {
                     console.error("Error loading comments:", error);
                     showToast("Failed to load comments", "danger");
@@ -297,7 +297,7 @@
                             </div>
                             <div class="feed-header">
                                 <div class="feed-avatar">
-                                    ${feature.attributes.category_icon || '✨'}
+                                    ${getCategoryIcon(feature.attributes)}
                                 </div>
                                 <div>
                                     <div class="feed-author">${feature.attributes.name || 'Community Member'}</div>
@@ -310,6 +310,41 @@
                 } catch(error) {
                     console.error("Feed Error:", error);
                 }
+            }
+
+            function getCategoryIcon(attrs) {
+                const iconKey = attrs.is_yard_sale ? 'yard_sale' :
+                              attrs.is_classified ? 'classified' : 
+                              attrs.category?.toLowerCase() || 'default';
+                return CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
+            }
+
+            function renderFeatureDetails(attrs) {
+                let details = [];
+                if(attrs.category) details.push(`<div class="category-tag">${attrs.category}</div>`);
+                if(attrs.sale_start) details.push(`<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>`);
+                if(attrs.price) details.push(`<div>💰 $${Number(attrs.price).toFixed(2)}</div>`);
+                
+                return details.length ? `
+                    <div class="feed-meta">
+                        ${details.join('')}
+                    </div>
+                ` : '';
+            }
+
+            function renderPhotos(feature) {
+                const photos = feature.attributes.photos || [];
+                return photos.length ? `
+                    <div class="feed-photos">
+                        ${photos.map((url, index) => `
+                            <img class="feed-photo" 
+                                src="${url}" 
+                                loading="lazy"
+                                onerror="this.style.display='none'"
+                                data-index="${index}">
+                        `).join('')}
+                    </div>
+                ` : '';
             }
 
             auth.signInAnonymously().catch(console.error);
