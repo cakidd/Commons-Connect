@@ -46,7 +46,6 @@
             padding: 24px;
             margin-bottom: 24px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--primary);
             border: 1px solid rgba(122,154,118,0.15);
             position: relative;
@@ -290,31 +289,18 @@
         const auth = firebase.auth();
 
         // ESRI Configuration with CORS Fix
-        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // CRITICAL CORS FIX: Disable identity
+        require(["esri/config", "esri/request"], function(esriConfig, esriRequest) {
+            // CRITICAL CORS FIX: Set this BEFORE any requests
             esriConfig.request.useIdentity = false;
             
+            // Add trusted servers
             esriConfig.request.trustedServers.push(
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com",
                 "services7.arcgis.com"
             );
 
-            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
-            const CATEGORY_ICONS = {
-                yard_sale: '🏷️', classified: '📦', business: '🏢',
-                csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
-                food_pantry: '🥫', farm_stand: '🚜', restaurant: '🍽️',
-                educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
-                preservation: '🫙', community_kitchen: '🍲', default: '✨'
-            };
-
-            let currentLightboxIndex = 0;
-            let currentLightboxImages = [];
-            let currentPostId = null;
-
-            // Helper function for ESRI requests with CORS fix
+            // Create a wrapper for all ESRI requests to ensure consistent CORS handling
             async function makeRequest(url, options = {}) {
                 const corsOptions = {
                     ...options,
@@ -330,13 +316,27 @@
                 }
             }
 
-            // Feed Loading
+            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
+            const PHOTO_TABLES = [1, 2, 3, 4];
+            const CATEGORY_ICONS = {
+                yard_sale: '🏷️', classified: '📦', business: '🏢',
+                csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
+                food_pantry: '🥫', farm_stand: '🚜', restaurant: '🍽️',
+                educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
+                preservation: '🫙', community_kitchen: '🍲', default: '✨'
+            };
+
+            let currentLightboxIndex = 0;
+            let currentLightboxImages = [];
+            let currentPostId = null;
+
+            // Feed Loading with CORS Fix
             async function loadFeed() {
                 try {
                     const feed = document.getElementById("feed");
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // CORS Fix: Use makeRequest helper
+                    // CORS Fix: Use makeRequest instead of direct esriRequest
                     const { data: mainData } = await makeRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -354,23 +354,52 @@
                         
                         const card = document.createElement('div');
                         card.className = 'feed-item';
+                        card.dataset.id = attrs.globalid;
+                        
+                        const iconKey = attrs.is_yard_sale ? 'yard_sale' :
+                                      attrs.is_classified ? 'classified' : 
+                                      attrs.category?.toLowerCase() || 'default';
+                        const icon = CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
+                        
                         card.innerHTML = `
                             <div class="share-menu">
                                 <calcite-button icon="share" scale="s" id="shareBtn-${attrs.globalid}"></calcite-button>
                             </div>
                             <div class="feed-header">
                                 <div class="feed-avatar">
-                                    ${getCategoryIcon(attrs)}
+                                    ${icon}
                                 </div>
                                 <div>
                                     <div class="feed-author">${attrs.name || 'Community Member'}</div>
-                                    ${renderFeatureDetails(attrs)}
+                                    <div class="feed-meta">
+                                        ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
+                                        ${attrs.sale_start ? `<span>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</span>` : ''}
+                                        ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
+                                        ${attrs.city || attrs.county ? `<span>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</span>` : ''}
+                                    </div>
                                 </div>
                             </div>
                             ${attrs.description ? `<p style="margin-top: 16px;">${attrs.description}</p>` : ''}
-                            ${renderPhotos(photos)}
+                            ${attrs.contact_name || attrs.phone || attrs.email ? `
+                            <div style="margin-top: 12px; font-size: 0.95em;">
+                                ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
+                                ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}" style="color: var(--primary);">${attrs.phone}</a></div>` : ''}
+                                ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}" style="color: var(--primary);">${attrs.email}</a></div>` : ''}
+                            </div>
+                            ` : ''}
+                            ${photos.length ? `
+                            <div class="feed-photos">
+                                ${photos.map((url, index) => `
+                                    <img class="feed-photo" 
+                                        src="${url}" 
+                                        loading="lazy"
+                                        onerror="this.style.display='none'"
+                                        data-index="${index}">
+                                `).join('')}
+                            </div>
+                            ` : ''}
                             <div style="margin-top: 20px;">
-                                <calcite-button onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
+                                <calcite-button appearance="outline" onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
                             </div>
                         `;
                         
@@ -382,27 +411,13 @@
                     document.getElementById("feed").innerHTML = `
                         <div style="text-align: center; color: white; padding: 20px;">
                             <p>Error loading feed. Please try again.</p>
-                            <calcite-button onclick="loadFeed()">Reload</calcite-button>
+                            <calcite-button onclick="window.loadFeed()">Reload</calcite-button>
                         </div>
                     `;
                 }
             }
 
-            // Add all event listeners to a card
-            function addEventListeners(card, photos, globalId) {
-                // Photo click listeners
-                card.querySelectorAll('.feed-photo').forEach((img, index) => {
-                    img.addEventListener('click', () => openLightbox(photos, index));
-                });
-                
-                // Share button listener
-                const shareBtn = card.querySelector(`#shareBtn-${globalId}`);
-                if (shareBtn) {
-                    shareBtn.addEventListener('click', () => shareFeature(globalId));
-                }
-            }
-
-            // Get photos for a feature
+            // Get photos with CORS Fix
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
@@ -410,7 +425,7 @@
 
                 if (objectId) {
                     try {
-                        // CORS Fix: Use makeRequest helper
+                        // CORS Fix: Use makeRequest instead of direct esriRequest
                         const { data: directAttachments } = await makeRequest(
                             `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
                         );
@@ -425,11 +440,10 @@
                     }
                 }
 
-                // Process related tables
                 for (const tableId of PHOTO_TABLES) {
                     const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
                     try {
-                        // CORS Fix: Use makeRequest helper
+                        // CORS Fix: Use makeRequest instead of direct esriRequest
                         const { data: relatedData } = await makeRequest(`${tableUrl}/query`, {
                             query: {
                                 where: `ParentGlobalID='${globalId}'`,
@@ -442,7 +456,7 @@
                             const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
                             if (!oid) continue;
                             
-                            // CORS Fix: Use makeRequest helper
+                            // CORS Fix: Use makeRequest instead of direct esriRequest
                             const { data: attachments } = await makeRequest(
                                 `${tableUrl}/${oid}/attachments?f=json`
                             );
@@ -461,47 +475,19 @@
                 return [...new Set(photos)]; // Remove duplicates
             }
 
-            // Render category icon
-            function getCategoryIcon(attrs) {
-                const iconKey = attrs.is_yard_sale ? 'yard_sale' :
-                              attrs.is_classified ? 'classified' : 
-                              attrs.category?.toLowerCase() || 'default';
-                return CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
-            }
-
-            // Render feature details
-            function renderFeatureDetails(attrs) {
-                let details = [];
-                if (attrs.category) details.push(`<div class="category-tag">${attrs.category}</div>`);
-                if (attrs.sale_start) details.push(`<div>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</div>`);
-                if (attrs.price) details.push(`<div>💰 $${Number(attrs.price).toFixed(2)}</div>`);
-                if (attrs.city || attrs.county) details.push(`<div>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</div>`);
+            function addEventListeners(card, photos, globalId) {
+                // Photo click listeners
+                card.querySelectorAll('.feed-photo').forEach((img, index) => {
+                    img.addEventListener('click', () => openLightbox(photos, index));
+                });
                 
-                return details.length ? `
-                    <div class="feed-meta">
-                        ${details.join('')}
-                    </div>
-                ` : '';
+                // Share button listener
+                const shareBtn = card.querySelector(`#shareBtn-${globalId}`);
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', () => shareFeature(globalId));
+                }
             }
 
-            // Render photos
-            function renderPhotos(photos) {
-                if (!photos.length) return '';
-                
-                return `
-                    <div class="feed-photos">
-                        ${photos.map((url, index) => `
-                            <img class="feed-photo" 
-                                src="${url}" 
-                                loading="lazy"
-                                onerror="this.style.display='none'"
-                                data-index="${index}">
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            // Lightbox functionality
             function openLightbox(photos, index) {
                 currentLightboxImages = photos;
                 currentLightboxIndex = index;
@@ -521,42 +507,7 @@
                 document.getElementById('lightbox-media').src = currentLightboxImages[currentLightboxIndex];
             }
 
-            // Comment system
-            window.showComments = async function(globalId) {
-                currentPostId = globalId;
-                const dialog = document.getElementById('commentDialog');
-                
-                try {
-                    const snapshot = await db.collection('comments')
-                        .where('postId', '==', globalId)
-                        .orderBy('timestamp', 'desc')
-                        .get();
-
-                    document.getElementById('commentsList').innerHTML = snapshot.docs.map(doc => {
-                        const data = doc.data();
-                        return `
-                            <div class="comment-item">
-                                <div class="comment-text">${data.text}</div>
-                                <div class="comment-meta">
-                                    ${new Date(data.timestamp?.toDate()).toLocaleString()}
-                                </div>
-                            </div>
-                        `;
-                    }).join('') || '<div style="text-align: center; padding: 16px;">No comments yet. Be the first!</div>';
-
-                    dialog.open = true;
-                    setTimeout(() => {
-                        const textarea = document.getElementById('commentText');
-                        if (textarea) textarea.focus();
-                    }, 100);
-                } catch (error) {
-                    console.error("Error loading comments:", error);
-                    showToast("Failed to load comments", "error");
-                }
-            };
-
-            // Sharing functionality
-            window.shareFeature = function(globalId) {
+            function shareFeature(globalId) {
                 const postUrl = `https://the-commons-h4hwv.hub.arcgis.com/posts/${globalId}`;
                 
                 try {
@@ -573,7 +524,7 @@
                     console.log('Sharing failed:', error);
                     showShareOptions(postUrl);
                 }
-            };
+            }
 
             function showShareOptions(url) {
                 const shareMenu = document.getElementById('share-fallback');
@@ -613,7 +564,57 @@
                 }, 100);
             }
 
-            // Handle post comment button
+            // Lightbox event listeners
+            document.getElementById('lightbox').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('lightbox')) {
+                    document.getElementById('lightbox').classList.remove('active');
+                }
+            });
+            
+            document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
+            document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
+
+            // Make functions globally available
+            window.loadFeed = loadFeed;
+            window.openLightbox = openLightbox;
+            window.navigateLightbox = navigateLightbox;
+            window.shareFeature = shareFeature;
+
+            // Comment system
+            window.showComments = async function(globalId) {
+                currentPostId = globalId;
+                const dialog = document.getElementById('commentDialog');
+                
+                try {
+                    const snapshot = await db.collection('comments')
+                        .where('postId', '==', globalId)
+                        .orderBy('timestamp', 'desc')
+                        .get();
+
+                    document.getElementById('commentsList').innerHTML = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return `
+                            <div class="comment-item">
+                                <div class="comment-text">${data.text}</div>
+                                <div class="comment-meta">
+                                    ${new Date(data.timestamp?.toDate()).toLocaleString()}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') || '<div style="text-align: center; padding: 16px;">No comments yet. Be the first!</div>';
+
+                    dialog.open = true;
+                    setTimeout(() => {
+                        const textarea = document.getElementById('commentText');
+                        if (textarea) textarea.focus();
+                    }, 100);
+                } catch (error) {
+                    console.error("Error loading comments:", error);
+                    showToast("Failed to load comments", "error");
+                }
+            };
+
+            // Comment posting
             document.getElementById('postCommentBtn').addEventListener('click', async () => {
                 const text = document.getElementById('commentText').value.trim();
                 if (!text) return;
@@ -634,20 +635,6 @@
                     showToast("Failed to post comment", "error");
                 }
             });
-
-            // Lightbox event listeners
-            document.getElementById('lightbox').addEventListener('click', (e) => {
-                if (e.target === document.getElementById('lightbox')) {
-                    document.getElementById('lightbox').classList.remove('active');
-                }
-            });
-            
-            document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
-            document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
-
-            // Make functions globally available
-            window.loadFeed = loadFeed;
-            window.navigateLightbox = navigateLightbox;
 
             // Initialize
             auth.signInAnonymously().catch(error => {
