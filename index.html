@@ -52,6 +52,11 @@
             position: relative;
         }
 
+        .feed-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+
         .feed-header {
             display: flex;
             gap: 20px;
@@ -209,6 +214,14 @@
             background: rgba(0,0,0,0.05);
         }
 
+        .share-option a {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
         .comments-list {
             max-height: 50vh;
             overflow-y: auto;
@@ -243,9 +256,35 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .app-title {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .feed-description {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+
+        .contact-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .contact-info a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
+    <h1 class="app-title">The Commons 2.0</h1>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
@@ -284,8 +323,9 @@
 
         // ESRI Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // CRITICAL CORS FIX: Disable identity and set trusted servers
+            // CRITICAL CORS FIX: Disable identity to prevent credential sending
             esriConfig.request.useIdentity = false;
+            
             esriConfig.request.trustedServers.push(
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com",
@@ -310,8 +350,8 @@
             async function makeRequest(url, options = {}) {
                 const corsOptions = {
                     ...options,
-                    useIdentity: false,
-                    credentials: "omit" // CORS Fix: explicitly omit credentials
+                    useIdentity: false,  
+                    credentials: "omit"  // Explicitly omit credentials to fix CORS
                 };
                 
                 try {
@@ -328,7 +368,7 @@
                     const feed = document.getElementById("feed");
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // CORS Fix: Use makeRequest helper
+                    // CORS Fix: Use makeRequest helper instead of direct esriRequest
                     const { data: mainData } = await makeRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -359,7 +399,9 @@
                                     ${renderFeatureDetails(attrs)}
                                 </div>
                             </div>
-                            ${attrs.description ? `<p style="margin-top: 16px;">${attrs.description}</p>` : ''}
+                            ${attrs.description ? 
+                              `<div class="feed-description">${attrs.description}</div>` : ''}
+                            ${renderContactInfo(attrs)}
                             ${renderPhotos(photos)}
                             <div style="margin-top: 20px;">
                                 <calcite-button onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
@@ -469,16 +511,26 @@
                 if (attrs.price) details.push(`<div>💰 $${Number(attrs.price).toFixed(2)}</div>`);
                 if (attrs.city || attrs.county) details.push(`<div>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</div>`);
                 
-                // Add contact info if available
+                return details.length ? `
+                    <div class="feed-meta">
+                        ${details.join('')}
+                    </div>
+                ` : '';
+            }
+
+            // Render contact info
+            function renderContactInfo(attrs) {
                 let contactInfo = [];
                 if (attrs.contact_name) contactInfo.push(`<div>👤 ${attrs.contact_name}</div>`);
-                if (attrs.phone) contactInfo.push(`<div>📞 <a href="tel:${attrs.phone}" style="color: var(--primary);">${attrs.phone}</a></div>`);
-                if (attrs.email) contactInfo.push(`<div>📧 <a href="mailto:${attrs.email}" style="color: var(--primary);">${attrs.email}</a></div>`);
+                if (attrs.phone) contactInfo.push(`<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>`);
+                if (attrs.email) contactInfo.push(`<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>`);
+                if (attrs.website) contactInfo.push(`<div>🌐 <a href="${attrs.website}" target="_blank">${attrs.website}</a></div>`);
                 
-                return `
-                    ${details.length ? `<div class="feed-meta">${details.join('')}</div>` : ''}
-                    ${contactInfo.length ? `<div style="margin-top: 8px; font-size: 0.95em;">${contactInfo.join('')}</div>` : ''}
-                `;
+                return contactInfo.length ? `
+                    <div class="contact-info">
+                        ${contactInfo.join('')}
+                    </div>
+                ` : '';
             }
 
             // Render photos
@@ -579,18 +631,21 @@
                     <div class="share-option" onclick="copyToClipboard('${url}')">
                         <span>📋</span> Copy Link
                     </div>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}" 
-                       target="_blank" class="share-option" style="text-decoration: none; color: inherit;">
-                       <span>📱</span> Share to Facebook
-                    </a>
-                    <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this listing: ' + url)}" 
-                       target="_blank" class="share-option" style="text-decoration: none; color: inherit;">
-                       <span>🐦</span> Share to X/Twitter
-                    </a>
-                    <a href="mailto:?subject=Community Listing&body=${encodeURIComponent('Check out this listing: ' + url)}" 
-                       class="share-option" style="text-decoration: none; color: inherit;">
-                       <span>📧</span> Share via Email
-                    </a>
+                    <div class="share-option">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}" target="_blank">
+                           <span>📱</span> Share to Facebook
+                        </a>
+                    </div>
+                    <div class="share-option">
+                        <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this listing: ' + url)}" target="_blank">
+                           <span>🐦</span> Share to X/Twitter
+                        </a>
+                    </div>
+                    <div class="share-option">
+                        <a href="mailto:?subject=Community Listing&body=${encodeURIComponent('Check out this listing: ' + url)}" target="_blank">
+                           <span>📧</span> Share via Email
+                        </a>
+                    </div>
                     <div class="share-option" onclick="document.getElementById('share-fallback').classList.remove('active')" style="justify-content: center; margin-top: 10px;">
                         Cancel
                     </div>
@@ -645,6 +700,7 @@
             // Make functions globally available
             window.loadFeed = loadFeed;
             window.navigateLightbox = navigateLightbox;
+            window.openLightbox = openLightbox;
 
             // Initialize
             auth.signInAnonymously().catch(error => {
