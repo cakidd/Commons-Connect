@@ -52,11 +52,6 @@
             position: relative;
         }
 
-        .feed-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-        }
-
         .feed-header {
             display: flex;
             gap: 20px;
@@ -214,14 +209,6 @@
             background: rgba(0,0,0,0.05);
         }
 
-        .share-option a {
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            align-items: center;
-            width: 100%;
-        }
-
         .comments-list {
             max-height: 50vh;
             overflow-y: auto;
@@ -257,39 +244,20 @@
             100% { transform: rotate(360deg); }
         }
 
-        .app-title {
+        h1 {
             color: white;
             text-align: center;
             margin-bottom: 20px;
-            font-size: 2rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .feed-description {
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin: 10px 0;
-        }
-
-        .contact-info {
-            margin-top: 10px;
-            font-size: 0.9rem;
-        }
-
-        .contact-info a {
-            color: var(--primary);
-            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <h1 class="app-title">The Commons 2.0</h1>
+    <h1>The Commons 2.0</h1>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
 
-    <calcite-dialog id="commentDialog" label="Comments" modal>
+    <calcite-dialog id="commentDialog" label="Comments">
         <div class="comments-list" id="commentsList"></div>
         <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
@@ -323,7 +291,7 @@
 
         // ESRI Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // CRITICAL CORS FIX: Disable identity to prevent credential sending
+            // CRITICAL CORS FIX: Disable identity
             esriConfig.request.useIdentity = false;
             
             esriConfig.request.trustedServers.push(
@@ -350,8 +318,8 @@
             async function makeRequest(url, options = {}) {
                 const corsOptions = {
                     ...options,
-                    useIdentity: false,  
-                    credentials: "omit"  // Explicitly omit credentials to fix CORS
+                    useIdentity: false,
+                    credentials: "omit" // CORS Fix: explicitly omit credentials
                 };
                 
                 try {
@@ -368,7 +336,7 @@
                     const feed = document.getElementById("feed");
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    // CORS Fix: Use makeRequest helper instead of direct esriRequest
+                    // CORS Fix: Use makeRequest helper
                     const { data: mainData } = await makeRequest(`${MAIN_LAYER_URL}/query`, {
                         query: {
                             where: "1=1",
@@ -399,9 +367,7 @@
                                     ${renderFeatureDetails(attrs)}
                                 </div>
                             </div>
-                            ${attrs.description ? 
-                              `<div class="feed-description">${attrs.description}</div>` : ''}
-                            ${renderContactInfo(attrs)}
+                            ${attrs.description ? `<p style="margin-top: 16px;">${attrs.description}</p>` : ''}
                             ${renderPhotos(photos)}
                             <div style="margin-top: 20px;">
                                 <calcite-button onclick="showComments('${attrs.globalid}')">💬 Comments</calcite-button>
@@ -518,21 +484,6 @@
                 ` : '';
             }
 
-            // Render contact info
-            function renderContactInfo(attrs) {
-                let contactInfo = [];
-                if (attrs.contact_name) contactInfo.push(`<div>👤 ${attrs.contact_name}</div>`);
-                if (attrs.phone) contactInfo.push(`<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>`);
-                if (attrs.email) contactInfo.push(`<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>`);
-                if (attrs.website) contactInfo.push(`<div>🌐 <a href="${attrs.website}" target="_blank">${attrs.website}</a></div>`);
-                
-                return contactInfo.length ? `
-                    <div class="contact-info">
-                        ${contactInfo.join('')}
-                    </div>
-                ` : '';
-            }
-
             // Render photos
             function renderPhotos(photos) {
                 if (!photos.length) return '';
@@ -631,21 +582,18 @@
                     <div class="share-option" onclick="copyToClipboard('${url}')">
                         <span>📋</span> Copy Link
                     </div>
-                    <div class="share-option">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}" target="_blank">
-                           <span>📱</span> Share to Facebook
-                        </a>
-                    </div>
-                    <div class="share-option">
-                        <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this listing: ' + url)}" target="_blank">
-                           <span>🐦</span> Share to X/Twitter
-                        </a>
-                    </div>
-                    <div class="share-option">
-                        <a href="mailto:?subject=Community Listing&body=${encodeURIComponent('Check out this listing: ' + url)}" target="_blank">
-                           <span>📧</span> Share via Email
-                        </a>
-                    </div>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}" 
+                       target="_blank" class="share-option" style="text-decoration: none; color: inherit;">
+                       <span>📱</span> Share to Facebook
+                    </a>
+                    <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent('Check this listing: ' + url)}" 
+                       target="_blank" class="share-option" style="text-decoration: none; color: inherit;">
+                       <span>🐦</span> Share to X/Twitter
+                    </a>
+                    <a href="mailto:?subject=Community Listing&body=${encodeURIComponent('Check out this listing: ' + url)}" 
+                       class="share-option" style="text-decoration: none; color: inherit;">
+                       <span>📧</span> Share via Email
+                    </a>
                     <div class="share-option" onclick="document.getElementById('share-fallback').classList.remove('active')" style="justify-content: center; margin-top: 10px;">
                         Cancel
                     </div>
@@ -700,7 +648,6 @@
             // Make functions globally available
             window.loadFeed = loadFeed;
             window.navigateLightbox = navigateLightbox;
-            window.openLightbox = openLightbox;
 
             // Initialize
             auth.signInAnonymously().catch(error => {
