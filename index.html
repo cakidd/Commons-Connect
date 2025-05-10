@@ -5,6 +5,7 @@
     <title>The Commons 2.0 - Ultimate Social Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
+    <link rel="icon" type="image/png" href="https://harmonyfrhope.org/favicon.png">
 
     <!-- Firebase 11.7.1 Compat -->
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
@@ -116,7 +117,7 @@
     </div>
 
     <script>
-        // Firebase Configuration (Fixed v11.7.1)
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
             authDomain: "the-commons-2.firebaseapp.com",
@@ -132,16 +133,15 @@
 
         // ArcGIS Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            esriConfig.request.trustedServers.replaceAll([
+            esriConfig.request.trustedServers = [
                 "services7.arcgis.com",
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com",
                 "cakidd.github.io"
-            ]);
+            ];
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
-            let currentPostId = null;
 
             async function loadFeed() {
                 try {
@@ -166,6 +166,7 @@
                     )).join('');
                 } catch (error) {
                     console.error("Feed Error:", error);
+                    showToast("Error loading feed", "error");
                 }
             }
 
@@ -255,6 +256,16 @@
                 document.getElementById('lightbox').classList.remove('active');
             }
         });
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('calcite-toast');
+            toast.label = message;
+            toast.kind = type === 'error' ? 'danger' : type;
+            document.body.appendChild(toast);
+            toast.open = true;
+            setTimeout(() => toast.remove(), 3000);
+        }
     </script>
 </body>
 </html>
