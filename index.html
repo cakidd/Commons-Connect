@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Commons 2.0 - Ultimate Social Feed</title>
+    <title>The Commons 2.0 - Community Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
     
@@ -108,6 +108,7 @@
         <div class="loader"></div>
     </div>
 
+    <!-- Using calcite-dialog instead of deprecated modal -->
     <calcite-dialog id="commentDialog" label="Comments">
         <div class="comments-list" id="commentsList"></div>
         <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
@@ -133,9 +134,8 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // ArcGIS Configuration
+        // ArcGIS Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            esriConfig.request.useIdentity = false;
             esriConfig.request.trustedServers.push(
                 "services7.arcgis.com",
                 "firestore.googleapis.com",
