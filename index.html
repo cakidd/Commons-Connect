@@ -5,6 +5,7 @@
     <title>The Commons 2.0 - Ultimate Social Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
+    <link rel="icon" type="image/png" href="https://harmonyfrhope.org/favicon.png">
 
     <!-- Firebase 11.7.1 Compat -->
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
@@ -14,9 +15,12 @@
     <!-- ArcGIS JS API 4.28 -->
     <script src="https://js.arcgis.com/4.28/"></script>
 
-    <!-- Calcite Components 3.1.0 Correct Implementation -->
+    <!-- Calcite Components 3.1.0 -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
-    <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
+    <script type="module">
+        import { setAssetPath } from "https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js";
+        setAssetPath("https://js.arcgis.com/calcite-components/3.1.0");
+    </script>
 
     <style>
         :root {
@@ -48,6 +52,25 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
+        .feed-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .feed-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
         .feed-photos {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -71,7 +94,12 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.95);
-            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox.active {
+            display: flex;
         }
     </style>
 </head>
@@ -83,7 +111,7 @@
 
     <calcite-dialog id="commentDialog" label="Comments">
         <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentInput" placeholder="Write your comment..."></calcite-text-area>
+        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
     </calcite-dialog>
 
@@ -92,7 +120,7 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        // Firebase Configuration (Fixed v11.7.1)
         const firebaseConfig = {
             apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
             authDomain: "the-commons-2.firebaseapp.com",
@@ -115,9 +143,14 @@
             );
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-            
+            const PHOTO_TABLES = [1, 2, 3, 4];
+            let currentPostId = null;
+
             async function loadFeed() {
                 try {
+                    const feed = document.getElementById("feed");
+                    feed.innerHTML = '<div class="loader"></div>';
+                    
                     const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
                         query: { 
                             where: "1=1",
@@ -127,32 +160,93 @@
                         }
                     });
 
-                    document.getElementById("feed").innerHTML = data.features.map(feature => 
-                        createPostElement(feature.attributes)
-                    ).join('');
+                    feed.innerHTML = await Promise.all(data.features.map(async feature => 
+                        createPostElement(feature.attributes, await getPhotosForFeature(feature))
+                    )).join('');
                 } catch (error) {
                     console.error("Feed Error:", error);
                 }
             }
 
-            function createPostElement(attrs) {
+            async function getPhotosForFeature(feature) {
+                const photos = [];
+                const globalId = feature.attributes.globalid;
+                
+                for (const tableId of PHOTO_TABLES) {
+                    const tableUrl = FEATURE_SERVICE_URL.replace("/0", `/${tableId}`);
+                    try {
+                        const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
+                            query: { 
+                                where: `ParentGlobalID='${globalId}'`,
+                                outFields: "objectid,OBJECTID",
+                                f: "json"
+                            }
+                        });
+                        
+                        for (const rel of relatedData.features || []) {
+                            const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
+                            if (!oid) continue;
+                            
+                            const { data: attachments } = await esriRequest(
+                                `${tableUrl}/${oid}/attachments?f=json`
+                            );
+                            
+                            if (attachments?.attachmentInfos?.length) {
+                                photos.push(...attachments.attachmentInfos.map(a => 
+                                    `${tableUrl}/${oid}/attachments/${a.id}`
+                                ));
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Table ${tableId} error:`, error.message);
+                    }
+                }
+                return [...new Set(photos)];
+            }
+
+            function createPostElement(attrs, photos) {
                 return `
                     <div class="feed-item">
-                        <h3>${attrs.name || 'Community Member'}</h3>
-                        <p>${attrs.description || ''}</p>
-                        ${attrs.price ? `<p>Price: $${attrs.price}</p>` : ''}
-                        ${generateCategoryBadge(attrs.category)}
+                        <div class="feed-header">
+                            <div class="feed-avatar">${getCategoryIcon(attrs)}</div>
+                            <div>
+                                <div class="feed-author">${attrs.name || 'Community Member'}</div>
+                                <div class="feed-meta">
+                                    ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
+                                    ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        ${photos.map(url => `
+                            <img class="feed-photo" 
+                                 src="${url}" 
+                                 onclick="showLightbox('${url}')"
+                                 onerror="this.style.display='none'">
+                        `).join('')}
                     </div>
                 `;
             }
 
-            auth.signInAnonymously().then(loadFeed);
+            // Initialize the app
+            auth.signInAnonymously().then(() => loadFeed());
         });
 
-        // Lightbox Functionality
-        document.getElementById('lightbox').addEventListener('click', () => {
-            document.getElementById('lightbox').classList.remove('active');
-        });
+        function getCategoryIcon(attrs) {
+            const icons = {
+                yard_sale: '🏷️', 
+                classified: '📦', 
+                business: '🏢',
+                csa: '🧺', 
+                farmers_market: '🥕', 
+                community_garden: '🌱'
+            };
+            return icons[attrs.category?.toLowerCase()] || '✨';
+        }
+
+        function showLightbox(url) {
+            document.getElementById('lightboxImage').src = url;
+            document.getElementById('lightbox').classList.add('active');
+        }
     </script>
 </body>
 </html>
