@@ -5,7 +5,8 @@
     <title>The Commons 2.0 - Ultimate Social Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
-    
+    <link rel="icon" type="image/png" href="https://harmonyfrhope.org/favicon.png">
+
     <!-- Firebase 11.7.1 Compat -->
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
@@ -157,6 +158,10 @@
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
                             f: "json"
+                        },
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json"
                         }
                     });
 
@@ -221,7 +226,7 @@
                         ${photos.map(url => `
                             <img class="feed-photo" 
                                  src="${url}" 
-                                 onclick="showLightbox('${url}', ${JSON.stringify(photos)})"
+                                 onclick="showLightbox('${url}')"
                                  onerror="this.style.display='none'">
                         `).join('')}
                     </div>
@@ -244,9 +249,9 @@
             return icons[attrs.category?.toLowerCase()] || '✨';
         }
 
-        function showLightbox(url, photos) {
-            currentLightboxImages = photos;
-            currentLightboxIndex = photos.indexOf(url);
+        function showLightbox(url) {
+            currentLightboxImages = Array.from(document.querySelectorAll('.feed-photo')).map(img => img.src);
+            currentLightboxIndex = currentLightboxImages.indexOf(url);
             document.getElementById('lightboxImage').src = url;
             document.getElementById('lightbox').classList.add('active');
         }
