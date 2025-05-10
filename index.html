@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Commons 2.0 - Ultimate Social Feed</title>
+    <title>The Commons 2.0 - Community Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
     
@@ -19,7 +19,84 @@
     <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
 
     <style>
-        /* Existing styles remain unchanged */
+        :root {
+            --primary: #2d4739;
+            --secondary: #7a9a76;
+            --accent: #ffd700;
+            --text-primary: rgba(45,71,57,0.9);
+            --card-bg: rgba(255,255,255,0.97);
+        }
+
+        body {
+            background: linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%);
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            padding-top: 70px;
+        }
+
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .feed-item {
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .feed-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .feed-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .feed-photo {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
     </style>
 </head>
 <body>
@@ -78,7 +155,7 @@
                             f: "json"
                         },
                         headers: {
-                            "Origin": "https://cakidd.github.io",
+                            "Accept": "application/json",
                             "Content-Type": "application/json"
                         }
                     });
