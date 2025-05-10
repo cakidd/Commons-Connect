@@ -14,11 +14,11 @@
     <!-- ArcGIS JS API 4.28 -->
     <script src="https://js.arcgis.com/4.28/"></script>
 
-    <!-- Calcite Components 3.1.0 with Asset Fix -->
+    <!-- Calcite Components 3.1.0 -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script type="module">
         import { setAssetPath } from "https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js";
-        setAssetPath("https://js.arcgis.com/calcite-components/3.1.0/");
+        setAssetPath("https://js.arcgis.com/calcite-components/3.1.0");
     </script>
 
     <style>
@@ -51,6 +51,25 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
+        .feed-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .feed-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
         .feed-photos {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -74,13 +93,12 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.95);
-            z-index: 1000;
+            align-items: center;
+            justify-content: center;
         }
 
         .lightbox.active {
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
     </style>
 </head>
@@ -90,10 +108,9 @@
         <div class="loader"></div>
     </div>
 
-    <!-- Using calcite-dialog instead of deprecated modal -->
     <calcite-dialog id="commentDialog" label="Comments">
         <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentInput" placeholder="Write your comment..."></calcite-text-area>
+        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
     </calcite-dialog>
 
@@ -102,7 +119,7 @@
     </div>
 
     <script>
-        // Firebase Configuration (Fixed v11.7.1)
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
             authDomain: "the-commons-2.firebaseapp.com",
@@ -116,7 +133,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // ArcGIS Configuration with CORS Fix
+        // ArcGIS Configuration
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
             esriConfig.request.useIdentity = false;
             esriConfig.request.trustedServers.push(
