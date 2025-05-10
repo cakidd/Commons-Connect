@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script type="module">
         import { setAssetPath } from "https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js";
-        setAssetPath("https://js.arcgis.com/calcite-components/3.1.0");
+        setAssetPath("https://js.arcgis.com/calcite-components/3.1.0/");
     </script>
 
     <style>
@@ -51,25 +51,6 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        .feed-header {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .feed-avatar {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: #fff;
-            border: 2px solid var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
         .feed-photos {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -93,12 +74,13 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.95);
-            align-items: center;
-            justify-content: center;
+            z-index: 1000;
         }
 
         .lightbox.active {
             display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -111,7 +93,7 @@
     <!-- Using calcite-dialog instead of deprecated modal -->
     <calcite-dialog id="commentDialog" label="Comments">
         <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
+        <calcite-text-area id="commentInput" placeholder="Write your comment..."></calcite-text-area>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
     </calcite-dialog>
 
@@ -136,6 +118,7 @@
 
         // ArcGIS Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            esriConfig.request.useIdentity = false;
             esriConfig.request.trustedServers.push(
                 "services7.arcgis.com",
                 "firestore.googleapis.com",
@@ -144,6 +127,7 @@
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
+            let currentPostId = null;
 
             async function loadFeed() {
                 try {
