@@ -14,14 +14,94 @@
     <!-- ArcGIS JS API 4.28 -->
     <script src="https://js.arcgis.com/4.28/"></script>
 
-    <!-- Calcite Components 3.1.0 -->
+    <!-- Calcite Components 3.1.0 with Asset Fix -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script type="module">
         import { setAssetPath } from "https://js.arcgis.com/calcite-components/3.1.0/calcite.esm.js";
         setAssetPath("https://js.arcgis.com/calcite-components/3.1.0");
     </script>
-</head>
 
+    <style>
+        :root {
+            --primary: #2d4739;
+            --secondary: #7a9a76;
+            --accent: #ffd700;
+            --text-primary: rgba(45,71,57,0.9);
+            --card-bg: rgba(255,255,255,0.97);
+        }
+
+        body {
+            background: linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%);
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            padding-top: 70px;
+        }
+
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .feed-item {
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .feed-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .feed-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .feed-photo {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+    </style>
+</head>
 <body>
     <h1>The Commons 2.0</h1>
     <div class="feed-container" id="feed">
@@ -56,15 +136,14 @@
 
         // ArcGIS Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            esriConfig.request.useIdentity = false;
             esriConfig.request.trustedServers.push(
                 "services7.arcgis.com",
                 "firestore.googleapis.com",
                 "firebasestorage.googleapis.com"
             );
+
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
-            let currentPostId = null;
 
             async function loadFeed() {
                 try {
@@ -133,7 +212,6 @@
                                 <div class="feed-author">${attrs.name || 'Community Member'}</div>
                                 <div class="feed-meta">
                                     ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
-                                    ${attrs.sale_start ? `<span>📅 ${new Date(attrs.sale_start).toLocaleDateString()}</span>` : ''}
                                     ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
                                 </div>
                             </div>
@@ -141,48 +219,11 @@
                         ${photos.map(url => `
                             <img class="feed-photo" src="${url}" onclick="showLightbox('${url}')">
                         `).join('')}
-                        <calcite-button onclick="showComments('${attrs.globalid}')">
-                            💬 Comments
-                        </calcite-button>
                     </div>
                 `;
             }
-            // Lightbox functionality
-            function showLightbox(url) {
-                document.getElementById('lightboxImage').src = url;
-                document.getElementById('lightbox').classList.add('active');
-            }
 
-            document.getElementById('lightbox').addEventListener('click', (e) => {
-                if (e.target === document.getElementById('lightbox')) {
-                    document.getElementById('lightbox').classList.remove('active');
-                }
-            });
-
-            // Comment system
-            window.showComments = async (postId) => {
-                currentPostId = postId;
-                document.getElementById('commentDialog').open = true;
-            };
-
-            document.getElementById('postCommentBtn').addEventListener('click', async () => {
-                const text = document.getElementById('commentText').value.trim();
-                if (!text) return;
-
-                try {
-                    await db.collection('comments').add({
-                        postId: currentPostId,
-                        text: text,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    document.getElementById('commentText').value = '';
-                    showComments(currentPostId);
-                } catch (error) {
-                    console.error("Error posting comment:", error);
-                }
-            });
-
-            // Initialize app
+            // Initialize the app
             auth.signInAnonymously().then(() => loadFeed());
         });
 
@@ -196,6 +237,11 @@
                 community_garden: '🌱'
             };
             return icons[attrs.category?.toLowerCase()] || '✨';
+        }
+
+        function showLightbox(url) {
+            document.getElementById('lightboxImage').src = url;
+            document.getElementById('lightbox').classList.add('active');
         }
     </script>
 </body>
