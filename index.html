@@ -5,8 +5,7 @@
     <title>The Commons 2.0 - Ultimate Social Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
-    <link rel="icon" type="image/png" href="https://harmonyfrhope.org/favicon.png">
-
+    
     <!-- Firebase 11.7.1 Compat -->
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
@@ -114,6 +113,8 @@
 
     <div class="lightbox" id="lightbox">
         <img class="lightbox-img" id="lightboxImage">
+        <button class="lightbox-nav" id="prevBtn">❮</button>
+        <button class="lightbox-nav" id="nextBtn">❯</button>
     </div>
 
     <script>
@@ -142,6 +143,8 @@
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
+            let currentLightboxImages = [];
+            let currentLightboxIndex = 0;
 
             async function loadFeed() {
                 try {
@@ -154,10 +157,6 @@
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
                             f: "json"
-                        },
-                        headers: {
-                            "Accept": "application/json",
-                            "Content-Type": "application/json"
                         }
                     });
 
@@ -222,7 +221,7 @@
                         ${photos.map(url => `
                             <img class="feed-photo" 
                                  src="${url}" 
-                                 onclick="showLightbox('${url}')"
+                                 onclick="showLightbox('${url}', ${JSON.stringify(photos)})"
                                  onerror="this.style.display='none'">
                         `).join('')}
                     </div>
@@ -245,10 +244,23 @@
             return icons[attrs.category?.toLowerCase()] || '✨';
         }
 
-        function showLightbox(url) {
+        function showLightbox(url, photos) {
+            currentLightboxImages = photos;
+            currentLightboxIndex = photos.indexOf(url);
             document.getElementById('lightboxImage').src = url;
             document.getElementById('lightbox').classList.add('active');
         }
+
+        // Lightbox navigation
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        });
 
         // Lightbox close handler
         document.getElementById('lightbox').addEventListener('click', (e) => {
