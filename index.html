@@ -132,8 +132,6 @@
 
         // ArcGIS Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // Critical CORS configuration
-            esriConfig.request.useIdentity = false;
             esriConfig.request.trustedServers.replaceAll([
                 "services7.arcgis.com",
                 "firestore.googleapis.com",
@@ -143,6 +141,7 @@
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
+            let currentPostId = null;
 
             async function loadFeed() {
                 try {
@@ -167,7 +166,6 @@
                     )).join('');
                 } catch (error) {
                     console.error("Feed Error:", error);
-                    showToast("Error loading feed", "error");
                 }
             }
 
@@ -257,16 +255,6 @@
                 document.getElementById('lightbox').classList.remove('active');
             }
         });
-
-        // Toast notifications
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('calcite-toast');
-            toast.label = message;
-            toast.kind = type === 'error' ? 'danger' : type;
-            document.body.appendChild(toast);
-            toast.open = true;
-            setTimeout(() => toast.remove(), 3000);
-        }
     </script>
 </body>
 </html>
