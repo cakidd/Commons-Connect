@@ -131,11 +131,11 @@
 
         // ArcGIS Configuration with CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // Critical CORS Settings
             esriConfig.request.trustedServers = [
                 "services7.arcgis.com",
                 "cakidd.github.io",
-                "firestore.googleapis.com"
+                "firestore.googleapis.com",
+                "the-commons-h4hwv.hub.arcgis.com"
             ];
             esriConfig.request.credentials = "omit";
             esriConfig.request.useIdentity = false;
@@ -144,13 +144,16 @@
             const PHOTO_TABLES = [1, 2, 3, 4];
             let currentLightboxImages = [];
             let currentLightboxIndex = 0;
+            let retryCount = 0;
+            const MAX_RETRIES = 5;
 
             async function loadFeed() {
                 try {
                     const feed = document.getElementById("feed");
                     feed.innerHTML = '<div class="loader"></div>';
                     
-                    const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query?_=${Date.now()}`, {
+                    const cacheBuster = `ts=${Date.now()}`;
+                    const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query?${cacheBuster}`, {
                         query: { 
                             where: "1=1",
                             outFields: "*",
@@ -167,14 +170,15 @@
                     feed.innerHTML = await Promise.all(data.features.map(async feature => 
                         createPostElement(feature.attributes, await getPhotosForFeature(feature))
                     )).join('');
+                    retryCount = 0;
                 } catch (error) {
-                    console.error("Feed Error:", {
-                        message: error.message,
-                        url: error.url,
-                        status: error.response?.status
-                    });
-                    showToast("Error loading feed. Retrying...", "error");
-                    setTimeout(loadFeed, 2000);
+                    console.error("Feed Error:", error);
+                    if(retryCount++ < MAX_RETRIES) {
+                        showToast(`Retrying... (Attempt ${retryCount}/${MAX_RETRIES})`, "warning");
+                        setTimeout(loadFeed, 2000 * retryCount);
+                    } else {
+                        showToast("Failed to load feed after multiple attempts", "error");
+                    }
                 }
             }
 
