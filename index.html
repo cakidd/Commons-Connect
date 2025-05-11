@@ -1,28 +1,86 @@
-<script>
-require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-  // Nuclear CORS Fix
-  esriConfig.request.trustedServers = [
-    "services7.arcgis.com",
-    "cakidd.github.io",
-    "the-commons-h4hwv.hub.arcgis.com"
-  ];
-  
-  esriConfig.request.credentials = "omit";
-  esriConfig.request.headers = {
-    "Origin": "https://cakidd.github.io",
-    "Content-Type": "application/json",
-    "X-Esri-Authorization": "" // Clear residual tokens
-  };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Commons 2.0 - Community Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Permissions-Policy" content="web-share=(self)">
+    
+    <!-- ArcGIS JS API 4.28 -->
+    <script src="https://js.arcgis.com/4.28/"></script>
 
-  // Cache-Busting Request Pattern
-  const FEATURE_URL = "https://services7.arcgis.com/.../FeatureServer/0/query?ts=" + Date.now();
-  
-  esriRequest(FEATURE_URL, {
-    query: { 
-      where: "1=1",
-      outFields: "*",
-      f: "json"
-    }
-  }).then(handleData).catch(handleError);
-});
-</script>
+    <style>
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="feed-container" id="feed">
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            // Critical CORS Configuration
+            esriConfig.request.trustedServers = [
+                "services7.arcgis.com",
+                "cakidd.github.io"
+            ];
+            esriConfig.request.credentials = "omit";
+            esriConfig.request.headers = {
+                "Origin": "https://cakidd.github.io",
+                "Content-Type": "application/json"
+            };
+
+            const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+
+            async function loadFeed() {
+                try {
+                    const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
+                        query: { 
+                            where: "1=1",
+                            outFields: "*",
+                            orderByFields: "CreationDate DESC",
+                            f: "json",
+                            cacheBuster: Date.now() // GitHub Pages cache workaround
+                        }
+                    });
+
+                    document.getElementById("feed").innerHTML = 
+                        data.features.map(feature => `
+                            <div class="feed-item">
+                                <h3>${feature.attributes.name || 'Community Post'}</h3>
+                                <p>${feature.attributes.description || ''}</p>
+                            </div>
+                        `).join('');
+                } catch (error) {
+                    console.error("Feed Error:", error);
+                    document.getElementById("feed").innerHTML = '<div class="feed-item">⚠️ Error loading feed</div>';
+                }
+            }
+
+            loadFeed();
+        });
+    </script>
+</body>
+</html>
