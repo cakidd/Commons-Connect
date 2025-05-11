@@ -1,88 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>The Commons Community Feed</title>
+    <meta charset="UTF-8">
+    <title>The Commons 2.0 - Community Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Permissions-Policy" content="web-share=(self)">
+    
+    <!-- Firebase 11.7.1 -->
+    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-auth-compat.js"></script>
+
+    <!-- ArcGIS JS API 4.28 -->
     <script src="https://js.arcgis.com/4.28/"></script>
+
+    <!-- Calcite Components 3.1.0 -->
+    <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
+    <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
+
     <style>
-       :root {
+        :root {
             --primary: #2d4739;
+            --secondary: #7a9a76;
             --accent: #ffd700;
-            --text: rgba(255,255,255,0.9);
+            --text-primary: rgba(45,71,57,0.9);
+            --card-bg: rgba(255,255,255,0.97);
         }
+
         body {
-            background: var(--primary);
+            background: linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%);
             margin: 0;
-            color: var(--text);
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
+            padding-top: 70px;
         }
-        /* ADDED LINK COLOR RULE */
-        a, a:visited, a:active {
-            color: #fff !important;
-            text-decoration: underline;
-        }
-        a:hover {
-            color: var(--accent) !important;
-        }
+
         .feed-container {
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
         }
+
         .feed-item {
-            background: rgba(30,51,40,0.7);
-            border-left: 4px solid var(--accent);
-            border-radius: 8px;
-            margin: 20px 0;
-            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
         }
+
         .feed-header {
             display: flex;
+            gap: 16px;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
+
         .feed-avatar {
-            width: 50px;
-            height: 50px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            background: var(--accent);
-            display: grid;
-            place-items: center;
-            font-size: 24px;
-            color: var(--primary);
-        }
-        .feed-author {
-            font-size: 1.4rem;
-            color: var(--accent);
-        }
-        .feed-photos {
+            background: #fff;
+            border: 2px solid var(--accent);
             display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 10px 0;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
         }
+
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+
         .feed-photo {
-            height: 200px;
-            min-width: 250px;
+            width: 100%;
+            height: 150px;
             object-fit: cover;
             border-radius: 8px;
-            border: 2px solid var(--accent);
             cursor: pointer;
         }
-        .loader {
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 40px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+
         .lightbox {
             display: none;
             position: fixed;
@@ -90,203 +90,205 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
-            justify-content: center;
+            background: rgba(0,0,0,0.95);
             align-items: center;
-            z-index: 1000;
-        }
-        .lightbox.active { display: flex; }
-        .lightbox-img {
-            max-width: 90%;
-            max-height: 90%;
-            border: 3px solid var(--accent);
-            border-radius: 8px;
+            justify-content: center;
         }
     </style>
 </head>
 <body>
+    <h1>The Commons 2.0</h1>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
+
+    <calcite-dialog id="commentDialog" label="Comments">
+        <div class="comments-list" id="commentsList"></div>
+        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
+        <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
+    </calcite-dialog>
+
     <div class="lightbox" id="lightbox">
         <img class="lightbox-img" id="lightboxImage">
+        <button class="lightbox-nav" id="prevBtn">❮</button>
+        <button class="lightbox-nav" id="nextBtn">❯</button>
     </div>
-    <!-- Sentinel element will be dynamically added after feed -->
 
     <script>
-        require(["esri/request"], (esriRequest) => {
-            const MAIN_LAYER_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/service_f2459b3aa83c4162a52c6370048b72ea/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
-            const CATEGORY_ICONS = {
-                yard_sale: '🏷️', classified: '📦', business: '🏢',
-                csa: '🧺', farmers_market: '🥕', community_garden: '🌱',
-                food_pantry: '🥫', farm_stand: '🚜', restaurant: '🍽️',
-                educational_program: '🎓', artisinal: '🧀', barter_swap: '🤝',
-                preservation: '🫙', community_kitchen: '🍲', default: '✨'
-            };
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
+            authDomain: "the-commons-2.firebaseapp.com",
+            projectId: "the-commons-2",
+            storageBucket: "the-commons-2.appspot.com",
+            messagingSenderId: "53595932987",
+            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
+        };
 
-            let isLoading = false;
-            let observer = null;
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // ArcGIS Configuration
+        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            // CORS Resolution
+            esriConfig.request.trustedServers = [
+                "services7.arcgis.com",
+                "cakidd.github.io",
+                "firestore.googleapis.com"
+            ];
+            esriConfig.request.credentials = "omit";
+            esriConfig.request.useIdentity = false;
+
+            const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+            const PHOTO_TABLES = [1, 2, 3, 4];
+            let currentLightboxImages = [];
+            let currentLightboxIndex = 0;
 
             async function loadFeed() {
-                if(isLoading) return;
-                isLoading = true;
                 try {
                     const feed = document.getElementById("feed");
                     feed.innerHTML = '<div class="loader"></div>';
-
-                    const { data: mainData } = await esriRequest(`${MAIN_LAYER_URL}/query`, {
-                        query: {
+                    
+                    const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
+                        query: { 
                             where: "1=1",
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
                             f: "json"
+                        },
+                        headers: {
+                            "Origin": "https://cakidd.github.io",
+                            "Content-Type": "application/json"
                         }
                     });
 
-                    feed.innerHTML = '';
-
-                    for (const feature of mainData.features) {
-                        const attrs = feature.attributes;
-                        const photos = await getPhotosForFeature(feature);
-
-                        const card = document.createElement('div');
-                        card.className = 'feed-item';
-                        card.innerHTML = `
-                            <div class="feed-header">
-                                <div class="feed-avatar">
-                                    ${CATEGORY_ICONS[attrs.is_yard_sale ? 'yard_sale' :
-                                    attrs.is_classified ? 'classified' :
-                                    attrs.category?.toLowerCase() || 'default'] || CATEGORY_ICONS.default}
-                                </div>
-                                <div>
-                                    <div class="feed-author">${attrs.name || 'Community Member'}</div>
-                                    <div class="feed-meta">
-                                        ${attrs.is_yard_sale ? `
-                                            <div>📅 ${new Date(attrs.sale_start).toLocaleDateString()} - ${new Date(attrs.sale_end).toLocaleDateString()}</div>
-                                            <div>📝 ${attrs.yard_sale_notes || ''}</div>
-                                        ` : ''}
-                                        ${attrs.is_classified ? `
-                                            <div>💰 $${Number(attrs.price || 0).toFixed(2)}</div>
-                                            <div>🏷️ ${attrs.item_name || ''}</div>
-                                            <div>📋 ${attrs.classified_description || ''}</div>
-                                            <div>⏳ ${new Date(attrs.expiration_date).toLocaleDateString()}</div>
-                                        ` : ''}
-                                        <div>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</div>
-                                    </div>
-                                    ${attrs.phone || attrs.contact_name || attrs.email ? `
-                                    <div class="contact-info">
-                                        ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
-                                        ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>` : ''}
-                                        ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>` : ''}
-                                    </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            ${photos.length ? `
-                            <div class="feed-photos">
-                                ${photos.map(url => `
-                                    <img class="feed-photo"
-                                        src="${url}"
-                                        loading="lazy"
-                                        onerror="this.style.display='none'">
-                                `).join('')}
-                            </div>
-                            ` : ''}
-                        `;
-                        card.querySelectorAll('.feed-photo').forEach(img => {
-                            img.addEventListener('click', () => showLightbox(photos, img.src));
-                        });
-                        feed.appendChild(card);
-                    }
-
-                    // Sentinel logic for reliable auto-loop
-                    let sentinel = document.getElementById('feed-sentinel');
-                    if (sentinel) sentinel.remove(); // Remove old sentinel if present
-                    sentinel = document.createElement('div');
-                    sentinel.id = 'feed-sentinel';
-                    sentinel.style.height = '40px'; // More whitespace at bottom
-                    feed.appendChild(sentinel);
-
-                    if(observer) observer.disconnect();
-                    observer = new IntersectionObserver(([entry]) => {
-                        if(entry.isIntersecting) {
-                            setTimeout(() => {
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                                setTimeout(loadFeed, 500); // 1s at top before reload
-                            }, 5000); // 5s at bottom before reset
-                        }
-                    }, {
-                        root: null,
-                        rootMargin: "0px 0px 0px 0px",
-                        threshold: 1
-                    });
-                    observer.observe(sentinel);
-
-                } catch(error) {
+                    feed.innerHTML = await Promise.all(data.features.map(async feature => 
+                        createPostElement(feature.attributes, await getPhotosForFeature(feature))
+                    )).join('');
+                } catch (error) {
                     console.error("Feed Error:", error);
-                    document.getElementById("feed").innerHTML = '<div class="feed-item">❌ Error loading feed</div>';
-                } finally {
-                    isLoading = false;
+                    showToast("Error loading feed", "error");
                 }
             }
 
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
+                
+                // Check main layer attachments
+                try {
+                    const { data: mainAttachments } = await esriRequest(
+                        `${FEATURE_SERVICE_URL}/${feature.attributes.objectid}/attachments?f=json`
+                    );
+                    if (mainAttachments?.attachmentInfos?.length) {
+                        photos.push(...mainAttachments.attachmentInfos.map(a => 
+                            `${FEATURE_SERVICE_URL}/${feature.attributes.objectid}/attachments/${a.id}`
+                        ));
+                    }
+                } catch (error) {
+                    console.log("Main layer error:", error.message);
+                }
 
-                for(const tableId of PHOTO_TABLES) {
-                    const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                // Check related tables
+                for (const tableId of PHOTO_TABLES) {
+                    const tableUrl = FEATURE_SERVICE_URL.replace("/0", `/${tableId}`);
                     try {
                         const { data: relatedData } = await esriRequest(`${tableUrl}/query`, {
-                            query: {
+                            query: { 
                                 where: `ParentGlobalID='${globalId}'`,
                                 outFields: "objectid,OBJECTID",
                                 f: "json"
                             }
                         });
-                        for(const rel of relatedData.features || []) {
+                        
+                        for (const rel of relatedData.features || []) {
                             const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
-                            if(!oid) continue;
+                            if (!oid) continue;
+                            
                             const { data: attachments } = await esriRequest(
                                 `${tableUrl}/${oid}/attachments?f=json`
                             );
-                            if(attachments?.attachmentInfos?.length) {
-                                photos.push(...attachments.attachmentInfos.map(a =>
+                            
+                            if (attachments?.attachmentInfos?.length) {
+                                photos.push(...attachments.attachmentInfos.map(a => 
                                     `${tableUrl}/${oid}/attachments/${a.id}`
                                 ));
                             }
                         }
-                    } catch(error) {
+                    } catch (error) {
                         console.warn(`Table ${tableId} error:`, error.message);
                     }
                 }
-                return photos;
+                return [...new Set(photos)];
             }
 
-            // Lightbox functionality
-            let currentLightboxIndex = 0;
-            let currentLightboxImages = [];
-            const lightbox = document.getElementById("lightbox");
-            const lightboxImg = document.getElementById("lightboxImage");
-
-            function showLightbox(images, currentSrc) {
-                currentLightboxImages = images;
-                currentLightboxIndex = images.indexOf(currentSrc);
-                lightboxImg.src = currentSrc;
-                lightbox.classList.add('active');
+            function createPostElement(attrs, photos) {
+                const icons = {
+                    yard_sale: '🏷️', classified: '📦', business: '🏢',
+                    csa: '🧺', farmers_market: '🥕', community_garden: '🌱'
+                };
+                
+                return `
+                    <div class="feed-item">
+                        <div class="feed-header">
+                            <div class="feed-avatar">${icons[attrs.category?.toLowerCase()] || '✨'}</div>
+                            <div>
+                                <div class="feed-author">${attrs.name || 'Community Member'}</div>
+                                <div class="feed-meta">
+                                    ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
+                                    ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
+                                    ${attrs.city ? `<span>📍 ${attrs.city}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        ${photos.map(url => `
+                            <img class="feed-photo" 
+                                 src="${url}" 
+                                 onclick="showLightbox('${url}')"
+                                 onerror="this.style.display='none'">
+                        `).join('')}
+                    </div>
+                `;
             }
 
-            lightbox.addEventListener('click', (e) => {
-                if(e.target === lightbox) lightbox.classList.remove('active');
-            });
-
-            // Auto-refresh every 5 minutes
-            setInterval(() => loadFeed(), 300000);
-
-            // Initial load
-            loadFeed();
+            // Initialize the app
+            auth.signInAnonymously().then(() => loadFeed());
         });
+
+        // Lightbox functionality
+        function showLightbox(url) {
+            currentLightboxImages = Array.from(document.querySelectorAll('.feed-photo')).map(img => img.src);
+            currentLightboxIndex = currentLightboxImages.indexOf(url);
+            document.getElementById('lightboxImage').src = url;
+            document.getElementById('lightbox').classList.add('active');
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        });
+
+        document.getElementById('lightbox').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('lightbox')) {
+                document.getElementById('lightbox').classList.remove('active');
+            }
+        });
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('calcite-toast');
+            toast.label = message;
+            toast.kind = type === 'error' ? 'danger' : type;
+            document.body.appendChild(toast);
+            toast.open = true;
+            setTimeout(() => toast.remove(), 3000);
+        }
     </script>
 </body>
 </html>
