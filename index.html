@@ -5,51 +5,166 @@
     <title>The Commons 2.0 - Community Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="web-share=(self)">
+    <meta name="description" content="The Commons 2.0 - A community hub for local resources, events, and connections.">
     
-    <!-- Firebase 11.7.1 -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-auth-compat.js"></script>
 
-    <!-- ArcGIS JS API 4.28 -->
+    <!-- ArcGIS API -->
     <script src="https://js.arcgis.com/4.28/"></script>
-
-    <!-- Calcite Components 3.1.0 -->
+    
+    <!-- Calcite Components -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
-
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
             --primary: #2d4739;
             --secondary: #7a9a76;
             --accent: #ffd700;
             --text-primary: rgba(45,71,57,0.9);
+            --text-secondary: rgba(45,71,57,0.7);
             --card-bg: rgba(255,255,255,0.97);
+            --header-height: 70px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
         }
 
         body {
             background: linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%);
+            background-attachment: fixed;
             margin: 0;
             font-family: 'Inter', sans-serif;
-            padding-top: 70px;
+            color: var(--text-primary);
+            padding-bottom: 100px;
+            overflow-x: hidden;
         }
 
+        /* Header Styles */
+        .header {
+            background: var(--primary);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: var(--shadow-md);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .logo-accent {
+            color: var(--accent);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        /* Feed Container */
         .feed-container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 80px auto 0;
             padding: 20px;
         }
 
-        .feed-item {
+        .feed-header {
             background: var(--card-bg);
-            border-radius: 18px;
+            border-radius: var(--radius-lg);
             padding: 24px;
             margin-bottom: 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .feed-header {
+        .header-title {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .header-desc {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .filter-pill {
+            background: rgba(45,71,57,0.05);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            border: none;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .filter-pill:hover, .filter-pill.active {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        /* Feed Item Styles */
+        .feed-item {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feed-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feed-item-header {
             display: flex;
             gap: 16px;
             align-items: center;
@@ -66,23 +181,144 @@
             align-items: center;
             justify-content: center;
             font-size: 24px;
+            flex-shrink: 0;
         }
 
+        .feed-meta {
+            flex: 1;
+        }
+
+        .feed-author {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin: 0 0 4px;
+            color: var(--primary);
+        }
+
+        .feed-timestamp {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .category-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(122, 154, 118, 0.15);
+            color: var(--primary);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 6px;
+        }
+
+        .feed-content {
+            margin-bottom: 20px;
+        }
+
+        .feed-description {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+            margin: 0 0 16px;
+        }
+
+        .detail-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Photo Gallery Styles */
         .feed-photos {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 8px;
-            margin-top: 15px;
+            margin-top: 16px;
         }
 
         .feed-photo {
             width: 100%;
             height: 150px;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
+            transition: transform var(--transition-fast);
         }
 
+        .feed-photo:hover {
+            transform: scale(1.05);
+        }
+
+        /* Single photo special case */
+        .feed-photos.single-photo {
+            grid-template-columns: 1fr;
+        }
+
+        .feed-photos.single-photo .feed-photo {
+            height: 300px;
+            border-radius: var(--radius-md);
+        }
+
+        /* Two photos special case */
+        .feed-photos.two-photos {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .feed-photos.two-photos .feed-photo {
+            height: 200px;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition-fast);
+        }
+
+        .action-button:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--primary);
+        }
+
+        .action-button.is-active {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        /* Lightbox */
         .lightbox {
             display: none;
             position: fixed;
@@ -90,65 +326,447 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lightbox-img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 24px;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(0,0,0,0.8);
+        }
+
+        #prevBtn {
+            left: -70px;
+        }
+
+        #nextBtn {
+            right: -70px;
+        }
+
+        .lightbox-counter {
+            color: white;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 20px;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(0,0,0,0.8);
+        }
+
+        /* Comments Dialog */
+        .comments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .comments-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .comments-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+
+        .comment-item {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .comment-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .comment-text {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        /* Loading Styles */
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            text-align: center;
+            color: white;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Interaction Observer Sentinel */
+        #feed-sentinel {
+            height: 20px;
+            margin: 40px 0;
+        }
+
+        /* Share Menu */
+        .share-menu {
+            position: absolute;
+            top: 60px;
+            right: 24px;
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 12px 0;
+            min-width: 200px;
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+            transition: all var(--transition-fast);
+        }
+
+        .share-menu.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .share-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+
+        .share-item:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .share-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .share-text {
+            font-size: 0.9rem;
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(45,71,57,0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            margin-top: 10px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            animation: slideIn 0.3s forwards, slideOut 0.3s 3s forwards;
+        }
+
+        @keyframes slideIn {
+            to { transform: translateX(0); }
+        }
+
+        @keyframes slideOut {
+            to { transform: translateX(120%); }
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .feed-photos {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .feed-photos.single-photo .feed-photo {
+                height: 200px;
+            }
+
+            .lightbox-nav {
+                width: 40px;
+                height: 40px;
+            }
+
+            #prevBtn {
+                left: 10px;
+            }
+
+            #nextBtn {
+                right: 10px;
+            }
+
+            .filter-container {
+                overflow-x: auto;
+                padding-bottom: 8px;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .filter-pill {
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .feed-item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .feed-avatar {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+
+            .action-buttons {
+                gap: 8px;
+            }
+
+            .action-button {
+                padding: 6px;
+            }
+
+            .action-text {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>The Commons 2.0</h1>
-    <div class="feed-container" id="feed">
-        <div class="loader"></div>
+    <!-- Header -->
+    <header class="header">
+        <a href="https://the-commons-h4hwv.hub.arcgis.com/" class="header-logo">
+            <span class="logo-text">The <span class="logo-accent">Commons</span> 2.0</span>
+        </a>
+        <div class="header-actions">
+            <calcite-button appearance="outline" color="neutral" icon-start="plus" scale="s">New Post</calcite-button>
+            <calcite-button appearance="solid" color="brand" icon-start="refresh" scale="s" id="refreshButton">Refresh</calcite-button>
+        </div>
+    </header>
+
+    <!-- Main Feed Container -->
+    <div class="feed-container">
+        <!-- Feed Header -->
+        <div class="feed-header">
+            <h1 class="header-title">Community Feed</h1>
+            <p class="header-desc">Discover local resources, events, and connect with your community.</p>
+            
+            <!-- Category Filters -->
+            <div class="filter-container">
+                <button class="filter-pill active" data-category="all">All</button>
+                <button class="filter-pill" data-category="yard_sale">Yard Sales</button>
+                <button class="filter-pill" data-category="classified">For Sale / Wanted</button>
+                <button class="filter-pill" data-category="farmers_market">Farmers Markets</button>
+                <button class="filter-pill" data-category="food_pantry">Food Resources</button>
+                <button class="filter-pill" data-category="restaurant">Restaurants</button>
+                <button class="filter-pill" data-category="community_garden">Community Gardens</button>
+            </div>
+        </div>
+        
+        <!-- Feed Content -->
+        <div id="feed">
+            <div class="loader"></div>
+            <div class="loader-text">Loading community updates...</div>
+        </div>
+        
+        <!-- Infinite Scroll Sentinel -->
+        <div id="feed-sentinel"></div>
     </div>
-
-    <calcite-dialog id="commentDialog" label="Comments">
-        <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
-        <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
-    </calcite-dialog>
-
+    
+    <!-- Lightbox -->
     <div class="lightbox" id="lightbox">
-        <img class="lightbox-img" id="lightboxImage">
-        <button class="lightbox-nav" id="prevBtn">❮</button>
-        <button class="lightbox-nav" id="nextBtn">❯</button>
+        <button class="lightbox-close" id="lightboxClose">✕</button>
+        <div class="lightbox-content">
+            <img class="lightbox-img" id="lightboxImage" alt="Full size image">
+            <button class="lightbox-nav" id="prevBtn">❮</button>
+            <button class="lightbox-nav" id="nextBtn">❯</button>
+        </div>
+        <div class="lightbox-counter" id="lightboxCounter">1 / 5</div>
     </div>
+    
+    <!-- Comments Dialog -->
+    <calcite-dialog id="commentDialog" label="Comments" width="m">
+        <div slot="header" class="comments-header">
+            <h3 class="comments-title">Comments</h3>
+        </div>
+        <div class="comments-list" id="commentsList"></div>
+        <calcite-text-area id="commentText" placeholder="Write your comment..." scale="m"></calcite-text-area>
+        <calcite-button slot="primary" id="postCommentBtn" width="full">Post Comment</calcite-button>
+        <calcite-button slot="secondary" appearance="outline" id="closeCommentsBtn">Close</calcite-button>
+    </calcite-dialog>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // Firebase Configuration
+        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
             authDomain: "the-commons-2.firebaseapp.com",
             projectId: "the-commons-2",
-            storageBucket: "the-commons-2.appspot.com",
+            storageBucket: "the-commons-2.firebasestorage.app",
             messagingSenderId: "53595932987",
             appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
         };
-
-        const app = firebase.initializeApp(firebaseConfig);
+        
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-
+        
+        // Global variables
+        let currentUser = null;
+        let activePostId = null;
+        let currentFilter = 'all';
+        let isLoading = false;
+        let loadedPosts = 0;
+        let postsPerPage = 5;
+        let allPosts = [];
+        
+        // Lightbox variables
+        let currentLightboxImages = [];
+        let currentLightboxIndex = 0;
+        
         // ArcGIS Configuration
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // CORS Resolution
+            // CORS Resolution - Critical parameters
             esriConfig.request.trustedServers = [
                 "services7.arcgis.com",
-                "cakidd.github.io",
-                "firestore.googleapis.com"
+                "the-commons-h4hwv.hub.arcgis.com"
             ];
             esriConfig.request.credentials = "omit";
             esriConfig.request.useIdentity = false;
-
+            
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
-            let currentLightboxImages = [];
-            let currentLightboxIndex = 0;
-
+            const PHOTO_TABLES = [1, 2, 3, 4]; // Related tables with photo attachments
+            
+            // Anonymous authentication for Firebase
+            auth.signInAnonymously()
+                .then(() => {
+                    console.log("Signed in anonymously");
+                    loadFeed();
+                })
+                .catch(error => {
+                    console.error("Authentication error:", error);
+                    showToast("Authentication error. Please try again later.", "error");
+                });
+            
+            // Set up Intersection Observer for infinite scrolling
+            const sentinelObserver = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && !isLoading && allPosts.length > loadedPosts) {
+                    loadMorePosts();
+                }
+            }, {
+                rootMargin: '0px 0px 200px 0px'
+            });
+            
+            const sentinel = document.getElementById('feed-sentinel');
+            if (sentinel) {
+                sentinelObserver.observe(sentinel);
+            }
+            
+            // Load initial feed data
             async function loadFeed() {
                 try {
-                    const feed = document.getElementById("feed");
-                    feed.innerHTML = '<div class="loader"></div>';
+                    isLoading = true;
+                    showLoader();
                     
                     const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
                         query: { 
@@ -156,41 +774,125 @@
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
                             f: "json"
-                        },
-                        headers: {
-                            "Origin": "https://cakidd.github.io",
-                            "Content-Type": "application/json"
                         }
                     });
-
-                    feed.innerHTML = await Promise.all(data.features.map(async feature => 
-                        createPostElement(feature.attributes, await getPhotosForFeature(feature))
-                    )).join('');
+                    
+                    // Reset global variables
+                    allPosts = [];
+                    loadedPosts = 0;
+                    
+                    // Process all features
+                    if (data.features && data.features.length > 0) {
+                        // Create array of post promises
+                        const postPromises = data.features.map(async feature => {
+                            const photos = await getPhotosForFeature(feature);
+                            return {
+                                id: feature.attributes.objectid || feature.attributes.OBJECTID,
+                                globalId: feature.attributes.globalid,
+                                data: feature.attributes,
+                                photos: photos,
+                                type: determinePostType(feature.attributes),
+                                date: new Date(feature.attributes.CreationDate || feature.attributes.created || Date.now())
+                            };
+                        });
+                        
+                        // Wait for all post data to be processed
+                        allPosts = await Promise.all(postPromises);
+                        
+                        // Sort by date (newest first)
+                        allPosts.sort((a, b) => b.date - a.date);
+                        
+                        // Display initial batch of posts
+                        loadMorePosts();
+                    } else {
+                        document.getElementById('feed').innerHTML = `
+                            <div class="feed-item">
+                                <p style="text-align: center;">No posts found. Be the first to create a post!</p>
+                            </div>
+                        `;
+                    }
                 } catch (error) {
-                    console.error("Feed Error:", error);
+                    console.error("Feed loading error:", error);
+                    document.getElementById('feed').innerHTML = `
+                        <div class="feed-item">
+                            <p style="text-align: center;">❌ Error loading feed. Please try refreshing.</p>
+                        </div>
+                    `;
                     showToast("Error loading feed", "error");
+                } finally {
+                    isLoading = false;
+                    hideLoader();
                 }
             }
-
+            
+            // Load more posts (for infinite scrolling)
+            function loadMorePosts() {
+                if (isLoading) return;
+                isLoading = true;
+                
+                const feedElement = document.getElementById('feed');
+                const filteredPosts = currentFilter === 'all' 
+                    ? allPosts 
+                    : allPosts.filter(post => post.type === currentFilter);
+                
+                // If first load, clear the feed
+                if (loadedPosts === 0) {
+                    feedElement.innerHTML = '';
+                }
+                
+                // Get next batch of posts
+                const postsToLoad = filteredPosts.slice(loadedPosts, loadedPosts + postsPerPage);
+                
+                if (postsToLoad.length === 0) {
+                    if (loadedPosts === 0) {
+                        feedElement.innerHTML = `
+                            <div class="feed-item">
+                                <p style="text-align: center;">No ${currentFilter === 'all' ? 'posts' : currentFilter.replace('_', ' ')} found.</p>
+                            </div>
+                        `;
+                    }
+                    isLoading = false;
+                    return;
+                }
+                
+                // Add posts to feed
+                postsToLoad.forEach(post => {
+                    const postElement = createPostElement(post);
+                    feedElement.appendChild(postElement);
+                });
+                
+                // Update count of loaded posts
+                loadedPosts += postsToLoad.length;
+                isLoading = false;
+            }
+            
+            // Get photos for a feature from related tables
             async function getPhotosForFeature(feature) {
                 const photos = [];
                 const globalId = feature.attributes.globalid;
                 
+                if (!globalId) return photos;
+                
                 // Check main layer attachments
                 try {
-                    const { data: mainAttachments } = await esriRequest(
-                        `${FEATURE_SERVICE_URL}/${feature.attributes.objectid}/attachments?f=json`
-                    );
-                    if (mainAttachments?.attachmentInfos?.length) {
-                        photos.push(...mainAttachments.attachmentInfos.map(a => 
-                            `${FEATURE_SERVICE_URL}/${feature.attributes.objectid}/attachments/${a.id}`
-                        ));
+                    const objectId = feature.attributes.objectid || feature.attributes.OBJECTID;
+                    if (objectId) {
+                        const { data: mainAttachments } = await esriRequest(
+                            `${FEATURE_SERVICE_URL}/${objectId}/attachments?f=json`
+                        );
+                        if (mainAttachments?.attachmentInfos?.length) {
+                            photos.push(...mainAttachments.attachmentInfos.map(a => ({
+                                url: `${FEATURE_SERVICE_URL}/${objectId}/attachments/${a.id}`,
+                                name: a.name,
+                                contentType: a.contentType
+                            })));
+                        }
                     }
                 } catch (error) {
-                    console.log("Main layer error:", error.message);
+                    console.warn("Main layer attachment error:", error.message);
                 }
-
-                // Check related tables
+                
+                // Check related tables for more photos
                 for (const tableId of PHOTO_TABLES) {
                     const tableUrl = FEATURE_SERVICE_URL.replace("/0", `/${tableId}`);
                     try {
@@ -202,93 +904,622 @@
                             }
                         });
                         
-                        for (const rel of relatedData.features || []) {
-                            const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
-                            if (!oid) continue;
-                            
-                            const { data: attachments } = await esriRequest(
-                                `${tableUrl}/${oid}/attachments?f=json`
-                            );
-                            
-                            if (attachments?.attachmentInfos?.length) {
-                                photos.push(...attachments.attachmentInfos.map(a => 
-                                    `${tableUrl}/${oid}/attachments/${a.id}`
-                                ));
+                        if (relatedData.features && relatedData.features.length > 0) {
+                            for (const rel of relatedData.features) {
+                                const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
+                                if (!oid) continue;
+                                
+                                const { data: attachments } = await esriRequest(
+                                    `${tableUrl}/${oid}/attachments?f=json`
+                                );
+                                
+                                if (attachments?.attachmentInfos?.length) {
+                                    photos.push(...attachments.attachmentInfos.map(a => ({
+                                        url: `${tableUrl}/${oid}/attachments/${a.id}`,
+                                        name: a.name,
+                                        contentType: a.contentType
+                                    })));
+                                }
                             }
                         }
                     } catch (error) {
-                        console.warn(`Table ${tableId} error:`, error.message);
+                        console.warn(`Table ${tableId} attachment error:`, error.message);
                     }
                 }
-                return [...new Set(photos)];
+                
+                return photos;
             }
-
-            function createPostElement(attrs, photos) {
-                const icons = {
-                    yard_sale: '🏷️', classified: '📦', business: '🏢',
-                    csa: '🧺', farmers_market: '🥕', community_garden: '🌱'
+            
+            // Determine the type of post based on attributes
+            function determinePostType(attrs) {
+                if (attrs.is_yard_sale === 'yes') return 'yard_sale';
+                if (attrs.is_classified === 'yes') return 'classified';
+                
+                const resourceType = attrs.resource_type;
+                if (resourceType) {
+                    // Handle array or string formats
+                    if (Array.isArray(resourceType)) {
+                        return resourceType[0]?.toLowerCase();
+                    }
+                    if (typeof resourceType === 'string') {
+                        // Handle comma separated or space separated formats
+                        return resourceType.split(/[ ,]+/)[0].toLowerCase();
+                    }
+                }
+                
+                return 'business'; // Default type
+            }
+            
+            // Format relative time (e.g., "2 hours ago")
+            function formatRelativeTime(date) {
+                const now = new Date();
+                const diff = now - date;
+                
+                const seconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                const months = Math.floor(days / 30);
+                
+                if (months > 0) {
+                    return months === 1 ? '1 month ago' : `${months} months ago`;
+                } else if (days > 0) {
+                    return days === 1 ? '1 day ago' : `${days} days ago`;
+                } else if (hours > 0) {
+                    return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+                } else if (minutes > 0) {
+                    return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+                } else {
+                    return 'Just now';
+                }
+            }
+            
+            // Create a post element from post data
+            function createPostElement(post) {
+                const { id, data, photos, type, date } = post;
+                const attrs = data;
+                
+                const postElem = document.createElement('div');
+                postElem.className = 'feed-item';
+                postElem.dataset.postId = id;
+                postElem.dataset.type = type;
+                
+                // Get icon based on post type
+                const getIcon = (type) => {
+                    const icons = {
+                        yard_sale: '🏷️',
+                        classified: '📦',
+                        farmers_market: '🥕',
+                        community_garden: '🌱',
+                        food_pantry: '🥫',
+                        farm_stand: '🚜',
+                        restaurant: '🍽️',
+                        educational_program: '🎓',
+                        barter_swap: '🤝',
+                        preservation: '🫙',
+                        community_kitchen: '🍲',
+                        csa: '🧺',
+                        default: '✨'
+                    };
+                    return icons[type] || icons.default;
                 };
                 
-                return `
-                    <div class="feed-item">
-                        <div class="feed-header">
-                            <div class="feed-avatar">${icons[attrs.category?.toLowerCase()] || '✨'}</div>
-                            <div>
-                                <div class="feed-author">${attrs.name || 'Community Member'}</div>
-                                <div class="feed-meta">
-                                    ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
-                                    ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
-                                    ${attrs.city ? `<span>📍 ${attrs.city}</span>` : ''}
+                // Build item details based on post type
+                let detailsHtml = '';
+                
+                if (type === 'yard_sale') {
+                    const startDate = attrs.sale_start ? new Date(attrs.sale_start) : null;
+                    const endDate = attrs.sale_end ? new Date(attrs.sale_end) : null;
+                    
+                    detailsHtml = `
+                        <div class="detail-list">
+                            ${startDate ? `
+                                <div class="detail-item">
+                                    <span>📅</span>
+                                    <span>Starts: ${startDate.toLocaleDateString()} ${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                 </div>
-                            </div>
+                            ` : ''}
+                            ${endDate ? `
+                                <div class="detail-item">
+                                    <span>🏁</span>
+                                    <span>Ends: ${endDate.toLocaleDateString()} ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                            ` : ''}
+                            ${attrs.address ? `
+                                <div class="detail-item">
+                                    <span>📍</span>
+                                    <span>${attrs.address}</span>
+                                </div>
+                            ` : ''}
                         </div>
-                        ${photos.map(url => `
-                            <img class="feed-photo" 
-                                 src="${url}" 
-                                 onclick="showLightbox('${url}')"
-                                 onerror="this.style.display='none'">
+                        ${attrs.yard_sale_notes ? `<p class="feed-description">${attrs.yard_sale_notes}</p>` : ''}
+                    `;
+                } else if (type === 'classified') {
+                    const expDate = attrs.expiration_date ? new Date(attrs.expiration_date) : null;
+                    
+                    detailsHtml = `
+                        <div class="detail-list">
+                            ${attrs.price ? `
+                                <div class="detail-item">
+                                    <span>💰</span>
+                                    <span>${attrs.price}</span>
+                                </div>
+                            ` : ''}
+                            ${attrs.item_name ? `
+                                <div class="detail-item">
+                                    <span>🏷️</span>
+                                    <span>${attrs.item_name}</span>
+                                </div>
+                            ` : ''}
+                            ${expDate ? `
+                                <div class="detail-item">
+                                    <span>⏳</span>
+                                    <span>Expires: ${expDate.toLocaleDateString()}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        ${attrs.classified_description ? `<p class="feed-description">${attrs.classified_description}</p>` : ''}
+                    `;
+                } else {
+                    // Other business/resource types
+                    detailsHtml = `
+                        <div class="detail-list">
+                            ${attrs.address ? `
+                                <div class="detail-item">
+                                    <span>📍</span>
+                                    <span>${attrs.address}</span>
+                                </div>
+                            ` : ''}
+                            ${attrs.city ? `
+                                <div class="detail-item">
+                                    <span>🏙️</span>
+                                    <span>${attrs.city}${attrs.county ? `, ${attrs.county}` : ''}</span>
+                                </div>
+                            ` : ''}
+                            ${attrs.phone ? `
+                                <div class="detail-item">
+                                    <span>📞</span>
+                                    <span><a href="tel:${attrs.phone}">${attrs.phone}</a></span>
+                                </div>
+                            ` : ''}
+                            ${attrs.business_hours ? `
+                                <div class="detail-item">
+                                    <span>🕒</span>
+                                    <span>${attrs.business_hours}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        ${attrs.add_info ? `<p class="feed-description">${attrs.add_info}</p>` : ''}
+                    `;
+                }
+                
+                // Create photo gallery based on number of photos
+                let photoGalleryClass = "feed-photos";
+                if (photos.length === 1) {
+                    photoGalleryClass += " single-photo";
+                } else if (photos.length === 2) {
+                    photoGalleryClass += " two-photos";
+                }
+                
+                const photosHtml = photos.length ? `
+                    <div class="${photoGalleryClass}">
+                        ${photos.map((photo, index) => `
+                            <img 
+                                class="feed-photo" 
+                                src="${photo.url}" 
+                                alt="${photo.name || 'Photo ' + (index + 1)}"
+                                loading="lazy"
+                                onerror="this.style.display='none'"
+                                data-index="${index}"
+                            >
                         `).join('')}
                     </div>
+                ` : '';
+                
+                // Build the post HTML
+                postElem.innerHTML = `
+                    <div class="feed-item-header">
+                        <div class="feed-avatar">
+                            ${getIcon(type)}
+                        </div>
+                        <div class="feed-meta">
+                            <h3 class="feed-author">${attrs.name || 'Community Member'}</h3>
+                            <p class="feed-timestamp">
+                                <span class="category-tag">${type.replace('_', ' ')}</span>
+                                <span>${formatRelativeTime(date)}</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-content">
+                        ${detailsHtml}
+                        ${photosHtml}
+                    </div>
+                    
+                    <div class="action-bar">
+                        <div class="action-buttons">
+                            <button class="action-button comment-button" data-post-id="${id}">
+                                <span>💬</span>
+                                <span class="action-text">Comments</span>
+                            </button>
+                            ${attrs.web ? `
+                                <a href="${attrs.web}" target="_blank" class="action-button">
+                                    <span>🔗</span>
+                                    <span class="action-text">Website</span>
+                                </a>
+                            ` : ''}
+                            ${attrs.email ? `
+                                <a href="mailto:${attrs.email}" class="action-button">
+                                    <span>📧</span>
+                                    <span class="action-text">Email</span>
+                                </a>
+                            ` : ''}
+                        </div>
+                        <button class="action-button share-button" data-post-id="${id}">
+                            <span>🔄</span>
+                            <span class="action-text">Share</span>
+                        </button>
+                    </div>
+                    
+                    <div class="share-menu" id="share-menu-${id}">
+                        <div class="share-item" data-share="copy">
+                            <span class="share-icon">📋</span>
+                            <span class="share-text">Copy link</span>
+                        </div>
+                        <div class="share-item" data-share="facebook">
+                            <span class="share-icon">📘</span>
+                            <span class="share-text">Facebook</span>
+                        </div>
+                        <div class="share-item" data-share="twitter">
+                            <span class="share-icon">🐦</span>
+                            <span class="share-text">Twitter</span>
+                        </div>
+                        <div class="share-item" data-share="email">
+                            <span class="share-icon">📧</span>
+                            <span class="share-text">Email</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listeners
+                addPostEventListeners(postElem, post);
+                
+                return postElem;
+            }
+            
+            // Add event listeners to post elements
+            function addPostEventListeners(postElem, post) {
+                // Photo click for lightbox
+                postElem.querySelectorAll('.feed-photo').forEach(photo => {
+                    photo.addEventListener('click', () => {
+                        openLightbox(post.photos, parseInt(photo.dataset.index) || 0);
+                    });
+                });
+                
+                // Comment button click
+                const commentBtn = postElem.querySelector('.comment-button');
+                if (commentBtn) {
+                    commentBtn.addEventListener('click', () => {
+                        openComments(post.id);
+                    });
+                }
+                
+                // Share button click
+                const shareBtn = postElem.querySelector('.share-button');
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleShareMenu(post.id);
+                    });
+                }
+                
+                // Share options click
+                const shareMenu = postElem.querySelector(`#share-menu-${post.id}`);
+                if (shareMenu) {
+                    shareMenu.querySelectorAll('.share-item').forEach(item => {
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const shareType = item.dataset.share;
+                            sharePost(post, shareType);
+                            toggleShareMenu(post.id, false);
+                        });
+                    });
+                }
+            }
+            
+            // Share menu toggle
+            function toggleShareMenu(postId, forceState = null) {
+                // Close all other menus first
+                document.querySelectorAll('.share-menu.active').forEach(menu => {
+                    if (menu.id !== `share-menu-${postId}`) {
+                        menu.classList.remove('active');
+                    }
+                });
+                
+                const menu = document.getElementById(`share-menu-${postId}`);
+                if (!menu) return;
+                
+                if (forceState !== null) {
+                    if (forceState) {
+                        menu.classList.add('active');
+                    } else {
+                        menu.classList.remove('active');
+                    }
+                } else {
+                    menu.classList.toggle('active');
+                }
+                
+                // Add document click listener to close menu when clicking outside
+                if (menu.classList.contains('active')) {
+                    setTimeout(() => {
+                        document.addEventListener('click', function closeMenu(e) {
+                            if (!menu.contains(e.target) && e.target.className !== 'share-button') {
+                                menu.classList.remove('active');
+                                document.removeEventListener('click', closeMenu);
+                            }
+                        });
+                    }, 0);
+                }
+            }
+            
+            // Share post function
+            function sharePost(post, shareType) {
+                const postTitle = `${post.data.name || 'Community Post'} - The Commons 2.0`;
+                const postUrl = `https://the-commons-h4hwv.hub.arcgis.com/?post=${post.id}`;
+                
+                switch (shareType) {
+                    case 'copy':
+                        navigator.clipboard.writeText(postUrl)
+                            .then(() => showToast('Link copied to clipboard!'))
+                            .catch(() => showToast('Failed to copy link', 'error'));
+                        break;
+                    case 'facebook':
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`, '_blank');
+                        break;
+                    case 'twitter':
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(postTitle)}&url=${encodeURIComponent(postUrl)}`, '_blank');
+                        break;
+                    case 'email':
+                        window.open(`mailto:?subject=${encodeURIComponent(postTitle)}&body=${encodeURIComponent(`Check out this post from The Commons 2.0: ${postUrl}`)}`, '_blank');
+                        break;
+                    default:
+                        if (navigator.share) {
+                            navigator.share({
+                                title: postTitle,
+                                text: `Check out this post from The Commons 2.0`,
+                                url: postUrl
+                            }).catch(err => console.error('Share error:', err));
+                        } else {
+                            showToast('Sharing not supported on this device', 'error');
+                        }
+                }
+            }
+            
+            // Open lightbox with images
+            function openLightbox(photos, index = 0) {
+                currentLightboxImages = photos;
+                currentLightboxIndex = index;
+                
+                const lightbox = document.getElementById('lightbox');
+                const lightboxImg = document.getElementById('lightboxImage');
+                const counter = document.getElementById('lightboxCounter');
+                
+                lightboxImg.src = photos[index].url;
+                counter.textContent = `${index + 1} / ${photos.length}`;
+                lightbox.classList.add('active');
+                
+                // Prevent scrolling on body
+                document.body.style.overflow = 'hidden';
+            }
+            
+            // Close lightbox
+            function closeLightbox() {
+                const lightbox = document.getElementById('lightbox');
+                lightbox.classList.remove('active');
+                
+                // Re-enable scrolling
+                document.body.style.overflow = '';
+            }
+            
+            // Navigate lightbox
+            function navigateLightbox(direction) {
+                if (currentLightboxImages.length <= 1) return;
+                
+                if (direction === 'prev') {
+                    currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+                } else {
+                    currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+                }
+                
+                const lightboxImg = document.getElementById('lightboxImage');
+                const counter = document.getElementById('lightboxCounter');
+                
+                lightboxImg.src = currentLightboxImages[currentLightboxIndex].url;
+                counter.textContent = `${currentLightboxIndex + 1} / ${currentLightboxImages.length}`;
+            }
+            
+            // Open comments dialog
+            function openComments(postId) {
+                activePostId = postId;
+                
+                // Reset comments list
+                const commentsList = document.getElementById('commentsList');
+                commentsList.innerHTML = '<div class="loader"></div>';
+                
+                // Clear comment input
+                document.getElementById('commentText').value = '';
+                
+                // Open dialog
+                document.getElementById('commentDialog').open = true;
+                
+                // Load comments
+                loadComments(postId);
+            }
+            
+            // Load comments for a post
+            async function loadComments(postId) {
+                try {
+                    const commentsRef = db.collection('comments')
+                        .where('postId', '==', postId)
+                        .orderBy('timestamp', 'desc');
+                    
+                    const snapshot = await commentsRef.get();
+                    const commentsList = document.getElementById('commentsList');
+                    
+                    if (snapshot.empty) {
+                        commentsList.innerHTML = '<p style="text-align: center;">No comments yet. Be the first to comment!</p>';
+                        return;
+                    }
+                    
+                    commentsList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const comment = doc.data();
+                        const date = comment.timestamp?.toDate() || new Date();
+                        
+                        const commentElem = document.createElement('div');
+                        commentElem.className = 'comment-item';
+                        commentElem.innerHTML = `
+                            <div class="comment-header">
+                                <span class="comment-author">${comment.userName || 'Anonymous'}</span>
+                                <span class="comment-time">${formatRelativeTime(date)}</span>
+                            </div>
+                            <div class="comment-text">${comment.text}</div>
+                        `;
+                        
+                        commentsList.appendChild(commentElem);
+                    });
+                } catch (error) {
+                    console.error("Error loading comments:", error);
+                    document.getElementById('commentsList').innerHTML = '<p style="text-align: center;">Error loading comments. Please try again.</p>';
+                }
+            }
+            
+            // Post a comment
+            async function postComment() {
+                if (!activePostId) return;
+                
+                const commentText = document.getElementById('commentText').value.trim();
+                if (!commentText) {
+                    showToast('Please enter a comment', 'error');
+                    return;
+                }
+                
+                try {
+                    await db.collection('comments').add({
+                        postId: activePostId,
+                        text: commentText,
+                        userName: 'Community Member', // Could be replaced with actual user name
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    // Clear input and reload comments
+                    document.getElementById('commentText').value = '';
+                    loadComments(activePostId);
+                    
+                    showToast('Comment posted successfully');
+                } catch (error) {
+                    console.error("Error posting comment:", error);
+                    showToast('Error posting comment. Please try again.', 'error');
+                }
+            }
+            
+            // Show toast notification
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.innerHTML = `
+                    <span>${type === 'error' ? '❌' : '✅'}</span>
+                    <span>${message}</span>
+                `;
+                
+                container.appendChild(toast);
+                
+                // Auto remove after animation completes
+                setTimeout(() => {
+                    toast.remove();
+                }, 3300); // Animation duration + small buffer
+            }
+            
+            // Show/hide loader
+            function showLoader() {
+                const feed = document.getElementById('feed');
+                feed.innerHTML = `
+                    <div class="loader"></div>
+                    <div class="loader-text">Loading community updates...</div>
                 `;
             }
-
-            // Initialize the app
-            auth.signInAnonymously().then(() => loadFeed());
-        });
-
-        // Lightbox functionality
-        function showLightbox(url) {
-            currentLightboxImages = Array.from(document.querySelectorAll('.feed-photo')).map(img => img.src);
-            currentLightboxIndex = currentLightboxImages.indexOf(url);
-            document.getElementById('lightboxImage').src = url;
-            document.getElementById('lightbox').classList.add('active');
-        }
-
-        document.getElementById('prevBtn').addEventListener('click', () => {
-            currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
-            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
-        });
-
-        document.getElementById('nextBtn').addEventListener('click', () => {
-            currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
-            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
-        });
-
-        document.getElementById('lightbox').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('lightbox')) {
-                document.getElementById('lightbox').classList.remove('active');
+            
+            function hideLoader() {
+                // Loader is replaced when content loads
             }
+            
+            // Filter posts by category
+            function filterPosts(category) {
+                currentFilter = category;
+                loadedPosts = 0;
+                loadMorePosts();
+                
+                // Update active filter button
+                document.querySelectorAll('.filter-pill').forEach(pill => {
+                    if (pill.dataset.category === category) {
+                        pill.classList.add('active');
+                    } else {
+                        pill.classList.remove('active');
+                    }
+                });
+            }
+            
+            // ----- Event Listeners -----
+            
+            // Filter buttons
+            document.querySelectorAll('.filter-pill').forEach(button => {
+                button.addEventListener('click', () => {
+                    filterPosts(button.dataset.category);
+                });
+            });
+            
+            // Refresh button
+            document.getElementById('refreshButton').addEventListener('click', loadFeed);
+            
+            // Lightbox controls
+            document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+            document.getElementById('prevBtn').addEventListener('click', () => navigateLightbox('prev'));
+            document.getElementById('nextBtn').addEventListener('click', () => navigateLightbox('next'));
+            document.getElementById('lightbox').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('lightbox')) {
+                    closeLightbox();
+                }
+            });
+            
+            // Keyboard navigation for lightbox
+            document.addEventListener('keydown', (e) => {
+                if (!document.getElementById('lightbox').classList.contains('active')) return;
+                
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                } else if (e.key === 'ArrowLeft') {
+                    navigateLightbox('prev');
+                } else if (e.key === 'ArrowRight') {
+                    navigateLightbox('next');
+                }
+            });
+            
+            // Comments dialog
+            document.getElementById('postCommentBtn').addEventListener('click', postComment);
+            document.getElementById('closeCommentsBtn').addEventListener('click', () => {
+                document.getElementById('commentDialog').open = false;
+                activePostId = null;
+            });
+            
+            // Post comment on Enter key (with Shift+Enter for new line)
+            document.getElementById('commentText').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    postComment();
+                }
+            });
         });
-
-        // Toast notifications
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('calcite-toast');
-            toast.label = message;
-            toast.kind = type === 'error' ? 'danger' : type;
-            document.body.appendChild(toast);
-            toast.open = true;
-            setTimeout(() => toast.remove(), 3000);
-        }
     </script>
 </body>
 </html>
