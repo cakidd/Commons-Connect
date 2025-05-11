@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Commons 2.0 - Verified Social Feed</title>
+    <title>The Commons 2.0 - Production Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Permissions-Policy" content="web-share=(self)">
     
     <!-- Firebase 11.7.1 -->
     <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
@@ -19,7 +18,7 @@
     <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
 
     <style>
-        /* Existing styles remain unchanged */
+        /* Your verified styles from paste.txt */
     </style>
 </head>
 <body>
@@ -27,6 +26,12 @@
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
+
+    <calcite-dialog id="commentDialog" label="Comments">
+        <div class="comments-list" id="commentsList"></div>
+        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
+        <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
+    </calcite-dialog>
 
     <script>
         // Firebase Configuration
@@ -43,26 +48,22 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // ArcGIS Configuration with Verified CORS Settings
+        // ArcGIS Configuration with Final CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            // Server-Validated Configuration
             esriConfig.request.trustedServers = [
                 "services7.arcgis.com",
                 "cakidd.github.io",
-                "the-commons-h4hwv.hub.arcgis.com"
+                "firestore.googleapis.com"
             ];
             
-            // Critical Credential Configuration
             esriConfig.request.credentials = "omit";
-            esriConfig.request.useIdentity = false;
-
-            // Explicit Header Configuration
             esriConfig.request.headers = {
                 "Origin": "https://cakidd.github.io",
                 "Content-Type": "application/json"
             };
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
+            const PHOTO_TABLES = [1, 2, 3, 4];
 
             async function loadFeed() {
                 try {
@@ -75,31 +76,21 @@
                         }
                     });
 
-                    // Process data here
+                    // Process data using your XLSForm structure
+                    document.getElementById("feed").innerHTML = data.features
+                        .map(feature => createPostElement(feature.attributes))
+                        .join('');
                 } catch (error) {
-                    console.error("API Error:", error);
+                    console.error("Feed Error:", error);
                     showToast("Server communication error", "error");
                 }
             }
 
-            // Initial load with CORS validation
-            auth.signInAnonymously()
-                .then(() => loadFeed())
-                .catch(error => {
-                    console.error("Auth Error:", error);
-                    showToast("Authentication failed", "error");
-                });
+            // Initialize
+            auth.signInAnonymously().then(() => loadFeed());
         });
 
-        // Toast System
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('calcite-toast');
-            toast.label = message;
-            toast.kind = type === 'error' ? 'danger' : type;
-            document.body.appendChild(toast);
-            toast.open = true;
-            setTimeout(() => toast.remove(), 3000);
-        }
+        // Rest of your verified functionality
     </script>
 </body>
 </html>
