@@ -2,60 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Commons 2.0 - Production Feed</title>
+    <title>The Commons 2.0 - Community Hub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Permissions-Policy" content="web-share=(self)">
     
-    <!-- Firebase 11.7.1 -->
-    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-auth-compat.js"></script>
-
     <!-- ArcGIS JS API 4.28 -->
     <script src="https://js.arcgis.com/4.28/"></script>
 
-    <!-- Calcite Components 3.1.0 -->
-    <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
-    <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
-
     <style>
-        /* Your verified styles from paste.txt */
+        :root {
+            --primary: #2d4739;
+            --accent: #ffd700;
+            --text: rgba(255,255,255,0.9);
+        }
+        body {
+            background: var(--primary);
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feed-item {
+            background: rgba(30,51,40,0.7);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1>The Commons 2.0</h1>
     <div class="feed-container" id="feed">
         <div class="loader"></div>
     </div>
 
-    <calcite-dialog id="commentDialog" label="Comments">
-        <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
-        <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
-    </calcite-dialog>
-
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
-            authDomain: "the-commons-2.firebaseapp.com",
-            projectId: "the-commons-2",
-            storageBucket: "the-commons-2.appspot.com",
-            messagingSenderId: "53595932987",
-            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
-        };
-
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        // ArcGIS Configuration with Final CORS Fix
         require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+            // Critical CORS Configuration
             esriConfig.request.trustedServers = [
                 "services7.arcgis.com",
-                "cakidd.github.io",
-                "firestore.googleapis.com"
+                "cakidd.github.io"
             ];
-            
             esriConfig.request.credentials = "omit";
             esriConfig.request.headers = {
                 "Origin": "https://cakidd.github.io",
@@ -63,34 +53,34 @@
             };
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
 
             async function loadFeed() {
                 try {
                     const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
-                        query: {
+                        query: { 
                             where: "1=1",
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
-                            f: "json"
+                            f: "json",
+                            cacheBuster: Date.now() // GitHub Pages cache workaround
                         }
                     });
 
-                    // Process data using your XLSForm structure
-                    document.getElementById("feed").innerHTML = data.features
-                        .map(feature => createPostElement(feature.attributes))
-                        .join('');
+                    document.getElementById("feed").innerHTML = 
+                        data.features.map(feature => `
+                            <div class="feed-item">
+                                <h3>${feature.attributes.name || 'Community Post'}</h3>
+                                <p>${feature.attributes.description || ''}</p>
+                            </div>
+                        `).join('');
                 } catch (error) {
                     console.error("Feed Error:", error);
-                    showToast("Server communication error", "error");
+                    document.getElementById("feed").innerHTML = '<div class="feed-item">⚠️ Error loading feed</div>';
                 }
             }
 
-            // Initialize
-            auth.signInAnonymously().then(() => loadFeed());
+            loadFeed();
         });
-
-        // Rest of your verified functionality
     </script>
 </body>
 </html>
