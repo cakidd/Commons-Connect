@@ -14,12 +14,86 @@
     <!-- ArcGIS JS API 4.28 -->
     <script src="https://js.arcgis.com/4.28/"></script>
 
-    <!-- Calcite Components 3.1.0 Correct Implementation -->
+    <!-- Calcite Components 3.1.0 -->
     <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
     <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
 
     <style>
-        /* Existing styles remain unchanged */
+        :root {
+            --primary: #2d4739;
+            --secondary: #7a9a76;
+            --accent: #ffd700;
+            --text-primary: rgba(45,71,57,0.9);
+            --card-bg: rgba(255,255,255,0.97);
+        }
+
+        body {
+            background: linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%);
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            padding-top: 70px;
+        }
+
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .feed-item {
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .feed-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .feed-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .feed-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .feed-photo {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -33,6 +107,12 @@
         <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
     </calcite-dialog>
+
+    <div class="lightbox" id="lightbox">
+        <img class="lightbox-img" id="lightboxImage">
+        <button class="lightbox-nav" id="prevBtn">❮</button>
+        <button class="lightbox-nav" id="nextBtn">❯</button>
+    </div>
 
     <script>
         // Firebase Configuration
@@ -57,15 +137,13 @@
                 "cakidd.github.io",
                 "firestore.googleapis.com"
             ];
-            esriConfig.request.headers = {
-                "Origin": "https://cakidd.github.io",
-                "Content-Type": "application/json"
-            };
             esriConfig.request.credentials = "omit";
             esriConfig.request.useIdentity = false;
 
             const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
             const PHOTO_TABLES = [1, 2, 3, 4];
+            let currentLightboxImages = [];
+            let currentLightboxIndex = 0;
 
             async function loadFeed() {
                 try {
@@ -78,6 +156,10 @@
                             outFields: "*",
                             orderByFields: "CreationDate DESC",
                             f: "json"
+                        },
+                        headers: {
+                            "Origin": "https://cakidd.github.io",
+                            "Content-Type": "application/json"
                         }
                     });
 
@@ -156,6 +238,7 @@
                                 <div class="feed-meta">
                                     ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
                                     ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
+                                    ${attrs.city ? `<span>📍 ${attrs.city}</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -174,40 +257,27 @@
         });
 
         // Lightbox functionality
-        let currentLightboxImages = [];
-        let currentLightboxIndex = 0;
-
         function showLightbox(url) {
             currentLightboxImages = Array.from(document.querySelectorAll('.feed-photo')).map(img => img.src);
             currentLightboxIndex = currentLightboxImages.indexOf(url);
+            document.getElementById('lightboxImage').src = url;
             document.getElementById('lightbox').classList.add('active');
-            updateLightboxImage();
         }
 
-        function updateLightboxImage() {
-            const lightboxImg = document.getElementById('lightboxImage');
-            if (lightboxImg) {
-                lightboxImg.src = currentLightboxImages[currentLightboxIndex];
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+            document.getElementById('lightboxImage').src = currentLightboxImages[currentLightboxIndex];
+        });
+
+        document.getElementById('lightbox').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('lightbox')) {
+                document.getElementById('lightbox').classList.remove('active');
             }
-        }
-
-        // Lightbox navigation
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('lightbox').addEventListener('click', (e) => {
-                if (e.target === document.getElementById('lightbox')) {
-                    document.getElementById('lightbox').classList.remove('active');
-                }
-            });
-
-            document.getElementById('prevBtn')?.addEventListener('click', () => {
-                currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
-                updateLightboxImage();
-            });
-
-            document.getElementById('nextBtn')?.addEventListener('click', () => {
-                currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
-                updateLightboxImage();
-            });
         });
 
         // Toast notifications
