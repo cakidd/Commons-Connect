@@ -1,96 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>The Commons 2.0 - Production Feed</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Firebase 11.7.1 -->
-    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-auth-compat.js"></script>
+<script>
+require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
+  // Nuclear CORS Fix
+  esriConfig.request.trustedServers = [
+    "services7.arcgis.com",
+    "cakidd.github.io",
+    "the-commons-h4hwv.hub.arcgis.com"
+  ];
+  
+  esriConfig.request.credentials = "omit";
+  esriConfig.request.headers = {
+    "Origin": "https://cakidd.github.io",
+    "Content-Type": "application/json",
+    "X-Esri-Authorization": "" // Clear residual tokens
+  };
 
-    <!-- ArcGIS JS API 4.28 -->
-    <script src="https://js.arcgis.com/4.28/"></script>
-
-    <!-- Calcite Components 3.1.0 -->
-    <link rel="stylesheet" href="https://js.arcgis.com/calcite-components/3.1.0/calcite.css" />
-    <script src="https://js.arcgis.com/calcite-components/3.1.0/calcite.js"></script>
-
-    <style>
-        /* Your verified styles from paste.txt */
-    </style>
-</head>
-<body>
-    <h1>The Commons 2.0</h1>
-    <div class="feed-container" id="feed">
-        <div class="loader"></div>
-    </div>
-
-    <calcite-dialog id="commentDialog" label="Comments">
-        <div class="comments-list" id="commentsList"></div>
-        <calcite-text-area id="commentText" placeholder="Write your comment..."></calcite-text-area>
-        <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
-    </calcite-dialog>
-
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
-            authDomain: "the-commons-2.firebaseapp.com",
-            projectId: "the-commons-2",
-            storageBucket: "the-commons-2.appspot.com",
-            messagingSenderId: "53595932987",
-            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e"
-        };
-
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        // ArcGIS Configuration with Final CORS Fix
-        require(["esri/config", "esri/request"], (esriConfig, esriRequest) => {
-            esriConfig.request.trustedServers = [
-                "services7.arcgis.com",
-                "cakidd.github.io",
-                "firestore.googleapis.com"
-            ];
-            
-            esriConfig.request.credentials = "omit";
-            esriConfig.request.headers = {
-                "Origin": "https://cakidd.github.io",
-                "Content-Type": "application/json"
-            };
-
-            const FEATURE_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer/0";
-            const PHOTO_TABLES = [1, 2, 3, 4];
-
-            async function loadFeed() {
-                try {
-                    const { data } = await esriRequest(`${FEATURE_SERVICE_URL}/query`, {
-                        query: {
-                            where: "1=1",
-                            outFields: "*",
-                            orderByFields: "CreationDate DESC",
-                            f: "json"
-                        }
-                    });
-
-                    // Process data using your XLSForm structure
-                    document.getElementById("feed").innerHTML = data.features
-                        .map(feature => createPostElement(feature.attributes))
-                        .join('');
-                } catch (error) {
-                    console.error("Feed Error:", error);
-                    showToast("Server communication error", "error");
-                }
-            }
-
-            // Initialize
-            auth.signInAnonymously().then(() => loadFeed());
-        });
-
-        // Rest of your verified functionality
-    </script>
-</body>
-</html>
+  // Cache-Busting Request Pattern
+  const FEATURE_URL = "https://services7.arcgis.com/.../FeatureServer/0/query?ts=" + Date.now();
+  
+  esriRequest(FEATURE_URL, {
+    query: { 
+      where: "1=1",
+      outFields: "*",
+      f: "json"
+    }
+  }).then(handleData).catch(handleError);
+});
+</script>
