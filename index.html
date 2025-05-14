@@ -909,7 +909,7 @@
     <!-- Header -->
     <header class="app-header">
         <div class="app-logo">
-            <img src="https://harmonyfrhope.org/wp-content/uploads/2022/09/Harmony-Logo-with-text-1.png" alt="The Commons Logo">
+            <img src="assets/Harmony-Logo-with-text-1.png" alt="The Commons Logo" onerror="this.src='https://via.placeholder.com/150x40?text=Commons+Logo'">
             <span>The Commons 2.0</span>
         </div>
         
@@ -1061,8 +1061,8 @@
         </div>
     </div>
     
-    <!-- Modals -->
-    <calcite-modal id="loginModal" width="s" aria-labelledby="loginModalTitle">
+    <!-- Modals - replaced with dialogs -->
+    <calcite-dialog id="loginModal" modal width-scale="s" aria-labelledby="loginModalTitle">
         <h3 slot="header" id="loginModalTitle">Sign In</h3>
         <div slot="content">
             <div id="loginForm">
@@ -1103,9 +1103,9 @@
         </div>
         <calcite-button slot="primary" id="loginWithEmailBtn">Sign In</calcite-button>
         <calcite-button slot="secondary" appearance="outline" id="cancelLoginBtn">Cancel</calcite-button>
-    </calcite-modal>
+    </calcite-dialog>
     
-    <calcite-modal id="signupModal" width="s" aria-labelledby="signupModalTitle">
+    <calcite-dialog id="signupModal" modal width-scale="s" aria-labelledby="signupModalTitle">
         <h3 slot="header" id="signupModalTitle">Create Account</h3>
         <div slot="content">
             <calcite-label>
@@ -1138,9 +1138,9 @@
         </div>
         <calcite-button slot="primary" id="createAccountBtn">Create Account</calcite-button>
         <calcite-button slot="secondary" appearance="outline" id="cancelSignupBtn">Cancel</calcite-button>
-    </calcite-modal>
+    </calcite-dialog>
     
-    <calcite-modal id="commentModal" width="s" aria-labelledby="commentModalTitle">
+    <calcite-dialog id="commentModal" modal width-scale="s" aria-labelledby="commentModalTitle">
         <h3 slot="header" id="commentModalTitle">Comments</h3>
         <div slot="content">
             <div class="comments-list" id="commentsList">
@@ -1154,901 +1154,383 @@
         </div>
         <calcite-button slot="primary" id="postCommentBtn">Post Comment</calcite-button>
         <calcite-button slot="secondary" appearance="outline" id="cancelCommentBtn">Close</calcite-button>
-    </calcite-modal>
+    </calcite-dialog>
     
     <calcite-toast id="toast" kind="info"></calcite-toast>
     
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
-            authDomain: "the-commons-2.firebaseapp.com",
-            projectId: "the-commons-2",
-            storageBucket: "the-commons-2.appspot.com",
-            messagingSenderId: "53595932987",
-            appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e",
-            measurementId: "G-526FNHHQ5Y"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const storage = firebase.storage();
-        const analytics = firebase.analytics();
-
-        // Global state
-        let userProfile = null;
-        let currentMediaIndex = 0;
-        let currentMediaArray = [];
-        let currentPostId = null;
-        let loadingMorePosts = false;
-        let lastVisiblePost = null;
-        let attachedFiles = [];
-        let lastNotificationTimestamp = null;
-        let isInitialLoad = true;
-        
-        // DOM Elements
-        const feed = document.getElementById('feed');
-        const createPostBtn = document.getElementById('createPostBtn');
-        const postInput = document.getElementById('postInput');
-        const photoInput = document.getElementById('photoInput');
-        const attachPhotoBtn = document.getElementById('attachPhotoBtn');
-        const attachmentPreviews = document.getElementById('attachmentPreviews');
-        const lightbox = document.getElementById('lightbox');
-        const lightboxImage = document.getElementById('lightboxImage');
-        const lightboxPrev = document.getElementById('lightboxPrev');
-        const lightboxNext = document.getElementById('lightboxNext');
-        const shareMenu = document.getElementById('shareMenu');
-        const closeShareBtn = document.getElementById('closeShareBtn');
-        const shareLink = document.getElementById('shareLink');
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
-        const qrCode = document.getElementById('qrCode');
-        const downloadQrBtn = document.getElementById('downloadQrBtn');
-        const notificationsBtn = document.getElementById('notificationsBtn');
-        const notificationMenu = document.getElementById('notificationMenu');
-        const closeNotificationsBtn = document.getElementById('closeNotificationsBtn');
-        const notificationList = document.getElementById('notificationList');
-        const notificationsBadge = document.getElementById('notificationsBadge');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const profileBtn = document.getElementById('profileBtn');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const loginModal = document.getElementById('loginModal');
-        const signupModal = document.getElementById('signupModal');
-        const commentModal = document.getElementById('commentModal');
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const toast = document.getElementById('toast');
-        
-        // ArcGIS Configuration
-        require(["esri/config", "esri/request"], function(esriConfig, esriRequest) {
-            // Set CORS configuration
-            esriConfig.request.useIdentity = false;
-            esriConfig.request.trustedServers.push(
-                "services7.arcgis.com",
-                "firestore.googleapis.com",
-                "firebasestorage.googleapis.com"
-            );
-
-            // Feature services configuration
-            const MAIN_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer";
-            const MAIN_LAYER_URL = MAIN_SERVICE_URL + "/0";
-            const PHOTO_TABLES = [1, 2, 3, 4]; // Related tables containing photos
-            const POST_BATCH_SIZE = 10;
-            
-            // Category Icons Mapping
-            const CATEGORY_ICONS = {
-                yard_sale: '🏷️', 
-                classified: '📦', 
-                business: '🏢',
-                csa: '🧺', 
-                farmers_market: '🥕', 
-                community_garden: '🌱',
-                food_pantry: '🥫', 
-                farm_stand: '🚜', 
-                restaurant: '🍽️',
-                educational_program: '🎓', 
-                artisinal: '🧀', 
-                barter_swap: '🤝',
-                preservation: '🫙', 
-                community_kitchen: '🍲', 
-                default: '✨'
+        // Wait for the DOM to be fully loaded before initializing Firebase
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase Configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyDVPslNCSwV6_pxlUvQlT8p3qTDfpGMt-c",
+                authDomain: "the-commons-2.firebaseapp.com",
+                projectId: "the-commons-2",
+                storageBucket: "the-commons-2.appspot.com",
+                messagingSenderId: "53595932987",
+                appId: "1:53595932987:web:9dcf1d5b3ef6260fa8cf1e",
+                measurementId: "G-526FNHHQ5Y"
             };
+
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
             
-            // ESRI Request wrapper with consistent CORS handling
-            async function makeRequest(url, options = {}) {
-                const corsOptions = {
-                    ...options,
-                    useIdentity: false,
-                    credentials: "omit" // Explicitly omit credentials for CORS
+            // Initialize Firebase services after Firebase is initialized
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+            const storage = firebase.storage();
+            const analytics = firebase.analytics();
+
+            // Global state
+            let userProfile = null;
+            let currentMediaIndex = 0;
+            let currentMediaArray = [];
+            let currentPostId = null;
+            let loadingMorePosts = false;
+            let lastVisiblePost = null;
+            let attachedFiles = [];
+            let lastNotificationTimestamp = null;
+            let isInitialLoad = true;
+            
+            // DOM Elements
+            const feed = document.getElementById('feed');
+            const createPostBtn = document.getElementById('createPostBtn');
+            const postInput = document.getElementById('postInput');
+            const photoInput = document.getElementById('photoInput');
+            const attachPhotoBtn = document.getElementById('attachPhotoBtn');
+            const attachmentPreviews = document.getElementById('attachmentPreviews');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImage = document.getElementById('lightboxImage');
+            const lightboxPrev = document.getElementById('lightboxPrev');
+            const lightboxNext = document.getElementById('lightboxNext');
+            const shareMenu = document.getElementById('shareMenu');
+            const closeShareBtn = document.getElementById('closeShareBtn');
+            const shareLink = document.getElementById('shareLink');
+            const copyLinkBtn = document.getElementById('copyLinkBtn');
+            const qrCode = document.getElementById('qrCode');
+            const downloadQrBtn = document.getElementById('downloadQrBtn');
+            const notificationsBtn = document.getElementById('notificationsBtn');
+            const notificationMenu = document.getElementById('notificationMenu');
+            const closeNotificationsBtn = document.getElementById('closeNotificationsBtn');
+            const notificationList = document.getElementById('notificationList');
+            const notificationsBadge = document.getElementById('notificationsBadge');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const profileBtn = document.getElementById('profileBtn');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const loginModal = document.getElementById('loginModal');
+            const signupModal = document.getElementById('signupModal');
+            const commentModal = document.getElementById('commentModal');
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const toast = document.getElementById('toast');
+            
+            // ArcGIS Configuration
+            require(["esri/config", "esri/request"], function(esriConfig, esriRequest) {
+                // Set CORS configuration
+                esriConfig.request.useIdentity = false;
+                esriConfig.request.trustedServers.push(
+                    "services7.arcgis.com",
+                    "firestore.googleapis.com",
+                    "firebasestorage.googleapis.com"
+                );
+
+                // Feature services configuration
+                const MAIN_SERVICE_URL = "https://services7.arcgis.com/glzyAmcOgJqIUWmg/arcgis/rest/services/survey123_5cac06e4e94b43bfbdb2503852578fbf_results/FeatureServer";
+                const MAIN_LAYER_URL = MAIN_SERVICE_URL + "/0";
+                const PHOTO_TABLES = [1, 2, 3, 4]; // Related tables containing photos
+                const POST_BATCH_SIZE = 10;
+                
+                // Category Icons Mapping
+                const CATEGORY_ICONS = {
+                    yard_sale: '🏷️', 
+                    classified: '📦', 
+                    business: '🏢',
+                    csa: '🧺', 
+                    farmers_market: '🥕', 
+                    community_garden: '🌱',
+                    food_pantry: '🥫', 
+                    farm_stand: '🚜', 
+                    restaurant: '🍽️',
+                    educational_program: '🎓', 
+                    artisinal: '🧀', 
+                    barter_swap: '🤝',
+                    preservation: '🫙', 
+                    community_kitchen: '🍲', 
+                    default: '✨'
                 };
                 
-                try {
-                    return await esriRequest(url, corsOptions);
-                } catch (error) {
-                    console.error('Request error:', error);
-                    throw error;
-                }
-            }
-            
-            // Initialize the application
-            function initApp() {
-                // Set up auth state observer
-                auth.onAuthStateChanged(user => {
-                    if (user) {
-                        // User is signed in
-                        userProfile = {
-                            uid: user.uid,
-                            displayName: user.displayName || 'User',
-                            email: user.email,
-                            photoURL: user.photoURL
-                        };
-                        
-                        // Update UI for authenticated user
-                        loginBtn.style.display = 'none';
-                        logoutBtn.style.display = 'block';
-                        profileBtn.style.display = 'block';
-                        
-                        // Set avatar if user has profile picture
-                        if (user.photoURL) {
-                            document.getElementById('userAvatar').thumbnail = user.photoURL;
-                            document.getElementById('createPostAvatar').thumbnail = user.photoURL;
-                            document.getElementById('commentAvatar').thumbnail = user.photoURL;
-                        } else {
-                            document.getElementById('userAvatar').fullName = user.displayName || user.email;
-                            document.getElementById('createPostAvatar').fullName = user.displayName || user.email;
-                            document.getElementById('commentAvatar').fullName = user.displayName || user.email;
-                        }
-                        
-                        // Show create post area
-                        document.getElementById('createPostArea').style.display = 'block';
-                        
-                        // Subscribe to notifications
-                        subscribeToNotifications();
-                        
-                        // Track user login
-                        analytics.logEvent('login', {
-                            method: user.providerData[0]?.providerId || 'unknown'
-                        });
-                    } else {
-                        // User is signed out
-                        userProfile = null;
-                        
-                        // Update UI for unauthenticated user
-                        loginBtn.style.display = 'block';
-                        logoutBtn.style.display = 'none';
-                        profileBtn.style.display = 'none';
-                        
-                        // Reset avatars
-                        document.getElementById('userAvatar').thumbnail = '';
-                        document.getElementById('userAvatar').fullName = 'Guest';
-                        
-                        // Hide create post area
-                        document.getElementById('createPostArea').style.display = 'none';
-                    }
-                });
-                
-                // Load posts
-                loadPosts();
-                
-                // Set up infinite scroll
-                setupInfiniteScroll();
-                
-                // Set up event listeners
-                setupEventListeners();
-                
-                // Check theme preference
-                checkThemePreference();
-            }
-            
-            // Load posts from ArcGIS Feature Layer
-            async function loadPosts(append = false) {
-                if (loadingMorePosts) return;
-                loadingMorePosts = true;
-                
-                try {
-                    if (!append) {
-                        feed.innerHTML = createSkeletonLoaders();
-                    }
-                    
-                    // Build query
-                    let query = {
-                        where: "1=1",
-                        outFields: "*",
-                        orderByFields: "CreationDate DESC",
-                        returnGeometry: true,
-                        f: "json"
+                // ESRI Request wrapper with consistent CORS handling
+                async function makeRequest(url, options = {}) {
+                    const corsOptions = {
+                        ...options,
+                        useIdentity: false,
+                        credentials: "omit" // Explicitly omit credentials for CORS
                     };
                     
-                    // Pagination logic
-                    if (lastVisiblePost && append) {
-                        query.where = `CreationDate < '${lastVisiblePost}'`;
+                    try {
+                        return await esriRequest(url, corsOptions);
+                    } catch (error) {
+                        console.error('Request error:', error);
+                        throw error;
                     }
-                    
-                    // Limit batch size
-                    query.resultRecordCount = POST_BATCH_SIZE;
-                    
-                    // Execute query
-                    const { data: mainData } = await makeRequest(`${MAIN_LAYER_URL}/query`, { query });
-                    
-                    // Clear skeleton on first load
-                    if (!append) {
-                        feed.innerHTML = '';
-                    }
-                    
-                    // Check if we have results
-                    if (!mainData.features || mainData.features.length === 0) {
-                        if (!append) {
-                            feed.innerHTML = '<div style="text-align: center; padding: 20px;">No posts found. Be the first to post!</div>';
+                }
+                
+                // Initialize the application
+                function initApp() {
+                    // Set up auth state observer
+                    auth.onAuthStateChanged(user => {
+                        if (user) {
+                            // User is signed in
+                            userProfile = {
+                                uid: user.uid,
+                                displayName: user.displayName || 'User',
+                                email: user.email,
+                                photoURL: user.photoURL
+                            };
+                            
+                            // Update UI for authenticated user
+                            loginBtn.style.display = 'none';
+                            logoutBtn.style.display = 'block';
+                            profileBtn.style.display = 'block';
+                            
+                            // Set avatar if user has profile picture
+                            if (user.photoURL) {
+                                document.getElementById('userAvatar').thumbnail = user.photoURL;
+                                document.getElementById('createPostAvatar').thumbnail = user.photoURL;
+                                document.getElementById('commentAvatar').thumbnail = user.photoURL;
+                            } else {
+                                document.getElementById('userAvatar').fullName = user.displayName || user.email;
+                                document.getElementById('createPostAvatar').fullName = user.displayName || user.email;
+                                document.getElementById('commentAvatar').fullName = user.displayName || user.email;
+                            }
+                            
+                            // Show create post area
+                            document.getElementById('createPostArea').style.display = 'block';
+                            
+                            // Subscribe to notifications
+                            subscribeToNotifications();
+                            
+                            // Track user login
+                            analytics.logEvent('login', {
+                                method: user.providerData[0]?.providerId || 'unknown'
+                            });
+                        } else {
+                            // User is signed out
+                            userProfile = null;
+                            
+                            // Update UI for unauthenticated user
+                            loginBtn.style.display = 'block';
+                            logoutBtn.style.display = 'none';
+                            profileBtn.style.display = 'none';
+                            
+                            // Reset avatars
+                            document.getElementById('userAvatar').thumbnail = '';
+                            document.getElementById('userAvatar').fullName = 'Guest';
+                            
+                            // Hide create post area
+                            document.getElementById('createPostArea').style.display = 'none';
                         }
-                        loadingMorePosts = false;
-                        return;
-                    }
+                    });
                     
-                    // Process features in parallel with Promise.all
-                    await Promise.all(mainData.features.map(async feature => {
-                        const attrs = feature.attributes;
+                    // Load posts
+                    loadPosts();
+                    
+                    // Set up infinite scroll
+                    setupInfiniteScroll();
+                    
+                    // Set up event listeners
+                    setupEventListeners();
+                    
+                    // Check theme preference
+                    checkThemePreference();
+                }
+                
+                // Load posts from ArcGIS Feature Layer
+                async function loadPosts(append = false) {
+                    if (loadingMorePosts) return;
+                    loadingMorePosts = true;
+                    
+                    try {
+                        if (!append) {
+                            feed.innerHTML = createSkeletonLoaders();
+                        }
                         
-                        // Skip if we already have this post (can happen with pagination)
-                        if (document.querySelector(`.feed-item[data-id="${attrs.globalid}"]`)) {
+                        // Build query
+                        let query = {
+                            where: "1=1",
+                            outFields: "*",
+                            orderByFields: "CreationDate DESC",
+                            returnGeometry: true,
+                            f: "json"
+                        };
+                        
+                        // Pagination logic
+                        if (lastVisiblePost && append) {
+                            query.where = `CreationDate < '${lastVisiblePost}'`;
+                        }
+                        
+                        // Limit batch size
+                        query.resultRecordCount = POST_BATCH_SIZE;
+                        
+                        // Execute query
+                        const { data: mainData } = await makeRequest(`${MAIN_LAYER_URL}/query`, { query });
+                        
+                        // Clear skeleton on first load
+                        if (!append) {
+                            feed.innerHTML = '';
+                        }
+                        
+                        // Check if we have results
+                        if (!mainData.features || mainData.features.length === 0) {
+                            if (!append) {
+                                feed.innerHTML = '<div style="text-align: center; padding: 20px;">No posts found. Be the first to post!</div>';
+                            }
+                            loadingMorePosts = false;
                             return;
                         }
                         
-                        // Fetch photos for this post
-                        const photos = await getPhotosForFeature(feature);
+                        // Process features in parallel with Promise.all
+                        await Promise.all(mainData.features.map(async feature => {
+                            const attrs = feature.attributes;
+                            
+                            // Skip if we already have this post (can happen with pagination)
+                            if (document.querySelector(`.feed-item[data-id="${attrs.globalid}"]`)) {
+                                return;
+                            }
+                            
+                            // Fetch photos for this post
+                            const photos = await getPhotosForFeature(feature);
+                            
+                            // Get comments count
+                            const commentsSnapshot = await db.collection('comments')
+                                .where('postId', '==', attrs.globalid)
+                                .get();
+                            const commentsCount = commentsSnapshot.size;
+                            
+                            // Get reactions
+                            const reactionsSnapshot = await db.collection('reactions')
+                                .where('postId', '==', attrs.globalid)
+                                .get();
+                            const reactions = reactionsSnapshot.docs.map(doc => doc.data());
+                            
+                            // Create and render the post
+                            const postElement = createPostElement(attrs, photos, commentsCount, reactions);
+                            feed.appendChild(postElement);
+                            
+                            // Add animation class
+                            setTimeout(() => {
+                                postElement.classList.add('new-element');
+                            }, 100);
+                        }));
                         
-                        // Get comments count
-                        const commentsSnapshot = await db.collection('comments')
-                            .where('postId', '==', attrs.globalid)
-                            .get();
-                        const commentsCount = commentsSnapshot.size;
-                        
-                        // Get reactions
-                        const reactionsSnapshot = await db.collection('reactions')
-                            .where('postId', '==', attrs.globalid)
-                            .get();
-                        const reactions = reactionsSnapshot.docs.map(doc => doc.data());
-                        
-                        // Create and render the post
-                        const postElement = createPostElement(attrs, photos, commentsCount, reactions);
-                        feed.appendChild(postElement);
-                        
-                        // Add animation class
-                        setTimeout(() => {
-                            postElement.classList.add('new-element');
-                        }, 100);
-                    }));
-                    
-                    // Update last visible post timestamp for pagination
-                    if (mainData.features.length > 0) {
-                        const lastFeature = mainData.features[mainData.features.length - 1];
-                        lastVisiblePost = lastFeature.attributes.CreationDate;
-                    }
-                    
-                    // Mark initial load complete
-                    isInitialLoad = false;
-                } catch (error) {
-                    console.error("Failed to load posts:", error);
-                    
-                    if (!append) {
-                        feed.innerHTML = `
-                            <div style="text-align: center; padding: 20px;">
-                                <p>Error loading posts. Please try again.</p>
-                                <calcite-button onclick="window.location.reload()">Reload</calcite-button>
-                            </div>
-                        `;
-                    } else {
-                        showToast("Failed to load more posts", "danger");
-                    }
-                } finally {
-                    loadingMorePosts = false;
-                }
-            }
-            
-            // Get photos for a feature
-            async function getPhotosForFeature(feature) {
-                const photos = [];
-                const globalId = feature.attributes.globalid;
-                const objectId = feature.attributes.objectid || feature.attributes.OBJECTID;
-                
-                // Check for direct attachments
-                if (objectId) {
-                    try {
-                        const { data: directAttachments } = await makeRequest(
-                            `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
-                        );
-                        
-                        if (directAttachments?.attachmentInfos?.length) {
-                            photos.push(...directAttachments.attachmentInfos.map(a => 
-                                `${MAIN_LAYER_URL}/${objectId}/attachments/${a.id}`
-                            ));
+                        // Update last visible post timestamp for pagination
+                        if (mainData.features.length > 0) {
+                            const lastFeature = mainData.features[mainData.features.length - 1];
+                            lastVisiblePost = lastFeature.attributes.CreationDate;
                         }
+                        
+                        // Mark initial load complete
+                        isInitialLoad = false;
                     } catch (error) {
-                        console.warn("Direct attachments error:", error.message);
-                    }
-                }
-                
-                // Check for related table attachments
-                const tablePromises = PHOTO_TABLES.map(async tableId => {
-                    const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
-                    try {
-                        const { data: relatedData } = await makeRequest(`${tableUrl}/query`, {
-                            query: {
-                                where: `ParentGlobalID='${globalId}'`,
-                                outFields: "objectid,OBJECTID",
-                                f: "json"
-                            }
-                        });
+                        console.error("Failed to load posts:", error);
                         
-                        const attachmentPromises = (relatedData.features || []).map(async rel => {
-                            const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
-                            if (!oid) return [];
-                            
-                            try {
-                                const { data: attachments } = await makeRequest(
-                                    `${tableUrl}/${oid}/attachments?f=json`
-                                );
-                                
-                                if (attachments?.attachmentInfos?.length) {
-                                    return attachments.attachmentInfos.map(a => 
-                                        `${tableUrl}/${oid}/attachments/${a.id}`
-                                    );
-                                }
-                                return [];
-                            } catch (error) {
-                                console.warn(`Attachment error for table ${tableId}, OID ${oid}:`, error.message);
-                                return [];
-                            }
-                        });
-                        
-                        const attachmentResults = await Promise.all(attachmentPromises);
-                        return attachmentResults.flat();
-                    } catch (error) {
-                        console.warn(`Table ${tableId} error:`, error.message);
-                        return [];
-                    }
-                });
-                
-                const tableResults = await Promise.all(tablePromises);
-                photos.push(...tableResults.flat());
-                
-                // Remove duplicates
-                return [...new Set(photos)];
-            }
-            
-            // Create post element
-            function createPostElement(attrs, photos, commentsCount, reactions) {
-                const card = document.createElement('div');
-                card.className = 'feed-item';
-                card.dataset.id = attrs.globalid;
-                
-                // Determine icon for category
-                const iconKey = attrs.is_yard_sale ? 'yard_sale' :
-                              attrs.is_classified ? 'classified' : 
-                              attrs.category?.toLowerCase() || 'default';
-                const icon = CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
-                
-                // Process reactions for display
-                const reactionCounts = {};
-                reactions.forEach(r => {
-                    reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1;
-                });
-                
-                const reactionTypes = Object.keys(reactionCounts);
-                const totalReactions = reactions.length;
-                
-                // Determine if current user has reacted
-                let userReaction = null;
-                if (userProfile) {
-                    const userReactionObj = reactions.find(r => r.userId === userProfile.uid);
-                    if (userReactionObj) {
-                        userReaction = userReactionObj.type;
-                    }
-                }
-                
-                // Create reaction summary HTML
-                let reactionSummaryHTML = '';
-                if (totalReactions > 0) {
-                    reactionSummaryHTML = `
-                        <div class="reaction-summary">
-                            <div class="reaction-icons">
-                                ${reactionTypes.slice(0, 3).map(type => `
-                                    <div class="reaction-icon">${getReactionEmoji(type)}</div>
-                                `).join('')}
-                            </div>
-                            <span>${totalReactions}</span>
-                        </div>
-                    `;
-                }
-                
-                // Build HTML for card
-                card.innerHTML = `
-                    <div class="feed-options">
-                        <calcite-dropdown>
-                            <calcite-button slot="trigger" icon="ellipsis" appearance="transparent" scale="s"></calcite-button>
-                            <calcite-dropdown-group selection-mode="none">
-                                <calcite-dropdown-item id="shareBtn-${attrs.globalid}" icon-start="share">Share</calcite-dropdown-item>
-                                <calcite-dropdown-item id="reportBtn-${attrs.globalid}" icon-start="exclamation-mark-triangle">Report</calcite-dropdown-item>
-                            </calcite-dropdown-group>
-                        </calcite-dropdown>
-                    </div>
-                    <div class="feed-header">
-                        <div class="feed-avatar">
-                            ${icon}
-                        </div>
-                        <div class="feed-author-info">
-                            <div class="feed-author">
-                                ${attrs.name || 'Community Member'}
-                                ${attrs.verified ? '<span class="verification-badge">✓</span>' : ''}
-                            </div>
-                            <div class="feed-meta">
-                                ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
-                                ${attrs.sale_start ? `<span>📅 ${formatDate(attrs.sale_start)}</span>` : ''}
-                                ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
-                                ${attrs.city || attrs.county ? `<span>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</span>` : ''}
-                                <span>🕒 ${formatRelativeTime(attrs.CreationDate)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    ${attrs.classified_description || attrs.yard_sale_notes ? `
-                        <div class="feed-content">
-                            ${attrs.classified_description || attrs.yard_sale_notes}
-                        </div>
-                    ` : ''}
-                    ${attrs.contact_name || attrs.phone || attrs.email ? `
-                        <div style="margin-top: var(--space-md); font-size: 0.95em;">
-                            ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
-                            ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>` : ''}
-                            ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>` : ''}
-                        </div>
-                    ` : ''}
-                    ${photos.length ? `
-                        <div class="feed-photos">
-                            ${photos.map((url, index) => `
-                                <img class="feed-photo" 
-                                    src="${url}" 
-                                    loading="lazy"
-                                    alt="Post image ${index + 1}"
-                                    onerror="this.style.display='none'"
-                                    data-index="${index}">
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                    <div class="feed-stats">
-                        ${reactionSummaryHTML}
-                        ${commentsCount > 0 ? `
-                            <div class="stat-item comments-count">
-                                <span>${commentsCount}</span> comment${commentsCount !== 1 ? 's' : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="feed-actions">
-                        <div class="reaction-wrapper" style="position: relative;">
-                            <calcite-button 
-                                class="reaction-btn ${userReaction ? 'reacted' : ''}" 
-                                icon-start="${userReaction ? getReactionEmoji(userReaction) : '❤️'}" 
-                                appearance="${userReaction ? 'solid' : 'outline'}"
-                                color="${userReaction ? 'blue' : 'neutral'}"
-                                scale="m"
-                                data-post-id="${attrs.globalid}"
-                            >${userReaction ? 'Liked' : 'Like'}</calcite-button>
-                            <div class="reaction-menu" id="reactionMenu-${attrs.globalid}">
-                                <div class="reaction-option" data-reaction="like" data-post-id="${attrs.globalid}">👍</div>
-                                <div class="reaction-option" data-reaction="love" data-post-id="${attrs.globalid}">❤️</div>
-                                <div class="reaction-option" data-reaction="haha" data-post-id="${attrs.globalid}">😂</div>
-                                <div class="reaction-option" data-reaction="wow" data-post-id="${attrs.globalid}">😮</div>
-                                <div class="reaction-option" data-reaction="sad" data-post-id="${attrs.globalid}">😢</div>
-                            </div>
-                        </div>
-                        <calcite-button icon-start="speech-bubble" appearance="outline" scale="m" data-post-id="${attrs.globalid}" class="comment-btn">
-                            Comment
-                        </calcite-button>
-                        <calcite-button icon-start="share" appearance="outline" scale="m" data-post-id="${attrs.globalid}" class="share-btn">
-                            Share
-                        </calcite-button>
-                    </div>
-                `;
-                
-                // Add event listeners
-                addPostEventListeners(card, photos, attrs.globalid);
-                
-                return card;
-            }
-            
-            // Add event listeners to post element
-            function addPostEventListeners(postElement, photos, postId) {
-                // Photo click listeners
-                postElement.querySelectorAll('.feed-photo').forEach(img => {
-                    img.addEventListener('click', () => {
-                        openLightbox(photos, parseInt(img.dataset.index));
-                    });
-                });
-                
-                // Reaction button
-                const reactionBtn = postElement.querySelector('.reaction-btn');
-                if (reactionBtn) {
-                    reactionBtn.addEventListener('click', () => {
-                        toggleReactionMenu(postId);
-                    });
-                    
-                    // Long press for mobile
-                    let pressTimer;
-                    reactionBtn.addEventListener('touchstart', () => {
-                        pressTimer = setTimeout(() => {
-                            toggleReactionMenu(postId);
-                        }, 500);
-                    });
-                    
-                    reactionBtn.addEventListener('touchend', () => {
-                        clearTimeout(pressTimer);
-                    });
-                }
-                
-                // Reaction options
-                postElement.querySelectorAll('.reaction-option').forEach(option => {
-                    option.addEventListener('click', () => {
-                        addReaction(option.dataset.postId, option.dataset.reaction);
-                        document.getElementById(`reactionMenu-${postId}`).classList.remove('active');
-                    });
-                });
-                
-                // Comment button
-                postElement.querySelector('.comment-btn').addEventListener('click', () => {
-                    showComments(postId);
-                });
-                
-                // Share button
-                postElement.querySelector('.share-btn').addEventListener('click', () => {
-                    sharePost(postId);
-                });
-                
-                // Share dropdown option
-                const shareDropdownBtn = postElement.querySelector(`#shareBtn-${postId}`);
-                if (shareDropdownBtn) {
-                    shareDropdownBtn.addEventListener('click', () => {
-                        sharePost(postId);
-                    });
-                }
-                
-                // Report button
-                const reportBtn = postElement.querySelector(`#reportBtn-${postId}`);
-                if (reportBtn) {
-                    reportBtn.addEventListener('click', () => {
-                        reportPost(postId);
-                    });
-                }
-            }
-            
-            // Create skeleton loaders
-            function createSkeletonLoaders() {
-                return `
-                    <div class="skeleton-feed-item">
-                        <div class="skeleton-header">
-                            <div class="skeleton skeleton-avatar"></div>
-                            <div class="skeleton-info">
-                                <div class="skeleton skeleton-name"></div>
-                                <div class="skeleton skeleton-meta"></div>
-                            </div>
-                        </div>
-                        <div class="skeleton skeleton-content"></div>
-                        <div class="skeleton-photos">
-                            <div class="skeleton skeleton-photo"></div>
-                            <div class="skeleton skeleton-photo"></div>
-                            <div class="skeleton skeleton-photo"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="skeleton-feed-item">
-                        <div class="skeleton-header">
-                            <div class="skeleton skeleton-avatar"></div>
-                            <div class="skeleton-info">
-                                <div class="skeleton skeleton-name"></div>
-                                <div class="skeleton skeleton-meta"></div>
-                            </div>
-                        </div>
-                        <div class="skeleton skeleton-content"></div>
-                    </div>
-                `;
-            }
-            
-            // Lightbox functionality
-            function openLightbox(mediaArray, index) {
-                currentMediaArray = mediaArray;
-                currentMediaIndex = index;
-                
-                lightboxImage.src = mediaArray[index];
-                lightbox.classList.add('active');
-                
-                // Show/hide navigation based on number of items
-                lightboxPrev.style.display = mediaArray.length > 1 ? 'flex' : 'none';
-                lightboxNext.style.display = mediaArray.length > 1 ? 'flex' : 'none';
-                
-                // Track event
-                analytics.logEvent('view_item', {
-                    content_type: 'media',
-                    item_id: currentMediaIndex
-                });
-            }
-            
-            function navigateLightbox(direction) {
-                currentMediaIndex = (currentMediaIndex + direction + currentMediaArray.length) % currentMediaArray.length;
-                lightboxImage.src = currentMediaArray[currentMediaIndex];
-            }
-            
-            // Reaction system
-            function toggleReactionMenu(postId) {
-                // Check if user is logged in
-                if (!userProfile) {
-                    showToast("Please sign in to react to posts", "warning");
-                    loginModal.open = true;
-                    return;
-                }
-                
-                const reactionMenu = document.getElementById(`reactionMenu-${postId}`);
-                reactionMenu.classList.toggle('active');
-                
-                // Close menu when clicking outside
-                function closeOnOutsideClick(e) {
-                    if (!reactionMenu.contains(e.target) && !e.target.closest('.reaction-btn')) {
-                        reactionMenu.classList.remove('active');
-                        document.removeEventListener('click', closeOnOutsideClick);
-                    }
-                }
-                
-                setTimeout(() => {
-                    document.addEventListener('click', closeOnOutsideClick);
-                }, 10);
-            }
-            
-            async function addReaction(postId, reactionType) {
-                if (!userProfile) {
-                    showToast("Please sign in to react to posts", "warning");
-                    loginModal.open = true;
-                    return;
-                }
-                
-                try {
-                    // Check if user already reacted to this post
-                    const existingReactionQuery = await db.collection('reactions')
-                        .where('postId', '==', postId)
-                        .where('userId', '==', userProfile.uid)
-                        .get();
-                    
-                    const batch = db.batch();
-                    
-                    if (!existingReactionQuery.empty) {
-                        // Update existing reaction
-                        existingReactionQuery.forEach(doc => {
-                            batch.update(doc.ref, {
-                                type: reactionType,
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        });
-                    } else {
-                        // Create new reaction
-                        const newReactionRef = db.collection('reactions').doc();
-                        batch.set(newReactionRef, {
-                            postId: postId,
-                            userId: userProfile.uid,
-                            userName: userProfile.displayName,
-                            userPhoto: userProfile.photoURL,
-                            type: reactionType,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-                    
-                    await batch.commit();
-                    
-                    // Update UI
-                    const reactionBtn = document.querySelector(`.reaction-btn[data-post-id="${postId}"]`);
-                    reactionBtn.setAttribute('appearance', 'solid');
-                    reactionBtn.setAttribute('color', 'blue');
-                    reactionBtn.setAttribute('icon-start', getReactionEmoji(reactionType));
-                    reactionBtn.textContent = 'Liked';
-                    
-                    // Track event
-                    analytics.logEvent('reaction', {
-                        content_type: 'post',
-                        item_id: postId,
-                        reaction_type: reactionType
-                    });
-                    
-                    // Refresh post to update reaction count
-                    setTimeout(() => {
-                        refreshPost(postId);
-                    }, 500);
-                } catch (error) {
-                    console.error("Error adding reaction:", error);
-                    showToast("Failed to add reaction", "danger");
-                }
-            }
-            
-            function getReactionEmoji(reactionType) {
-                const emojis = {
-                    like: '👍',
-                    love: '❤️',
-                    haha: '😂',
-                    wow: '😮',
-                    sad: '😢'
-                };
-                
-                return emojis[reactionType] || '👍';
-            }
-            
-            // Comment system
-            async function showComments(postId) {
-                currentPostId = postId;
-                
-                try {
-                    // Show skeleton loader
-                    const commentsList = document.getElementById('commentsList');
-                    commentsList.innerHTML = `
-                        <div class="skeleton-comment">
-                            <div class="skeleton skeleton-avatar" style="width: 32px; height: 32px; border-radius: 50%;"></div>
-                            <div class="skeleton-comment-content" style="flex: 1;">
-                                <div class="skeleton" style="height: 0.9rem; width: 30%; margin-bottom: 8px;"></div>
-                                <div class="skeleton" style="height: 0.8rem; width: 90%;"></div>
-                            </div>
-                        </div>
-                    `.repeat(3);
-                    
-                    // Fetch comments
-                    const commentsSnapshot = await db.collection('comments')
-                        .where('postId', '==', postId)
-                        .orderBy('timestamp', 'desc')
-                        .get();
-                    
-                    // Check if we have comments
-                    if (commentsSnapshot.empty) {
-                        commentsList.innerHTML = '<div style="text-align: center; padding: 16px;">No comments yet. Be the first!</div>';
-                    } else {
-                        commentsList.innerHTML = '';
-                        
-                        // Add comments to list
-                        commentsSnapshot.forEach(doc => {
-                            const data = doc.data();
-                            const commentEl = document.createElement('div');
-                            commentEl.className = 'comment-item';
-                            commentEl.innerHTML = `
-                                <div class="comment-header">
-                                    <div class="comment-avatar">
-                                        ${data.userPhoto ? `<img src="${data.userPhoto}" alt="${data.userName}" style="width: 100%; height: 100%; border-radius: 50%;">` : data.userName?.[0] || '👤'}
-                                    </div>
-                                    <div class="comment-author">${data.userName || 'Anonymous'}</div>
+                        if (!append) {
+                            feed.innerHTML = `
+                                <div style="text-align: center; padding: 20px;">
+                                    <p>Error loading posts. Please try again.</p>
+                                    <calcite-button onclick="window.location.reload()">Reload</calcite-button>
                                 </div>
-                                <div class="comment-text">${data.text}</div>
-                                <div class="comment-meta">${formatRelativeTime(data.timestamp?.toDate())}</div>
                             `;
+                        } else {
+                            showToast("Failed to load more posts", "danger");
+                        }
+                    } finally {
+                        loadingMorePosts = false;
+                    }
+                }
+                
+                // Get photos for a feature
+                async function getPhotosForFeature(feature) {
+                    const photos = [];
+                    const globalId = feature.attributes.globalid;
+                    const objectId = feature.attributes.objectid || feature.attributes.OBJECTID;
+                    
+                    // Check for direct attachments
+                    if (objectId) {
+                        try {
+                            const { data: directAttachments } = await makeRequest(
+                                `${MAIN_LAYER_URL}/${objectId}/attachments?f=json`
+                            );
                             
-                            commentsList.appendChild(commentEl);
-                        });
+                            if (directAttachments?.attachmentInfos?.length) {
+                                photos.push(...directAttachments.attachmentInfos.map(a => 
+                                    `${MAIN_LAYER_URL}/${objectId}/attachments/${a.id}`
+                                ));
+                            }
+                        } catch (error) {
+                            console.warn("Direct attachments error:", error.message);
+                        }
                     }
                     
-                    // Open modal
-                    commentModal.open = true;
-                    
-                    // Focus comment input
-                    setTimeout(() => {
-                        document.getElementById('commentText').setFocus();
-                    }, 300);
-                    
-                    // Track event
-                    analytics.logEvent('view_comments', {
-                        content_type: 'post',
-                        item_id: postId
+                    // Check for related table attachments
+                    const tablePromises = PHOTO_TABLES.map(async tableId => {
+                        const tableUrl = MAIN_LAYER_URL.replace("/0", `/${tableId}`);
+                        try {
+                            const { data: relatedData } = await makeRequest(`${tableUrl}/query`, {
+                                query: {
+                                    where: `ParentGlobalID='${globalId}'`,
+                                    outFields: "objectid,OBJECTID",
+                                    f: "json"
+                                }
+                            });
+                            
+                            const attachmentPromises = (relatedData.features || []).map(async rel => {
+                                const oid = rel.attributes.objectid || rel.attributes.OBJECTID;
+                                if (!oid) return [];
+                                
+                                try {
+                                    const { data: attachments } = await makeRequest(
+                                        `${tableUrl}/${oid}/attachments?f=json`
+                                    );
+                                    
+                                    if (attachments?.attachmentInfos?.length) {
+                                        return attachments.attachmentInfos.map(a => 
+                                            `${tableUrl}/${oid}/attachments/${a.id}`
+                                        );
+                                    }
+                                    return [];
+                                } catch (error) {
+                                    console.warn(`Attachment error for table ${tableId}, OID ${oid}:`, error.message);
+                                    return [];
+                                }
+                            });
+                            
+                            const attachmentResults = await Promise.all(attachmentPromises);
+                            return attachmentResults.flat();
+                        } catch (error) {
+                            console.warn(`Table ${tableId} error:`, error.message);
+                            return [];
+                        }
                     });
-                } catch (error) {
-                    console.error("Error loading comments:", error);
-                    showToast("Failed to load comments", "danger");
-                }
-            }
-            
-            async function addComment(postId, text) {
-                if (!userProfile) {
-                    showToast("Please sign in to comment", "warning");
-                    loginModal.open = true;
-                    return;
+                    
+                    const tableResults = await Promise.all(tablePromises);
+                    photos.push(...tableResults.flat());
+                    
+                    // Remove duplicates
+                    return [...new Set(photos)];
                 }
                 
-                if (!text.trim()) {
-                    showToast("Comment cannot be empty", "warning");
-                    return;
-                }
-                
-                try {
-                    // Add comment to Firestore
-                    await db.collection('comments').add({
-                        postId,
-                        text: text.trim(),
-                        userId: userProfile.uid,
-                        userName: userProfile.displayName,
-                        userPhoto: userProfile.photoURL,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                // Create post element
+                function createPostElement(attrs, photos, commentsCount, reactions) {
+                    const card = document.createElement('div');
+                    card.className = 'feed-item';
+                    card.dataset.id = attrs.globalid;
                     
-                    // Clear input
-                    document.getElementById('commentText').value = '';
-                    
-                    // Reload comments
-                    showComments(postId);
-                    
-                    // Update comments count on post
-                    refreshPost(postId);
-                    
-                    // Track event
-                    analytics.logEvent('add_comment', {
-                        content_type: 'post',
-                        item_id: postId
-                    });
-                } catch (error) {
-                    console.error("Error adding comment:", error);
-                    showToast("Failed to add comment", "danger");
-                }
-            }
-            
-            // Share system
-            function sharePost(postId) {
-                const postUrl = `https://the-commons-2.web.app/post/${postId}`;
-                
-                // Update share menu
-                shareLink.value = postUrl;
-                
-                // Generate QR code
-                QRCode.toCanvas(qrCode, postUrl, { width: 150 }, function(error) {
-                    if (error) console.error(error);
-                });
-                
-                // Open share menu
-                shareMenu.classList.add('active');
-                
-                // Track event
-                analytics.logEvent('share', {
-                    content_type: 'post',
-                    item_id: postId
-                });
-            }
-            
-            // Report post
-            function reportPost(postId) {
-                if (!userProfile) {
-                    showToast("Please sign in to report posts", "warning");
-                    loginModal.open = true;
-                    return;
-                }
-                
-                // Add report to Firestore
-                db.collection('reports').add({
-                    postId,
-                    userId: userProfile.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                })
-                .then(() => {
-                    showToast("Thank you for your report. We'll review it soon.", "info");
-                })
-                .catch(error => {
-                    console.error("Error reporting post:", error);
-                    showToast("Failed to submit report", "danger");
-                });
-            }
-            
-            // Refresh a post after interaction
-            async function refreshPost(postId) {
-                try {
-                    // Get post element
-                    const postElement = document.querySelector(`.feed-item[data-id="${postId}"]`);
-                    if (!postElement) return;
-                    
-                    // Get comments count
-                    const commentsSnapshot = await db.collection('comments')
-                        .where('postId', '==', postId)
-                        .get();
-                    const commentsCount = commentsSnapshot.size;
-                    
-                    // Get reactions
-                    const reactionsSnapshot = await db.collection('reactions')
-                        .where('postId', '==', postId)
-                        .get();
-                    const reactions = reactionsSnapshot.docs.map(doc => doc.data());
+                    // Determine icon for category
+                    const iconKey = attrs.is_yard_sale ? 'yard_sale' :
+                                  attrs.is_classified ? 'classified' : 
+                                  attrs.category?.toLowerCase() || 'default';
+                    const icon = CATEGORY_ICONS[iconKey] || CATEGORY_ICONS.default;
                     
                     // Process reactions for display
                     const reactionCounts = {};
@@ -2068,734 +1550,1245 @@
                         }
                     }
                     
-                    // Update reaction button
-                    const reactionBtn = postElement.querySelector('.reaction-btn');
-                    if (reactionBtn && userReaction) {
-                        reactionBtn.setAttribute('appearance', 'solid');
-                        reactionBtn.setAttribute('color', 'blue');
-                        reactionBtn.setAttribute('icon-start', getReactionEmoji(userReaction));
-                        reactionBtn.textContent = 'Liked';
-                    } else if (reactionBtn) {
-                        reactionBtn.setAttribute('appearance', 'outline');
-                        reactionBtn.setAttribute('color', 'neutral');
-                        reactionBtn.setAttribute('icon-start', '❤️');
-                        reactionBtn.textContent = 'Like';
+                    // Create reaction summary HTML
+                    let reactionSummaryHTML = '';
+                    if (totalReactions > 0) {
+                        reactionSummaryHTML = `
+                            <div class="reaction-summary">
+                                <div class="reaction-icons">
+                                    ${reactionTypes.slice(0, 3).map(type => `
+                                        <div class="reaction-icon">${getReactionEmoji(type)}</div>
+                                    `).join('')}
+                                </div>
+                                <span>${totalReactions}</span>
+                            </div>
+                        `;
                     }
                     
-                    // Update reaction summary
-                    const feedStats = postElement.querySelector('.feed-stats');
-                    if (feedStats) {
-                        let reactionSummaryHTML = '';
-                        if (totalReactions > 0) {
-                            reactionSummaryHTML = `
-                                <div class="reaction-summary">
-                                    <div class="reaction-icons">
-                                        ${reactionTypes.slice(0, 3).map(type => `
-                                            <div class="reaction-icon">${getReactionEmoji(type)}</div>
-                                        `).join('')}
-                                    </div>
-                                    <span>${totalReactions}</span>
+                    // Build HTML for card
+                    card.innerHTML = `
+                        <div class="feed-options">
+                            <calcite-dropdown>
+                                <calcite-button slot="trigger" icon="ellipsis" appearance="transparent" scale="s"></calcite-button>
+                                <calcite-dropdown-group selection-mode="none">
+                                    <calcite-dropdown-item id="shareBtn-${attrs.globalid}" icon-start="share">Share</calcite-dropdown-item>
+                                    <calcite-dropdown-item id="reportBtn-${attrs.globalid}" icon-start="exclamation-mark-triangle">Report</calcite-dropdown-item>
+                                </calcite-dropdown-group>
+                            </calcite-dropdown>
+                        </div>
+                        <div class="feed-header">
+                            <div class="feed-avatar">
+                                ${icon}
+                            </div>
+                            <div class="feed-author-info">
+                                <div class="feed-author">
+                                    ${attrs.name || 'Community Member'}
+                                    ${attrs.verified ? '<span class="verification-badge">✓</span>' : ''}
                                 </div>
-                            `;
-                        }
-                        
-                        let commentsHTML = '';
-                        if (commentsCount > 0) {
-                            commentsHTML = `
+                                <div class="feed-meta">
+                                    ${attrs.category ? `<span class="category-tag">${attrs.category}</span>` : ''}
+                                    ${attrs.sale_start ? `<span>📅 ${formatDate(attrs.sale_start)}</span>` : ''}
+                                    ${attrs.price ? `<span>💰 $${Number(attrs.price).toFixed(2)}</span>` : ''}
+                                    ${attrs.city || attrs.county ? `<span>📍 ${[attrs.city, attrs.county].filter(Boolean).join(', ')}</span>` : ''}
+                                    <span>🕒 ${formatRelativeTime(attrs.CreationDate)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${attrs.classified_description || attrs.yard_sale_notes ? `
+                            <div class="feed-content">
+                                ${attrs.classified_description || attrs.yard_sale_notes}
+                            </div>
+                        ` : ''}
+                        ${attrs.contact_name || attrs.phone || attrs.email ? `
+                            <div style="margin-top: var(--space-md); font-size: 0.95em;">
+                                ${attrs.contact_name ? `<div>👤 ${attrs.contact_name}</div>` : ''}
+                                ${attrs.phone ? `<div>📞 <a href="tel:${attrs.phone}">${attrs.phone}</a></div>` : ''}
+                                ${attrs.email ? `<div>📧 <a href="mailto:${attrs.email}">${attrs.email}</a></div>` : ''}
+                            </div>
+                        ` : ''}
+                        ${photos.length ? `
+                            <div class="feed-photos">
+                                ${photos.map((url, index) => `
+                                    <img class="feed-photo" 
+                                        src="${url}" 
+                                        loading="lazy"
+                                        alt="Post image ${index + 1}"
+                                        onerror="this.style.display='none'"
+                                        data-index="${index}">
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="feed-stats">
+                            ${reactionSummaryHTML}
+                            ${commentsCount > 0 ? `
                                 <div class="stat-item comments-count">
                                     <span>${commentsCount}</span> comment${commentsCount !== 1 ? 's' : ''}
                                 </div>
-                            `;
-                        }
-                        
-                        feedStats.innerHTML = reactionSummaryHTML + commentsHTML;
-                    }
-                } catch (error) {
-                    console.error("Error refreshing post:", error);
-                }
-            }
-            
-            // Create a new post
-            async function createPost() {
-                if (!userProfile) {
-                    showToast("Please sign in to create a post", "warning");
-                    loginModal.open = true;
-                    return;
-                }
-                
-                const postText = postInput.value.trim();
-                
-                if (!postText && attachedFiles.length === 0) {
-                    showToast("Post cannot be empty", "warning");
-                    return;
-                }
-                
-                try {
-                    // Show loading state
-                    createPostBtn.loading = true;
+                            ` : ''}
+                        </div>
+                        <div class="feed-actions">
+                            <div class="reaction-wrapper" style="position: relative;">
+                                <calcite-button 
+                                    class="reaction-btn ${userReaction ? 'reacted' : ''}" 
+                                    icon-start="${userReaction ? getReactionEmoji(userReaction) : '❤️'}" 
+                                    appearance="${userReaction ? 'solid' : 'outline'}"
+                                    color="${userReaction ? 'blue' : 'neutral'}"
+                                    scale="m"
+                                    data-post-id="${attrs.globalid}"
+                                >${userReaction ? 'Liked' : 'Like'}</calcite-button>
+                                <div class="reaction-menu" id="reactionMenu-${attrs.globalid}">
+                                    <div class="reaction-option" data-reaction="like" data-post-id="${attrs.globalid}">👍</div>
+                                    <div class="reaction-option" data-reaction="love" data-post-id="${attrs.globalid}">❤️</div>
+                                    <div class="reaction-option" data-reaction="haha" data-post-id="${attrs.globalid}">😂</div>
+                                    <div class="reaction-option" data-reaction="wow" data-post-id="${attrs.globalid}">😮</div>
+                                    <div class="reaction-option" data-reaction="sad" data-post-id="${attrs.globalid}">😢</div>
+                                </div>
+                            </div>
+                            <calcite-button icon-start="speech-bubble" appearance="outline" scale="m" data-post-id="${attrs.globalid}" class="comment-btn">
+                                Comment
+                            </calcite-button>
+                            <calcite-button icon-start="share" appearance="outline" scale="m" data-post-id="${attrs.globalid}" class="share-btn">
+                                Share
+                            </calcite-button>
+                        </div>
+                    `;
                     
-                    // Upload attached files if any
-                    const uploadedFiles = [];
-                    if (attachedFiles.length > 0) {
-                        const uploadPromises = attachedFiles.map(async (file, index) => {
-                            const storageRef = storage.ref(`posts/${userProfile.uid}/${Date.now()}_${index}_${file.name}`);
-                            await storageRef.put(file);
-                            return storageRef.getDownloadURL();
+                    // Add event listeners
+                    addPostEventListeners(card, photos, attrs.globalid);
+                    
+                    return card;
+                }
+                
+                // Add event listeners to post element
+                function addPostEventListeners(postElement, photos, postId) {
+                    // Photo click listeners
+                    postElement.querySelectorAll('.feed-photo').forEach(img => {
+                        img.addEventListener('click', () => {
+                            openLightbox(photos, parseInt(img.dataset.index));
                         });
-                        
-                        uploadedFiles.push(...await Promise.all(uploadPromises));
-                    }
-                    
-                    // Create post in Firestore
-                    const postRef = await db.collection('posts').add({
-                        text: postText,
-                        photos: uploadedFiles,
-                        userId: userProfile.uid,
-                        userName: userProfile.displayName,
-                        userPhoto: userProfile.photoURL,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        likeCount: 0,
-                        commentCount: 0
                     });
                     
-                    // Clear form
-                    postInput.value = '';
-                    attachedFiles = [];
-                    attachmentPreviews.innerHTML = '';
-                    
-                    // Show success message
-                    showToast("Post created successfully", "success");
-                    
-                    // Add the new post to the top of the feed
-                    const newPost = {
-                        id: postRef.id,
-                        text: postText,
-                        photos: uploadedFiles,
-                        userId: userProfile.uid,
-                        userName: userProfile.displayName,
-                        userPhoto: userProfile.photoURL,
-                        timestamp: new Date(),
-                        likeCount: 0,
-                        commentCount: 0
-                    };
-                    
-                    // TODO: Add the post to the UI
-                    
-                    // Track event
-                    analytics.logEvent('create_post', {
-                        content_type: 'post'
-                    });
-                } catch (error) {
-                    console.error("Error creating post:", error);
-                    showToast("Failed to create post", "danger");
-                } finally {
-                    createPostBtn.loading = false;
-                }
-            }
-            
-            // Notification system
-            async function subscribeToNotifications() {
-                if (!userProfile) return;
-                
-                try {
-                    // Get last notification timestamp
-                    const userRef = db.collection('users').doc(userProfile.uid);
-                    const userDoc = await userRef.get();
-                    
-                    if (userDoc.exists) {
-                        lastNotificationTimestamp = userDoc.data().lastNotificationTimestamp?.toDate();
+                    // Reaction button
+                    const reactionBtn = postElement.querySelector('.reaction-btn');
+                    if (reactionBtn) {
+                        reactionBtn.addEventListener('click', () => {
+                            toggleReactionMenu(postId);
+                        });
+                        
+                        // Long press for mobile
+                        let pressTimer;
+                        reactionBtn.addEventListener('touchstart', () => {
+                            pressTimer = setTimeout(() => {
+                                toggleReactionMenu(postId);
+                            }, 500);
+                        });
+                        
+                        reactionBtn.addEventListener('touchend', () => {
+                            clearTimeout(pressTimer);
+                        });
                     }
                     
-                    // Real-time listener for new notifications
-                    db.collection('notifications')
-                        .where('userId', '==', userProfile.uid)
-                        .where('read', '==', false)
-                        .onSnapshot(snapshot => {
-                            // Update notification badge
-                            notificationsBadge.textContent = snapshot.size;
-                            notificationsBadge.hidden = snapshot.size === 0;
-                            
-                            // Show notification toast for new items
-                            snapshot.docChanges().forEach(change => {
-                                if (change.type === 'added') {
-                                    const notification = change.doc.data();
-                                    
-                                    // Only show toast for new notifications
-                                    const notificationTime = notification.timestamp?.toDate();
-                                    if (lastNotificationTimestamp && notificationTime && notificationTime > lastNotificationTimestamp) {
-                                        showNotificationToast(notification);
-                                    }
-                                }
-                            });
-                            
-                            // Update last notification timestamp
-                            if (snapshot.size > 0) {
-                                lastNotificationTimestamp = new Date();
-                                userRef.update({
-                                    lastNotificationTimestamp: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-                            }
+                    // Reaction options
+                    postElement.querySelectorAll('.reaction-option').forEach(option => {
+                        option.addEventListener('click', () => {
+                            addReaction(option.dataset.postId, option.dataset.reaction);
+                            document.getElementById(`reactionMenu-${postId}`).classList.remove('active');
                         });
-                } catch (error) {
-                    console.error("Error subscribing to notifications:", error);
+                    });
+                    
+                    // Comment button
+                    postElement.querySelector('.comment-btn').addEventListener('click', () => {
+                        showComments(postId);
+                    });
+                    
+                    // Share button
+                    postElement.querySelector('.share-btn').addEventListener('click', () => {
+                        sharePost(postId);
+                    });
+                    
+                    // Share dropdown option
+                    const shareDropdownBtn = postElement.querySelector(`#shareBtn-${postId}`);
+                    if (shareDropdownBtn) {
+                        shareDropdownBtn.addEventListener('click', () => {
+                            sharePost(postId);
+                        });
+                    }
+                    
+                    // Report button
+                    const reportBtn = postElement.querySelector(`#reportBtn-${postId}`);
+                    if (reportBtn) {
+                        reportBtn.addEventListener('click', () => {
+                            reportPost(postId);
+                        });
+                    }
                 }
-            }
-            
-            function showNotificationToast(notification) {
-                // Create toast with notification content
-                toast.label = notification.title || 'New notification';
-                toast.message = notification.message || '';
-                toast.kind = 'info';
-                toast.open = true;
                 
-                // Play notification sound
-                playNotificationSound();
-            }
-            
-            async function loadNotifications() {
-                if (!userProfile) return;
-                
-                try {
-                    // Show loading skeleton
-                    notificationList.innerHTML = `
-                        <div class="notification-item">
-                            <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
-                            <div style="flex: 1;">
-                                <div class="skeleton" style="height: 0.9rem; width: 90%; margin-bottom: 8px;"></div>
-                                <div class="skeleton" style="height: 0.8rem; width: 40%;"></div>
+                // Create skeleton loaders
+                function createSkeletonLoaders() {
+                    return `
+                        <div class="skeleton-feed-item">
+                            <div class="skeleton-header">
+                                <div class="skeleton skeleton-avatar"></div>
+                                <div class="skeleton-info">
+                                    <div class="skeleton skeleton-name"></div>
+                                    <div class="skeleton skeleton-meta"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton skeleton-content"></div>
+                            <div class="skeleton-photos">
+                                <div class="skeleton skeleton-photo"></div>
+                                <div class="skeleton skeleton-photo"></div>
+                                <div class="skeleton skeleton-photo"></div>
                             </div>
                         </div>
-                    `.repeat(5);
+                        
+                        <div class="skeleton-feed-item">
+                            <div class="skeleton-header">
+                                <div class="skeleton skeleton-avatar"></div>
+                                <div class="skeleton-info">
+                                    <div class="skeleton skeleton-name"></div>
+                                    <div class="skeleton skeleton-meta"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton skeleton-content"></div>
+                        </div>
+                    `;
+                }
+                
+                // Lightbox functionality
+                function openLightbox(mediaArray, index) {
+                    currentMediaArray = mediaArray;
+                    currentMediaIndex = index;
                     
-                    // Fetch notifications
-                    const notificationsSnapshot = await db.collection('notifications')
-                        .where('userId', '==', userProfile.uid)
-                        .orderBy('timestamp', 'desc')
-                        .limit(20)
-                        .get();
+                    lightboxImage.src = mediaArray[index];
+                    lightbox.classList.add('active');
                     
-                    // Clear loading skeletons
-                    notificationList.innerHTML = '';
+                    // Show/hide navigation based on number of items
+                    lightboxPrev.style.display = mediaArray.length > 1 ? 'flex' : 'none';
+                    lightboxNext.style.display = mediaArray.length > 1 ? 'flex' : 'none';
                     
-                    // Check if we have notifications
-                    if (notificationsSnapshot.empty) {
-                        notificationList.innerHTML = '<div style="text-align: center; padding: 16px;">No notifications yet.</div>';
+                    // Track event
+                    analytics.logEvent('view_item', {
+                        content_type: 'media',
+                        item_id: currentMediaIndex
+                    });
+                }
+                
+                function navigateLightbox(direction) {
+                    currentMediaIndex = (currentMediaIndex + direction + currentMediaArray.length) % currentMediaArray.length;
+                    lightboxImage.src = currentMediaArray[currentMediaIndex];
+                }
+                
+                // Reaction system
+                function toggleReactionMenu(postId) {
+                    // Check if user is logged in
+                    if (!userProfile) {
+                        showToast("Please sign in to react to posts", "warning");
+                        loginModal.open = true;
                         return;
                     }
                     
-                    // Add notifications to list
-                    notificationsSnapshot.forEach(doc => {
-                        const data = doc.data();
-                        const notificationEl = document.createElement('div');
-                        notificationEl.className = `notification-item ${data.read ? '' : 'unread'}`;
-                        notificationEl.dataset.id = doc.id;
+                    const reactionMenu = document.getElementById(`reactionMenu-${postId}`);
+                    reactionMenu.classList.toggle('active');
+                    
+                    // Close menu when clicking outside
+                    function closeOnOutsideClick(e) {
+                        if (!reactionMenu.contains(e.target) && !e.target.closest('.reaction-btn')) {
+                            reactionMenu.classList.remove('active');
+                            document.removeEventListener('click', closeOnOutsideClick);
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        document.addEventListener('click', closeOnOutsideClick);
+                    }, 10);
+                }
+                
+                async function addReaction(postId, reactionType) {
+                    if (!userProfile) {
+                        showToast("Please sign in to react to posts", "warning");
+                        loginModal.open = true;
+                        return;
+                    }
+                    
+                    try {
+                        // Check if user already reacted to this post
+                        const existingReactionQuery = await db.collection('reactions')
+                            .where('postId', '==', postId)
+                            .where('userId', '==', userProfile.uid)
+                            .get();
                         
-                        // Icon based on notification type
-                        let icon = '🔔';
-                        if (data.type === 'like') icon = '❤️';
-                        if (data.type === 'comment') icon = '💬';
-                        if (data.type === 'follow') icon = '👥';
-                        if (data.type === 'mention') icon = '@️';
+                        const batch = db.batch();
                         
-                        notificationEl.innerHTML = `
-                            <div class="notification-avatar">
-                                ${icon}
+                        if (!existingReactionQuery.empty) {
+                            // Update existing reaction
+                            existingReactionQuery.forEach(doc => {
+                                batch.update(doc.ref, {
+                                    type: reactionType,
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            });
+                        } else {
+                            // Create new reaction
+                            const newReactionRef = db.collection('reactions').doc();
+                            batch.set(newReactionRef, {
+                                postId: postId,
+                                userId: userProfile.uid,
+                                userName: userProfile.displayName,
+                                userPhoto: userProfile.photoURL,
+                                type: reactionType,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                        
+                        await batch.commit();
+                        
+                        // Update UI
+                        const reactionBtn = document.querySelector(`.reaction-btn[data-post-id="${postId}"]`);
+                        reactionBtn.setAttribute('appearance', 'solid');
+                        reactionBtn.setAttribute('color', 'blue');
+                        reactionBtn.setAttribute('icon-start', getReactionEmoji(reactionType));
+                        reactionBtn.textContent = 'Liked';
+                        
+                        // Track event
+                        analytics.logEvent('reaction', {
+                            content_type: 'post',
+                            item_id: postId,
+                            reaction_type: reactionType
+                        });
+                        
+                        // Refresh post to update reaction count
+                        setTimeout(() => {
+                            refreshPost(postId);
+                        }, 500);
+                    } catch (error) {
+                        console.error("Error adding reaction:", error);
+                        showToast("Failed to add reaction", "danger");
+                    }
+                }
+                
+                function getReactionEmoji(reactionType) {
+                    const emojis = {
+                        like: '👍',
+                        love: '❤️',
+                        haha: '😂',
+                        wow: '😮',
+                        sad: '😢'
+                    };
+                    
+                    return emojis[reactionType] || '👍';
+                }
+                
+                // Comment system
+                async function showComments(postId) {
+                    currentPostId = postId;
+                    
+                    try {
+                        // Show skeleton loader
+                        const commentsList = document.getElementById('commentsList');
+                        commentsList.innerHTML = `
+                            <div class="skeleton-comment">
+                                <div class="skeleton skeleton-avatar" style="width: 32px; height: 32px; border-radius: 50%;"></div>
+                                <div class="skeleton-comment-content" style="flex: 1;">
+                                    <div class="skeleton" style="height: 0.9rem; width: 30%; margin-bottom: 8px;"></div>
+                                    <div class="skeleton" style="height: 0.8rem; width: 90%;"></div>
+                                </div>
                             </div>
-                            <div class="notification-content">
-                                <div class="notification-text">${data.message}</div>
-                                <div class="notification-time">${formatRelativeTime(data.timestamp?.toDate())}</div>
-                            </div>
-                        `;
+                        `.repeat(3);
                         
-                        // Add click handler to mark as read and navigate
-                        notificationEl.addEventListener('click', () => {
-                            markNotificationAsRead(doc.id);
+                        // Fetch comments
+                        const commentsSnapshot = await db.collection('comments')
+                            .where('postId', '==', postId)
+                            .orderBy('timestamp', 'desc')
+                            .get();
+                        
+                        // Check if we have comments
+                        if (commentsSnapshot.empty) {
+                            commentsList.innerHTML = '<div style="text-align: center; padding: 16px;">No comments yet. Be the first!</div>';
+                        } else {
+                            commentsList.innerHTML = '';
                             
-                            // Handle navigation based on notification type
-                            if (data.postId) {
-                                // TODO: Navigate to post
-                                notificationMenu.classList.remove('active');
+                            // Add comments to list
+                            commentsSnapshot.forEach(doc => {
+                                const data = doc.data();
+                                const commentEl = document.createElement('div');
+                                commentEl.className = 'comment-item';
+                                commentEl.innerHTML = `
+                                    <div class="comment-header">
+                                        <div class="comment-avatar">
+                                            ${data.userPhoto ? `<img src="${data.userPhoto}" alt="${data.userName}" style="width: 100%; height: 100%; border-radius: 50%;">` : data.userName?.[0] || '👤'}
+                                        </div>
+                                        <div class="comment-author">${data.userName || 'Anonymous'}</div>
+                                    </div>
+                                    <div class="comment-text">${data.text}</div>
+                                    <div class="comment-meta">${formatRelativeTime(data.timestamp?.toDate())}</div>
+                                `;
+                                
+                                commentsList.appendChild(commentEl);
+                            });
+                        }
+                        
+                        // Open modal
+                        commentModal.open = true;
+                        
+                        // Focus comment input
+                        setTimeout(() => {
+                            document.getElementById('commentText').setFocus();
+                        }, 300);
+                        
+                        // Track event
+                        analytics.logEvent('view_comments', {
+                            content_type: 'post',
+                            item_id: postId
+                        });
+                    } catch (error) {
+                        console.error("Error loading comments:", error);
+                        showToast("Failed to load comments", "danger");
+                    }
+                }
+                
+                async function addComment(postId, text) {
+                    if (!userProfile) {
+                        showToast("Please sign in to comment", "warning");
+                        loginModal.open = true;
+                        return;
+                    }
+                    
+                    if (!text.trim()) {
+                        showToast("Comment cannot be empty", "warning");
+                        return;
+                    }
+                    
+                    try {
+                        // Add comment to Firestore
+                        await db.collection('comments').add({
+                            postId,
+                            text: text.trim(),
+                            userId: userProfile.uid,
+                            userName: userProfile.displayName,
+                            userPhoto: userProfile.photoURL,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        // Clear input
+                        document.getElementById('commentText').value = '';
+                        
+                        // Reload comments
+                        showComments(postId);
+                        
+                        // Update comments count on post
+                        refreshPost(postId);
+                        
+                        // Track event
+                        analytics.logEvent('add_comment', {
+                            content_type: 'post',
+                            item_id: postId
+                        });
+                    } catch (error) {
+                        console.error("Error adding comment:", error);
+                        showToast("Failed to add comment", "danger");
+                    }
+                }
+                
+                // Share system
+                function sharePost(postId) {
+                    const postUrl = `https://the-commons-2.web.app/post/${postId}`;
+                    
+                    // Update share menu
+                    shareLink.value = postUrl;
+                    
+                    // Generate QR code
+                    QRCode.toCanvas(qrCode, postUrl, { width: 150 }, function(error) {
+                        if (error) console.error(error);
+                    });
+                    
+                    // Open share menu
+                    shareMenu.classList.add('active');
+                    
+                    // Track event
+                    analytics.logEvent('share', {
+                        content_type: 'post',
+                        item_id: postId
+                    });
+                }
+                
+                // Report post
+                function reportPost(postId) {
+                    if (!userProfile) {
+                        showToast("Please sign in to report posts", "warning");
+                        loginModal.open = true;
+                        return;
+                    }
+                    
+                    // Add report to Firestore
+                    db.collection('reports').add({
+                        postId,
+                        userId: userProfile.uid,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                    .then(() => {
+                        showToast("Thank you for your report. We'll review it soon.", "info");
+                    })
+                    .catch(error => {
+                        console.error("Error reporting post:", error);
+                        showToast("Failed to submit report", "danger");
+                    });
+                }
+                
+                // Refresh a post after interaction
+                async function refreshPost(postId) {
+                    try {
+                        // Get post element
+                        const postElement = document.querySelector(`.feed-item[data-id="${postId}"]`);
+                        if (!postElement) return;
+                        
+                        // Get comments count
+                        const commentsSnapshot = await db.collection('comments')
+                            .where('postId', '==', postId)
+                            .get();
+                        const commentsCount = commentsSnapshot.size;
+                        
+                        // Get reactions
+                        const reactionsSnapshot = await db.collection('reactions')
+                            .where('postId', '==', postId)
+                            .get();
+                        const reactions = reactionsSnapshot.docs.map(doc => doc.data());
+                        
+                        // Process reactions for display
+                        const reactionCounts = {};
+                        reactions.forEach(r => {
+                            reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1;
+                        });
+                        
+                        const reactionTypes = Object.keys(reactionCounts);
+                        const totalReactions = reactions.length;
+                        
+                        // Determine if current user has reacted
+                        let userReaction = null;
+                        if (userProfile) {
+                            const userReactionObj = reactions.find(r => r.userId === userProfile.uid);
+                            if (userReactionObj) {
+                                userReaction = userReactionObj.type;
+                            }
+                        }
+                        
+                        // Update reaction button
+                        const reactionBtn = postElement.querySelector('.reaction-btn');
+                        if (reactionBtn && userReaction) {
+                            reactionBtn.setAttribute('appearance', 'solid');
+                            reactionBtn.setAttribute('color', 'blue');
+                            reactionBtn.setAttribute('icon-start', getReactionEmoji(userReaction));
+                            reactionBtn.textContent = 'Liked';
+                        } else if (reactionBtn) {
+                            reactionBtn.setAttribute('appearance', 'outline');
+                            reactionBtn.setAttribute('color', 'neutral');
+                            reactionBtn.setAttribute('icon-start', '❤️');
+                            reactionBtn.textContent = 'Like';
+                        }
+                        
+                        // Update reaction summary
+                        const feedStats = postElement.querySelector('.feed-stats');
+                        if (feedStats) {
+                            let reactionSummaryHTML = '';
+                            if (totalReactions > 0) {
+                                reactionSummaryHTML = `
+                                    <div class="reaction-summary">
+                                        <div class="reaction-icons">
+                                            ${reactionTypes.slice(0, 3).map(type => `
+                                                <div class="reaction-icon">${getReactionEmoji(type)}</div>
+                                            `).join('')}
+                                        </div>
+                                        <span>${totalReactions}</span>
+                                    </div>
+                                `;
+                            }
+                            
+                            let commentsHTML = '';
+                            if (commentsCount > 0) {
+                                commentsHTML = `
+                                    <div class="stat-item comments-count">
+                                        <span>${commentsCount}</span> comment${commentsCount !== 1 ? 's' : ''}
+                                    </div>
+                                `;
+                            }
+                            
+                            feedStats.innerHTML = reactionSummaryHTML + commentsHTML;
+                        }
+                    } catch (error) {
+                        console.error("Error refreshing post:", error);
+                    }
+                }
+                
+                // Create a new post
+                async function createPost() {
+                    if (!userProfile) {
+                        showToast("Please sign in to create a post", "warning");
+                        loginModal.open = true;
+                        return;
+                    }
+                    
+                    const postText = postInput.value.trim();
+                    
+                    if (!postText && attachedFiles.length === 0) {
+                        showToast("Post cannot be empty", "warning");
+                        return;
+                    }
+                    
+                    try {
+                        // Show loading state
+                        createPostBtn.loading = true;
+                        
+                        // Upload attached files if any
+                        const uploadedFiles = [];
+                        if (attachedFiles.length > 0) {
+                            const uploadPromises = attachedFiles.map(async (file, index) => {
+                                const storageRef = storage.ref(`posts/${userProfile.uid}/${Date.now()}_${index}_${file.name}`);
+                                await storageRef.put(file);
+                                return storageRef.getDownloadURL();
+                            });
+                            
+                            uploadedFiles.push(...await Promise.all(uploadPromises));
+                        }
+                        
+                        // Create post in Firestore
+                        const postRef = await db.collection('posts').add({
+                            text: postText,
+                            photos: uploadedFiles,
+                            userId: userProfile.uid,
+                            userName: userProfile.displayName,
+                            userPhoto: userProfile.photoURL,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            likeCount: 0,
+                            commentCount: 0
+                        });
+                        
+                        // Clear form
+                        postInput.value = '';
+                        attachedFiles = [];
+                        attachmentPreviews.innerHTML = '';
+                        
+                        // Show success message
+                        showToast("Post created successfully", "success");
+                        
+                        // Add the new post to the top of the feed
+                        const newPost = {
+                            id: postRef.id,
+                            text: postText,
+                            photos: uploadedFiles,
+                            userId: userProfile.uid,
+                            userName: userProfile.displayName,
+                            userPhoto: userProfile.photoURL,
+                            timestamp: new Date(),
+                            likeCount: 0,
+                            commentCount: 0
+                        };
+                        
+                        // TODO: Add the post to the UI
+                        
+                        // Track event
+                        analytics.logEvent('create_post', {
+                            content_type: 'post'
+                        });
+                    } catch (error) {
+                        console.error("Error creating post:", error);
+                        showToast("Failed to create post", "danger");
+                    } finally {
+                        createPostBtn.loading = false;
+                    }
+                }
+                
+                // Notification system
+                async function subscribeToNotifications() {
+                    if (!userProfile) return;
+                    
+                    try {
+                        // Get last notification timestamp
+                        const userRef = db.collection('users').doc(userProfile.uid);
+                        const userDoc = await userRef.get();
+                        
+                        if (userDoc.exists) {
+                            lastNotificationTimestamp = userDoc.data().lastNotificationTimestamp?.toDate();
+                        }
+                        
+                        // Real-time listener for new notifications
+                        db.collection('notifications')
+                            .where('userId', '==', userProfile.uid)
+                            .where('read', '==', false)
+                            .onSnapshot(snapshot => {
+                                // Update notification badge
+                                notificationsBadge.textContent = snapshot.size;
+                                notificationsBadge.hidden = snapshot.size === 0;
+                                
+                                // Show notification toast for new items
+                                snapshot.docChanges().forEach(change => {
+                                    if (change.type === 'added') {
+                                        const notification = change.doc.data();
+                                        
+                                        // Only show toast for new notifications
+                                        const notificationTime = notification.timestamp?.toDate();
+                                        if (lastNotificationTimestamp && notificationTime && notificationTime > lastNotificationTimestamp) {
+                                            showNotificationToast(notification);
+                                        }
+                                    }
+                                });
+                                
+                                // Update last notification timestamp
+                                if (snapshot.size > 0) {
+                                    lastNotificationTimestamp = new Date();
+                                    userRef.update({
+                                        lastNotificationTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                }
+                            });
+                    } catch (error) {
+                        console.error("Error subscribing to notifications:", error);
+                    }
+                }
+                
+                function showNotificationToast(notification) {
+                    // Create toast with notification content
+                    toast.label = notification.title || 'New notification';
+                    toast.message = notification.message || '';
+                    toast.kind = 'info';
+                    toast.open = true;
+                    
+                    // Play notification sound
+                    playNotificationSound();
+                }
+                
+                async function loadNotifications() {
+                    if (!userProfile) return;
+                    
+                    try {
+                        // Show loading skeleton
+                        notificationList.innerHTML = `
+                            <div class="notification-item">
+                                <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+                                <div style="flex: 1;">
+                                    <div class="skeleton" style="height: 0.9rem; width: 90%; margin-bottom: 8px;"></div>
+                                    <div class="skeleton" style="height: 0.8rem; width: 40%;"></div>
+                                </div>
+                            </div>
+                        `.repeat(5);
+                        
+                        // Fetch notifications
+                        const notificationsSnapshot = await db.collection('notifications')
+                            .where('userId', '==', userProfile.uid)
+                            .orderBy('timestamp', 'desc')
+                            .limit(20)
+                            .get();
+                        
+                        // Clear loading skeletons
+                        notificationList.innerHTML = '';
+                        
+                        // Check if we have notifications
+                        if (notificationsSnapshot.empty) {
+                            notificationList.innerHTML = '<div style="text-align: center; padding: 16px;">No notifications yet.</div>';
+                            return;
+                        }
+                        
+                        // Add notifications to list
+                        notificationsSnapshot.forEach(doc => {
+                            const data = doc.data();
+                            const notificationEl = document.createElement('div');
+                            notificationEl.className = `notification-item ${data.read ? '' : 'unread'}`;
+                            notificationEl.dataset.id = doc.id;
+                            
+                            // Icon based on notification type
+                            let icon = '🔔';
+                            if (data.type === 'like') icon = '❤️';
+                            if (data.type === 'comment') icon = '💬';
+                            if (data.type === 'follow') icon = '👥';
+                            if (data.type === 'mention') icon = '@️';
+                            
+                            notificationEl.innerHTML = `
+                                <div class="notification-avatar">
+                                    ${icon}
+                                </div>
+                                <div class="notification-content">
+                                    <div class="notification-text">${data.message}</div>
+                                    <div class="notification-time">${formatRelativeTime(data.timestamp?.toDate())}</div>
+                                </div>
+                            `;
+                            
+                            // Add click handler to mark as read and navigate
+                            notificationEl.addEventListener('click', () => {
+                                markNotificationAsRead(doc.id);
+                                
+                                // Handle navigation based on notification type
+                                if (data.postId) {
+                                    // TODO: Navigate to post
+                                    notificationMenu.classList.remove('active');
+                                }
+                            });
+                            
+                            notificationList.appendChild(notificationEl);
+                        });
+                    } catch (error) {
+                        console.error("Error loading notifications:", error);
+                        notificationList.innerHTML = '<div style="text-align: center; color: red; padding: 16px;">Failed to load notifications.</div>';
+                    }
+                }
+                
+                async function markNotificationAsRead(notificationId) {
+                    try {
+                        await db.collection('notifications').doc(notificationId).update({
+                            read: true
+                        });
+                        
+                        // Update UI
+                        const notificationEl = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                        if (notificationEl) {
+                            notificationEl.classList.remove('unread');
+                        }
+                    } catch (error) {
+                        console.error("Error marking notification as read:", error);
+                    }
+                }
+                
+                async function markAllNotificationsAsRead() {
+                    if (!userProfile) return;
+                    
+                    try {
+                        // Get all unread notifications
+                        const unreadSnapshot = await db.collection('notifications')
+                            .where('userId', '==', userProfile.uid)
+                            .where('read', '==', false)
+                            .get();
+                        
+                        // No unread notifications
+                        if (unreadSnapshot.empty) return;
+                        
+                        // Batch update all notifications
+                        const batch = db.batch();
+                        unreadSnapshot.forEach(doc => {
+                            batch.update(doc.ref, { read: true });
+                        });
+                        
+                        await batch.commit();
+                        
+                        // Update UI
+                        document.querySelectorAll('.notification-item.unread').forEach(el => {
+                            el.classList.remove('unread');
+                        });
+                        
+                        // Update badge
+                        notificationsBadge.textContent = '0';
+                        notificationsBadge.hidden = true;
+                        
+                        showToast("All notifications marked as read", "success");
+                    } catch (error) {
+                        console.error("Error marking all notifications as read:", error);
+                        showToast("Failed to mark notifications as read", "danger");
+                    }
+                }
+                
+                // Setup infinite scroll
+                function setupInfiniteScroll() {
+                    // Create observer
+                    const observer = new IntersectionObserver(entries => {
+                        entries.forEach(entry => {
+                            // If last feed item is visible, load more posts
+                            if (entry.isIntersecting && !loadingMorePosts && !isInitialLoad) {
+                                loadPosts(true);
                             }
                         });
-                        
-                        notificationList.appendChild(notificationEl);
-                    });
-                } catch (error) {
-                    console.error("Error loading notifications:", error);
-                    notificationList.innerHTML = '<div style="text-align: center; color: red; padding: 16px;">Failed to load notifications.</div>';
-                }
-            }
-            
-            async function markNotificationAsRead(notificationId) {
-                try {
-                    await db.collection('notifications').doc(notificationId).update({
-                        read: true
+                    }, {
+                        root: null,
+                        rootMargin: '0px 0px 200px 0px', // Load more when within 200px of bottom
+                        threshold: 0.1
                     });
                     
-                    // Update UI
-                    const notificationEl = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
-                    if (notificationEl) {
-                        notificationEl.classList.remove('unread');
+                    // Function to observe last feed item
+                    function observeLastPost() {
+                        const feedItems = document.querySelectorAll('.feed-item');
+                        if (feedItems.length > 0) {
+                            const lastItem = feedItems[feedItems.length - 1];
+                            observer.observe(lastItem);
+                        }
                     }
-                } catch (error) {
-                    console.error("Error marking notification as read:", error);
+                    
+                    // Initial observation
+                    setTimeout(observeLastPost, 1000);
+                    
+                    // Re-observe when feed content changes
+                    const feedObserver = new MutationObserver(observeLastPost);
+                    feedObserver.observe(feed, { childList: true });
                 }
-            }
-            
-            async function markAllNotificationsAsRead() {
-                if (!userProfile) return;
                 
-                try {
-                    // Get all unread notifications
-                    const unreadSnapshot = await db.collection('notifications')
-                        .where('userId', '==', userProfile.uid)
-                        .where('read', '==', false)
-                        .get();
-                    
-                    // No unread notifications
-                    if (unreadSnapshot.empty) return;
-                    
-                    // Batch update all notifications
-                    const batch = db.batch();
-                    unreadSnapshot.forEach(doc => {
-                        batch.update(doc.ref, { read: true });
-                    });
-                    
-                    await batch.commit();
-                    
-                    // Update UI
-                    document.querySelectorAll('.notification-item.unread').forEach(el => {
-                        el.classList.remove('unread');
-                    });
-                    
-                    // Update badge
-                    notificationsBadge.textContent = '0';
-                    notificationsBadge.hidden = true;
-                    
-                    showToast("All notifications marked as read", "success");
-                } catch (error) {
-                    console.error("Error marking all notifications as read:", error);
-                    showToast("Failed to mark notifications as read", "danger");
-                }
-            }
-            
-            // Setup infinite scroll
-            function setupInfiniteScroll() {
-                // Create observer
-                const observer = new IntersectionObserver(entries => {
-                    entries.forEach(entry => {
-                        // If last feed item is visible, load more posts
-                        if (entry.isIntersecting && !loadingMorePosts && !isInitialLoad) {
-                            loadPosts(true);
+                // Setup event listeners
+                function setupEventListeners() {
+                    // Lightbox close
+                    lightbox.addEventListener('click', e => {
+                        if (e.target === lightbox) {
+                            lightbox.classList.remove('active');
                         }
                     });
-                }, {
-                    root: null,
-                    rootMargin: '0px 0px 200px 0px', // Load more when within 200px of bottom
-                    threshold: 0.1
-                });
-                
-                // Function to observe last feed item
-                function observeLastPost() {
-                    const feedItems = document.querySelectorAll('.feed-item');
-                    if (feedItems.length > 0) {
-                        const lastItem = feedItems[feedItems.length - 1];
-                        observer.observe(lastItem);
-                    }
-                }
-                
-                // Initial observation
-                setTimeout(observeLastPost, 1000);
-                
-                // Re-observe when feed content changes
-                const feedObserver = new MutationObserver(observeLastPost);
-                feedObserver.observe(feed, { childList: true });
-            }
-            
-            // Setup event listeners
-            function setupEventListeners() {
-                // Lightbox close
-                lightbox.addEventListener('click', e => {
-                    if (e.target === lightbox) {
-                        lightbox.classList.remove('active');
-                    }
-                });
-                
-                // Lightbox navigation
-                lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
-                lightboxNext.addEventListener('click', () => navigateLightbox(1));
-                
-                // Post comment button
-                document.getElementById('postCommentBtn').addEventListener('click', () => {
-                    const commentText = document.getElementById('commentText').value;
-                    addComment(currentPostId, commentText);
-                });
-                
-                // Cancel comment button
-                document.getElementById('cancelCommentBtn').addEventListener('click', () => {
-                    commentModal.open = false;
-                });
-                
-                // Share options
-                document.querySelectorAll('.share-option').forEach(option => {
-                    option.addEventListener('click', () => {
-                        const shareType = option.dataset.shareType;
-                        const url = shareLink.value;
-                        
-                        switch (shareType) {
-                            case 'facebook':
-                                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
-                                break;
-                            case 'twitter':
-                                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Check out this post!')}&url=${encodeURIComponent(url)}`, '_blank');
-                                break;
-                            case 'email':
-                                window.open(`mailto:?subject=Check out this post&body=${encodeURIComponent(url)}`, '_blank');
-                                break;
-                            case 'sms':
-                                window.open(`sms:?body=${encodeURIComponent(url)}`, '_blank');
-                                break;
-                            case 'whatsapp':
-                                window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
-                                break;
-                            case 'telegram':
-                                window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}`, '_blank');
-                                break;
-                            case 'copy':
-                                copyToClipboard(url);
-                                break;
-                            case 'embed':
-                                // Show embed code
-                                const embedCode = `<iframe src="${url}" width="100%" height="500" frameborder="0"></iframe>`;
-                                copyToClipboard(embedCode);
-                                showToast("Embed code copied to clipboard", "success");
-                                break;
-                        }
-                        
-                        shareMenu.classList.remove('active');
+                    
+                    // Lightbox navigation
+                    lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
+                    lightboxNext.addEventListener('click', () => navigateLightbox(1));
+                    
+                    // Post comment button
+                    document.getElementById('postCommentBtn').addEventListener('click', () => {
+                        const commentText = document.getElementById('commentText').value;
+                        addComment(currentPostId, commentText);
                     });
-                });
-                
-                // Close share menu
-                closeShareBtn.addEventListener('click', () => {
-                    shareMenu.classList.remove('active');
-                });
-                
-                // Copy link button
-                copyLinkBtn.addEventListener('click', () => {
-                    copyToClipboard(shareLink.value);
-                });
-                
-                // Download QR code
-                downloadQrBtn.addEventListener('click', () => {
-                    const canvas = qrCode.querySelector('canvas');
-                    if (canvas) {
-                        const link = document.createElement('a');
-                        link.download = 'qrcode.png';
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                    }
-                });
-                
-                // Notification button
-                notificationsBtn.addEventListener('click', () => {
-                    notificationMenu.classList.toggle('active');
                     
-                    if (notificationMenu.classList.contains('active')) {
-                        loadNotifications();
-                    }
-                });
-                
-                // Close notifications
-                closeNotificationsBtn.addEventListener('click', () => {
-                    notificationMenu.classList.remove('active');
-                });
-                
-                // Create post button
-                createPostBtn.addEventListener('click', createPost);
-                
-                // Attach photo button
-                attachPhotoBtn.addEventListener('click', () => {
-                    photoInput.click();
-                });
-                
-                // Handle photo selection
-                photoInput.addEventListener('change', e => {
-                    if (e.target.files && e.target.files.length > 0) {
-                        handleFileSelection(e.target.files);
-                    }
-                });
-                
-                // Theme toggle
-                themeToggleBtn.addEventListener('click', toggleTheme);
-                
-                // Login button
-                loginBtn.addEventListener('click', () => {
-                    loginModal.open = true;
-                });
-                
-                // Logout button
-                logoutBtn.addEventListener('click', signOut);
-                
-                // Sign up link
-                document.getElementById('signupLink').addEventListener('click', () => {
-                    loginModal.open = false;
-                    signupModal.open = true;
-                });
-                
-                // Login link
-                document.getElementById('loginLink').addEventListener('click', () => {
-                    signupModal.open = false;
-                    loginModal.open = true;
-                });
-                
-                // Forgot password link
-                document.getElementById('forgotPasswordLink').addEventListener('click', () => {
-                    document.getElementById('loginForm').hidden = true;
-                    document.getElementById('forgotPasswordForm').hidden = false;
-                });
-                
-                // Back to login link
-                document.getElementById('backToLoginLink').addEventListener('click', () => {
-                    document.getElementById('loginForm').hidden = false;
-                    document.getElementById('forgotPasswordForm').hidden = true;
-                });
-                
-                // Login with email button
-                document.getElementById('loginWithEmailBtn').addEventListener('click', signInWithEmail);
-                
-                // Create account button
-                document.getElementById('createAccountBtn').addEventListener('click', createAccount);
-                
-                // Google login button
-                document.getElementById('googleLoginBtn').addEventListener('click', signInWithGoogle);
-                
-                // Facebook login button
-                document.getElementById('facebookLoginBtn').addEventListener('click', signInWithFacebook);
-            }
-            
-            // Handle file selection for post creation
-            function handleFileSelection(files) {
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
+                    // Cancel comment button
+                    document.getElementById('cancelCommentBtn').addEventListener('click', () => {
+                        commentModal.open = false;
+                    });
                     
-                    // Skip non-image files
-                    if (!file.type.startsWith('image/')) continue;
-                    
-                    // Limit to 5 files
-                    if (attachedFiles.length >= 5) {
-                        showToast("Maximum 5 images allowed", "warning");
-                        break;
-                    }
-                    
-                    // Add to array
-                    attachedFiles.push(file);
-                    
-                    // Create preview
-                    const preview = document.createElement('div');
-                    preview.className = 'attachment-preview';
-                    preview.innerHTML = `
-                        <img src="${URL.createObjectURL(file)}" alt="Attachment preview">
-                        <div class="attachment-remove" data-index="${attachedFiles.length - 1}">×</div>
-                    `;
-                    
-                    // Add to previews
-                    attachmentPreviews.appendChild(preview);
-                    
-                    // Add remove handler
-                    preview.querySelector('.attachment-remove').addEventListener('click', function() {
-                        const index = parseInt(this.dataset.index);
-                        attachedFiles.splice(index, 1);
-                        preview.remove();
-                        
-                        // Update indexes
-                        document.querySelectorAll('.attachment-remove').forEach((el, i) => {
-                            el.dataset.index = i;
+                    // Share options
+                    document.querySelectorAll('.share-option').forEach(option => {
+                        option.addEventListener('click', () => {
+                            const shareType = option.dataset.shareType;
+                            const url = shareLink.value;
+                            
+                            switch (shareType) {
+                                case 'facebook':
+                                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                case 'twitter':
+                                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Check out this post!')}&url=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                case 'email':
+                                    window.open(`mailto:?subject=Check out this post&body=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                case 'sms':
+                                    window.open(`sms:?body=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                case 'whatsapp':
+                                    window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                case 'telegram':
+                                    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                case 'copy':
+                                    copyToClipboard(url);
+                                    break;
+                                case 'embed':
+                                    // Show embed code
+                                    const embedCode = `<iframe src="${url}" width="100%" height="500" frameborder="0"></iframe>`;
+                                    copyToClipboard(embedCode);
+                                    showToast("Embed code copied to clipboard", "success");
+                                    break;
+                            }
+                            
+                            shareMenu.classList.remove('active');
                         });
                     });
-                }
-            }
-            
-            // Authentication functions
-            async function signInWithEmail() {
-                const email = document.getElementById('loginEmail').value;
-                const password = document.getElementById('loginPassword').value;
-                
-                if (!email || !password) {
-                    showToast("Please enter email and password", "warning");
-                    return;
-                }
-                
-                try {
-                    document.getElementById('loginWithEmailBtn').loading = true;
-                    await auth.signInWithEmailAndPassword(email, password);
-                    loginModal.open = false;
-                    showToast("Signed in successfully", "success");
-                } catch (error) {
-                    console.error("Login error:", error);
-                    showToast("Login failed: " + error.message, "danger");
-                } finally {
-                    document.getElementById('loginWithEmailBtn').loading = false;
-                }
-            }
-            
-            async function createAccount() {
-                const name = document.getElementById('signupName').value;
-                const email = document.getElementById('signupEmail').value;
-                const password = document.getElementById('signupPassword').value;
-                const confirmPassword = document.getElementById('signupConfirmPassword').value;
-                const termsAccepted = document.getElementById('termsCheckbox').checked;
-                
-                if (!name || !email || !password) {
-                    showToast("Please fill all required fields", "warning");
-                    return;
-                }
-                
-                if (password !== confirmPassword) {
-                    showToast("Passwords do not match", "warning");
-                    return;
-                }
-                
-                if (!termsAccepted) {
-                    showToast("Please accept the terms of service", "warning");
-                    return;
-                }
-                
-                try {
-                    document.getElementById('createAccountBtn').loading = true;
                     
-                    // Create account
-                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    
-                    // Update profile
-                    await userCredential.user.updateProfile({
-                        displayName: name
+                    // Close share menu
+                    closeShareBtn.addEventListener('click', () => {
+                        shareMenu.classList.remove('active');
                     });
                     
-                    // Create user document
-                    await db.collection('users').doc(userCredential.user.uid).set({
-                        displayName: name,
-                        email: email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                    // Copy link button
+                    copyLinkBtn.addEventListener('click', () => {
+                        copyToClipboard(shareLink.value);
                     });
                     
-                    signupModal.open = false;
-                    showToast("Account created successfully", "success");
-                } catch (error) {
-                    console.error("Signup error:", error);
-                    showToast("Sign up failed: " + error.message, "danger");
-                } finally {
-                    document.getElementById('createAccountBtn').loading = false;
-                }
-            }
-            
-            async function signInWithGoogle() {
-                try {
-                    const provider = new firebase.auth.GoogleAuthProvider();
-                    await auth.signInWithPopup(provider);
-                    loginModal.open = false;
-                    showToast("Signed in with Google", "success");
-                } catch (error) {
-                    console.error("Google login error:", error);
-                    showToast("Google login failed: " + error.message, "danger");
-                }
-            }
-            
-            async function signInWithFacebook() {
-                try {
-                    const provider = new firebase.auth.FacebookAuthProvider();
-                    await auth.signInWithPopup(provider);
-                    loginModal.open = false;
-                    showToast("Signed in with Facebook", "success");
-                } catch (error) {
-                    console.error("Facebook login error:", error);
-                    showToast("Facebook login failed: " + error.message, "danger");
-                }
-            }
-            
-            async function signOut() {
-                try {
-                    await auth.signOut();
-                    showToast("Signed out successfully", "success");
-                } catch (error) {
-                    console.error("Sign out error:", error);
-                    showToast("Failed to sign out", "danger");
-                }
-            }
-            
-            // Helper functions
-            function copyToClipboard(text) {
-                navigator.clipboard.writeText(text)
-                    .then(() => {
-                        showToast("Copied to clipboard", "success");
-                    })
-                    .catch(err => {
-                        console.error('Copy failed:', err);
-                        showToast("Failed to copy to clipboard", "danger");
+                    // Download QR code
+                    downloadQrBtn.addEventListener('click', () => {
+                        const canvas = qrCode.querySelector('canvas');
+                        if (canvas) {
+                            const link = document.createElement('a');
+                            link.download = 'qrcode.png';
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                        }
                     });
-            }
-            
-            function showToast(message, kind = "info") {
-                toast.label = message;
-                toast.kind = kind;
-                toast.open = true;
-            }
-            
-            function playNotificationSound() {
-                const audio = new Audio('https://firebasestorage.googleapis.com/v0/b/the-commons-2.appspot.com/o/notification.mp3?alt=media');
-                audio.play().catch(err => console.log('Audio play prevented:', err));
-            }
-            
-            function formatDate(timestamp) {
-                if (!timestamp) return '';
+                    
+                    // Notification button
+                    notificationsBtn.addEventListener('click', () => {
+                        notificationMenu.classList.toggle('active');
+                        
+                        if (notificationMenu.classList.contains('active')) {
+                            loadNotifications();
+                        }
+                    });
+                    
+                    // Close notifications
+                    closeNotificationsBtn.addEventListener('click', () => {
+                        notificationMenu.classList.remove('active');
+                    });
+                    
+                    // Create post button
+                    createPostBtn.addEventListener('click', createPost);
+                    
+                    // Attach photo button
+                    attachPhotoBtn.addEventListener('click', () => {
+                        photoInput.click();
+                    });
+                    
+                    // Handle photo selection
+                    photoInput.addEventListener('change', e => {
+                        if (e.target.files && e.target.files.length > 0) {
+                            handleFileSelection(e.target.files);
+                        }
+                    });
+                    
+                    // Theme toggle
+                    themeToggleBtn.addEventListener('click', toggleTheme);
+                    
+                    // Login button
+                    loginBtn.addEventListener('click', () => {
+                        loginModal.open = true;
+                    });
+                    
+                    // Logout button
+                    logoutBtn.addEventListener('click', signOut);
+                    
+                    // Sign up link
+                    document.getElementById('signupLink').addEventListener('click', () => {
+                        loginModal.open = false;
+                        signupModal.open = true;
+                    });
+                    
+                    // Login link
+                    document.getElementById('loginLink').addEventListener('click', () => {
+                        signupModal.open = false;
+                        loginModal.open = true;
+                    });
+                    
+                    // Forgot password link
+                    document.getElementById('forgotPasswordLink').addEventListener('click', () => {
+                        document.getElementById('loginForm').hidden = true;
+                        document.getElementById('forgotPasswordForm').hidden = false;
+                    });
+                    
+                    // Back to login link
+                    document.getElementById('backToLoginLink').addEventListener('click', () => {
+                        document.getElementById('loginForm').hidden = false;
+                        document.getElementById('forgotPasswordForm').hidden = true;
+                    });
+                    
+                    // Login with email button
+                    document.getElementById('loginWithEmailBtn').addEventListener('click', signInWithEmail);
+                    
+                    // Create account button
+                    document.getElementById('createAccountBtn').addEventListener('click', createAccount);
+                    
+                    // Google login button
+                    document.getElementById('googleLoginBtn').addEventListener('click', signInWithGoogle);
+                    
+                    // Facebook login button
+                    document.getElementById('facebookLoginBtn').addEventListener('click', signInWithFacebook);
+                }
                 
-                const date = new Date(timestamp);
-                return date.toLocaleDateString();
-            }
-            
-            function formatRelativeTime(timestamp) {
-                if (!timestamp) return '';
-                
-                const now = new Date();
-                const date = new Date(timestamp);
-                const diff = Math.floor((now - date) / 1000); // Difference in seconds
-                
-                if (diff < 60) return 'Just now';
-                if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-                if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-                if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-                
-                return date.toLocaleDateString();
-            }
-            
-            function toggleTheme() {
-                const isDark = document.body.classList.toggle('theme-dark');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                themeToggleBtn.icon = isDark ? 'brightness' : 'moon';
-            }
-            
-            function checkThemePreference() {
-                const savedTheme = localStorage.getItem('theme');
-                
-                if (savedTheme === 'dark') {
-                    document.body.classList.add('theme-dark');
-                    themeToggleBtn.icon = 'brightness';
-                } else if (savedTheme === 'light') {
-                    document.body.classList.remove('theme-dark');
-                    themeToggleBtn.icon = 'moon';
-                } else {
-                    // Check system preference
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    if (prefersDark) {
-                        document.body.classList.add('theme-dark');
-                        themeToggleBtn.icon = 'brightness';
+                // Handle file selection for post creation
+                function handleFileSelection(files) {
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        
+                        // Skip non-image files
+                        if (!file.type.startsWith('image/')) continue;
+                        
+                        // Limit to 5 files
+                        if (attachedFiles.length >= 5) {
+                            showToast("Maximum 5 images allowed", "warning");
+                            break;
+                        }
+                        
+                        // Add to array
+                        attachedFiles.push(file);
+                        
+                        // Create preview
+                        const preview = document.createElement('div');
+                        preview.className = 'attachment-preview';
+                        preview.innerHTML = `
+                            <img src="${URL.createObjectURL(file)}" alt="Attachment preview">
+                            <div class="attachment-remove" data-index="${attachedFiles.length - 1}">×</div>
+                        `;
+                        
+                        // Add to previews
+                        attachmentPreviews.appendChild(preview);
+                        
+                        // Add remove handler
+                        preview.querySelector('.attachment-remove').addEventListener('click', function() {
+                            const index = parseInt(this.dataset.index);
+                            attachedFiles.splice(index, 1);
+                            preview.remove();
+                            
+                            // Update indexes
+                            document.querySelectorAll('.attachment-remove').forEach((el, i) => {
+                                el.dataset.index = i;
+                            });
+                        });
                     }
                 }
-            }
-            
-            // Initialize the app
-            initApp();
+                
+                // Authentication functions
+                async function signInWithEmail() {
+                    const email = document.getElementById('loginEmail').value;
+                    const password = document.getElementById('loginPassword').value;
+                    
+                    if (!email || !password) {
+                        showToast("Please enter email and password", "warning");
+                        return;
+                    }
+                    
+                    try {
+                        document.getElementById('loginWithEmailBtn').loading = true;
+                        await auth.signInWithEmailAndPassword(email, password);
+                        loginModal.open = false;
+                        showToast("Signed in successfully", "success");
+                    } catch (error) {
+                        console.error("Login error:", error);
+                        showToast("Login failed: " + error.message, "danger");
+                    } finally {
+                        document.getElementById('loginWithEmailBtn').loading = false;
+                    }
+                }
+                
+                async function createAccount() {
+                    const name = document.getElementById('signupName').value;
+                    const email = document.getElementById('signupEmail').value;
+                    const password = document.getElementById('signupPassword').value;
+                    const confirmPassword = document.getElementById('signupConfirmPassword').value;
+                    const termsAccepted = document.getElementById('termsCheckbox').checked;
+                    
+                    if (!name || !email || !password) {
+                        showToast("Please fill all required fields", "warning");
+                        return;
+                    }
+                    
+                    if (password !== confirmPassword) {
+                        showToast("Passwords do not match", "warning");
+                        return;
+                    }
+                    
+                    if (!termsAccepted) {
+                        showToast("Please accept the terms of service", "warning");
+                        return;
+                    }
+                    
+                    try {
+                        document.getElementById('createAccountBtn').loading = true;
+                        
+                        // Create account
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        
+                        // Update profile
+                        await userCredential.user.updateProfile({
+                            displayName: name
+                        });
+                        
+                        // Create user document
+                        await db.collection('users').doc(userCredential.user.uid).set({
+                            displayName: name,
+                            email: email,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        signupModal.open = false;
+                        showToast("Account created successfully", "success");
+                    } catch (error) {
+                        console.error("Signup error:", error);
+                        showToast("Sign up failed: " + error.message, "danger");
+                    } finally {
+                        document.getElementById('createAccountBtn').loading = false;
+                    }
+                }
+                
+                async function signInWithGoogle() {
+                    try {
+                        const provider = new firebase.auth.GoogleAuthProvider();
+                        await auth.signInWithPopup(provider);
+                        loginModal.open = false;
+                        showToast("Signed in with Google", "success");
+                    } catch (error) {
+                        console.error("Google login error:", error);
+                        showToast("Google login failed: " + error.message, "danger");
+                    }
+                }
+                
+                async function signInWithFacebook() {
+                    try {
+                        const provider = new firebase.auth.FacebookAuthProvider();
+                        await auth.signInWithPopup(provider);
+                        loginModal.open = false;
+                        showToast("Signed in with Facebook", "success");
+                    } catch (error) {
+                        console.error("Facebook login error:", error);
+                        showToast("Facebook login failed: " + error.message, "danger");
+                    }
+                }
+                
+                async function signOut() {
+                    try {
+                        await auth.signOut();
+                        showToast("Signed out successfully", "success");
+                    } catch (error) {
+                        console.error("Sign out error:", error);
+                        showToast("Failed to sign out", "danger");
+                    }
+                }
+                
+                // Helper functions
+                function copyToClipboard(text) {
+                    navigator.clipboard.writeText(text)
+                        .then(() => {
+                            showToast("Copied to clipboard", "success");
+                        })
+                        .catch(err => {
+                            console.error('Copy failed:', err);
+                            showToast("Failed to copy to clipboard", "danger");
+                        });
+                }
+                
+                function showToast(message, kind = "info") {
+                    toast.label = message;
+                    toast.kind = kind;
+                    toast.open = true;
+                }
+                
+                function playNotificationSound() {
+                    const audio = new Audio('https://firebasestorage.googleapis.com/v0/b/the-commons-2.appspot.com/o/notification.mp3?alt=media');
+                    audio.play().catch(err => console.log('Audio play prevented:', err));
+                }
+                
+                function formatDate(timestamp) {
+                    if (!timestamp) return '';
+                    
+                    const date = new Date(timestamp);
+                    return date.toLocaleDateString();
+                }
+                
+                function formatRelativeTime(timestamp) {
+                    if (!timestamp) return '';
+                    
+                    const now = new Date();
+                    const date = new Date(timestamp);
+                    const diff = Math.floor((now - date) / 1000); // Difference in seconds
+                    
+                    if (diff < 60) return 'Just now';
+                    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+                    
+                    return date.toLocaleDateString();
+                }
+                
+                function toggleTheme() {
+                    document.body.classList.toggle('theme-dark');
+                    const isDark = document.body.classList.contains('theme-dark');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                }
+                
+                function checkThemePreference() {
+                    const savedTheme = localStorage.getItem('theme');
+                    if (savedTheme === 'dark') {
+                        document.body.classList.add('theme-dark');
+                    }
+                }
+                
+                // Initialize the app
+                initApp();
+            });
         });
     </script>
 </body>
