@@ -1,1 +1,855 @@
-/* Core Variables */ :root { /* Brand Colors */ --primary: #2d4739; --secondary: #7a9a76; --accent: #ffd700; --accent-alt: #ff9500; /* UI Colors - Light Theme */ --background: #f5f7f6; --card-bg: #ffffff; --card-border: rgba(122,154,118,0.15); --text-primary: rgba(45,71,57,0.9); --text-secondary: rgba(45,71,57,0.65); --divider: rgba(122,154,118,0.15); /* Shadows */ --shadow-sm: 0 2px 8px rgba(0,0,0,0.04); --shadow-md: 0 4px 20px rgba(0,0,0,0.08); --shadow-lg: 0 10px 30px rgba(0,0,0,0.12); /* Typography */ --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* Spacing */ --space-xs: 4px; --space-sm: 8px; --space-md: 16px; --space-lg: 24px; --space-xl: 32px; /* Border Radius */ --radius-sm: 8px; --radius-md: 12px; --radius-lg: 20px; --radius-xl: 28px; --radius-full: 9999px; /* Transition */ --transition-fast: 0.15s ease; --transition-normal: 0.25s ease; --transition-slow: 0.35s ease; /* Z-index layers */ --z-nav: 100; --z-dropdown: 200; --z-modal: 300; --z-toast: 400; --z-overlay: 500; } /* Dark Mode Variables */ .theme-dark { --background: #1a2321; --card-bg: #2a3632; --card-border: rgba(122,154,118,0.2); --text-primary: rgba(255,255,255,0.9); --text-secondary: rgba(255,255,255,0.6); --divider: rgba(255,255,255,0.1); /* Adjusted shadows for dark mode */ --shadow-sm: 0 2px 8px rgba(0,0,0,0.15); --shadow-md: 0 4px 20px rgba(0,0,0,0.25); --shadow-lg: 0 10px 30px rgba(0,0,0,0.35); } /* Base Styles */ * { box-sizing: border-box; margin: 0; padding: 0; } html { height: 100%; font-size: 16px; } body { font-family: var(--font-family); background: var(--background); color: var(--text-primary); min-height: 100%; display: flex; flex-direction: column; transition: background-color var(--transition-normal); padding-top: 70px; /* Space for fixed header */ touch-action: pan-y; } a { color: var(--primary); text-decoration: none; transition: color var(--transition-fast); } a:hover { color: var(--accent-alt); } /* 2025 UI Trends - Typography */ h1 { font-size: 2.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: var(--space-lg); } h2 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: var(--space-md); } /* Layout */ .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 var(--space-md); } /* Header */ .app-header { position: fixed; top: 0; left: 0; right: 0; height: 70px; background-color: var(--primary); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-md); box-shadow: var(--shadow-md); z-index: var(--z-nav); } .app-logo { display: flex; align-items: center; gap: var(--space-sm); color: white; font-weight: 600; font-size: 1.4rem; } .app-logo img { height: 40px; } .nav-actions { display: flex; align-items: center; gap: var(--space-sm); } /* 2025 UI Trends - Feed Cards */ .feed-container { padding: var(--space-lg) 0; } .feed-item { background: var(--card-bg); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-lg); border: 1px solid var(--card-border); box-shadow: var(--shadow-md); position: relative; transition: transform var(--transition-normal), box-shadow var(--transition-normal); overflow: hidden; } .feed-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); } /* Cool morphism effect - 2025 UI Trend */ .feed-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), var(--secondary)); opacity: 0.8; border-radius: var(--radius-lg) var(--radius-lg) 0 0; } .feed-header { display: flex; gap: var(--space-md); align-items: center; margin-bottom: var(--space-md); } .feed-avatar { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 28px; border-radius: 50%; background: white; border: 2px solid var(--accent); box-shadow: var(--shadow-sm); flex-shrink: 0; } .feed-author-info { flex: 1; } .feed-author { font-weight: 600; font-size: 1.2rem; margin-bottom: 4px; display: flex; align-items: center; gap: var(--space-xs); } .verification-badge { color: var(--accent); font-size: 1rem; } .feed-meta { display: flex; gap: var(--space-md); font-size: 0.9rem; color: var(--text-secondary); flex-wrap: wrap; } .feed-options { position: absolute; top: var(--space-md); right: var(--space-md); } .category-tag { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: var(--radius-full); background: rgba(122,154,118,0.15); color: var(--primary); font-size: 0.85rem; font-weight: 500; border: 1px solid var(--card-border); } .feed-content { margin: var(--space-md) 0; line-height: 1.5; } /* 2025 UI Trends - Grid Layout */ .feed-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-sm); margin: var(--space-md) 0; } .feed-photo { aspect-ratio: 1 / 1; width: 100%; height: auto; object-fit: cover; border-radius: var(--radius-md); cursor: pointer; transition: transform var(--transition-normal); border: 1px solid var(--card-border); } .feed-photo:hover { transform: scale(1.03); } /* 2025 UI Trends - Interaction Area */ .feed-actions { display: flex; gap: var(--space-md); margin-top: var(--space-md); border-top: 1px solid var(--divider); padding-top: var(--space-md); } .feed-stats { display: flex; gap: var(--space-lg); margin-bottom: var(--space-sm); font-size: 0.9rem; color: var(--text-secondary); } .stat-item { display: flex; align-items: center; gap: 4px; } /* 2025 UI Trends - Comments Section */ .comments-section { margin-top: var(--space-md); border-top: 1px solid var(--divider); padding-top: var(--space-md); } .comments-list { max-height: 300px; overflow-y: auto; margin: var(--space-md) 0; } .comment-item { padding: var(--space-sm) 0; border-bottom: 1px solid var(--divider); } .comment-header { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); } .comment-avatar { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-radius: 50%; background: white; border: 1px solid var(--accent); } .comment-author { font-weight: 500; font-size: 0.9rem; } .comment-text { font-size: 0.95rem; line-height: 1.4; margin-left: 40px; /* Align with author name */ } .comment-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: var(--space-xs); margin-left: 40px; } .comment-input-area { display: flex; gap: var(--space-sm); margin-top: var(--space-md); } /* 2025 UI Trends - Lightbox */ .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: var(--z-overlay); backdrop-filter: blur(5px); touch-action: none; } .lightbox.active { display: flex; align-items: center; justify-content: center; } .lightbox-content { position: relative; max-width: 90vw; max-height: 90vh; } .lightbox-img { max-width: 80vw; max-height: 80vh; object-fit: contain; border-radius: var(--radius-md); } .lightbox-nav { position: absolute; top: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); color: white; border-radius: 50%; cursor: pointer; transform: translateY(-50%); transition: background var(--transition-fast); } .lightbox-nav:hover { background: rgba(0,0,0,0.8); } .lightbox-prev { left: 20px; } .lightbox-next { right: 20px; } /* 2025 UI Trends - Share Menu */ .share-menu { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-lg); z-index: var(--z-modal); padding: var(--space-lg); transform: translateY(100%); transition: transform var(--transition-normal); touch-action: none; } .share-menu.active { transform: translateY(0); } .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); } .share-title { font-size: 1.2rem; font-weight: 600; } .share-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg); } .share-option { display: flex; flex-direction: column; align-items: center; gap: var(--space-xs); cursor: pointer; } .share-option-icon { width: 50px; height: 50px; border-radius: 50%; background: rgba(122,154,118,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: background var(--transition-fast); } .share-option:hover .share-option-icon { background: rgba(122,154,118,0.3); } .share-option-label { font-size: 0.8rem; text-align: center; } .share-link-area { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); } .qr-area { display: flex; flex-direction: column; align-items: center; margin-top: var(--space-md); } .qr-code { width: 150px; height: 150px; margin-bottom: var(--space-sm); } /* 2025 UI Trends - Reaction System */ .reaction-menu { position: absolute; bottom: 100%; left: 0; background: var(--card-bg); border-radius: var(--radius-full); box-shadow: var(--shadow-md); display: flex; padding: var(--space-xs); margin-bottom: var(--space-xs); transform: scale(0.8); opacity: 0; transform-origin: bottom left; transition: transform var(--transition-fast), opacity var(--transition-fast); pointer-events: none; } .reaction-menu.active { transform: scale(1); opacity: 1; pointer-events: auto; } .reaction-option { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; border-radius: 50%; transition: transform var(--transition-fast), background var(--transition-fast); } .reaction-option:hover { transform: scale(1.2); background: rgba(122,154,118,0.15); } .reaction-summary { display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-full); padding: 4px 8px 4px 4px; font-size: 0.9rem; margin-right: auto; } .reaction-icons { display: flex; margin-right: 4px; } .reaction-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; margin-left: -8px; border: 2px solid var(--card-bg); font-size: 0.8rem; } .reaction-icon:first-child { margin-left: 0; } /* 2025 UI Trends - Create Post */ .create-post { background: var(--card-bg); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-lg); border: 1px solid var(--card-border); box-shadow: var(--shadow-md); } .create-post-header { display: flex; gap: var(--space-md); align-items: center; margin-bottom: var(--space-md); } .create-post-input { flex: 1; position: relative; } .create-post-button { margin-left: auto; } .attachment-previews { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-md); } .attachment-preview { position: relative; width: 80px; height: 80px; } .attachment-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-sm); } .attachment-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,0,0,0.8); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; } /* 2025 UI Trends - Notifications */ .notification-menu { position: fixed; top: 70px; right: 0; width: 350px; max-width: 100%; height: calc(100% - 70px); background: var(--card-bg); box-shadow: var(--shadow-lg); z-index: var(--z-dropdown); transform: translateX(100%); transition: transform var(--transition-normal); } .notification-menu.active { transform: translateX(0); } .notification-header { padding: var(--space-md); border-bottom: 1px solid var(--divider); display: flex; justify-content: space-between; align-items: center; } .notification-list { height: calc(100% - 56px); overflow-y: auto; } .notification-item { padding: var(--space-md); border-bottom: 1px solid var(--divider); display: flex; gap: var(--space-md); transition: background var(--transition-fast); cursor: pointer; } .notification-item:hover { background: rgba(122,154,118,0.05); } .notification-item.unread { background: rgba(122,154,118,0.1); } .notification-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(122,154,118,0.15); font-size: 1.2rem; flex-shrink: 0; } .notification-content { flex: 1; } .notification-text { margin-bottom: 4px; line-height: 1.4; } .notification-time { font-size: 0.8rem; color: var(--text-secondary); } /* 2025 UI Trends - Loading Skeletons */ .skeleton { background: linear-gradient(90deg, var(--card-border) 0%, rgba(255,255,255,0.5) 50%, var(--card-border) 100%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; border-radius: var(--radius-sm); } @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } } .skeleton-feed-item { padding: var(--space-lg); margin-bottom: var(--space-lg); border-radius: var(--radius-lg); background: var(--card-bg); } .skeleton-header { display: flex; gap: var(--space-md); margin-bottom: var(--space-md); } .skeleton-avatar { width: 56px; height: 56px; border-radius: 50%; } .skeleton-info { flex: 1; } .skeleton-name { height: 1.2rem; width: 40%; margin-bottom: var(--space-sm); } .skeleton-meta { height: 0.9rem; width: 60%; } .skeleton-content { height: 4rem; margin: var(--space-md) 0; } .skeleton-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm); margin: var(--space-md) 0; } .skeleton-photo { aspect-ratio: 1 / 1; border-radius: var(--radius-md); } /* Animations */ @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } } @keyframes slide-up { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } } @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } } /* Animations for new elements */ .new-element { animation: fade-in 0.5s ease forwards, slide-up 0.5s ease forwards; } /* Responsive design */ @media (max-width: 768px) { body { padding-top: 60px; } .app-header { height: 60px; } .app-logo { font-size: 1.1rem; } .app-logo img { height: 32px; } .feed-item { padding: var(--space-md); } .feed-header { gap: var(--space-sm); } .feed-avatar { width: 48px; height: 48px; font-size: 24px; } .feed-photos { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); } .share-options { grid-template-columns: repeat(3, 1fr); } .notification-menu { width: 100%; } } @media (max-width: 480px) { .feed-actions { flex-wrap: wrap; gap: var(--space-sm); } .share-options { grid-template-columns: repeat(2, 1fr); } }
+/* Core Variables */
+:root {
+  /* Brand Colors */
+  --primary: #2d4739;
+  --secondary: #7a9a76;
+  --accent: #ffd700;
+  --accent-alt: #ff9500;
+
+  /* UI Colors - Light Theme */
+  --background: #f5f7f6;
+  --card-bg: #ffffff;
+  --card-border: rgba(122,154,118,0.15);
+  --text-primary: rgba(45,71,57,0.9);
+  --text-secondary: rgba(45,71,57,0.65);
+  --divider: rgba(122,154,118,0.15);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Transition */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.35s ease;
+
+  /* Z-index layers */
+  --z-nav: 100;
+  --z-dropdown: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-overlay: 500;
+}
+
+/* Dark Mode Variables */
+.theme-dark {
+  --background: #1a2321;
+  --card-bg: #2a3632;
+  --card-border: rgba(122,154,118,0.2);
+  --text-primary: rgba(255,255,255,0.9);
+  --text-secondary: rgba(255,255,255,0.6);
+  --divider: rgba(255,255,255,0.1);
+
+  /* Adjusted shadows for dark mode */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.25);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--background);
+  color: var(--text-primary);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--transition-normal);
+  padding-top: 70px; /* Space for fixed header */
+  touch-action: pan-y;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-alt);
+}
+
+/* 2025 UI Trends - Typography */
+h1 {
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-lg);
+}
+
+h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-md);
+}
+
+/* Layout */
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+/* Header */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-nav);
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: white;
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+
+.app-logo img {
+  height: 40px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* 2025 UI Trends - Feed Cards */
+.feed-container {
+  padding: var(--space-lg) 0;
+}
+
+.feed-item {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  overflow: hidden;
+}
+
+.feed-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Cool morphism effect - 2025 UI Trend */
+.feed-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary));
+  opacity: 0.8;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.feed-header {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.feed-avatar {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.feed-author-info {
+  flex: 1;
+}
+
+.feed-author {
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.verification-badge {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.feed-meta {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.feed-options {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+}
+
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(122,154,118,0.15);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid var(--card-border);
+}
+
+.feed-content {
+  margin: var(--space-md) 0;
+  line-height: 1.5;
+}
+
+/* 2025 UI Trends - Grid Layout */
+.feed-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+}
+
+.feed-photo {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--transition-normal);
+  border: 1px solid var(--card-border);
+}
+
+.feed-photo:hover {
+  transform: scale(1.03);
+}
+
+/* 2025 UI Trends - Interaction Area */
+.feed-actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--divider);
+  padding-top: var(--space-md);
+}
+
+.feed-stats {
+  display: flex;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-sm);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 2025 UI Trends - Comments Section */
+.comments-section {
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--divider);
+  padding-top: var(--space-md);
+}
+
+.comments-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: var(--space-md) 0;
+}
+
+.comment-item {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--accent);
+}
+
+.comment-author {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.comment-text {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-left: 40px; /* Align with author name */
+}
+
+.comment-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+  margin-left: 40px;
+}
+
+.comment-input-area {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+/* 2025 UI Trends - Lightbox */
+.lightbox {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: var(--z-overlay);
+  backdrop-filter: blur(5px);
+  touch-action: none;
+}
+
+.lightbox.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.lightbox-img {
+  max-width: 80vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background var(--transition-fast);
+}
+
+.lightbox-nav:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+.lightbox-prev { left: 20px; }
+.lightbox-next { right: 20px; }
+
+/* 2025 UI Trends - Share Menu */
+.share-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-modal);
+  padding: var(--space-lg);
+  transform: translateY(100%);
+  transition: transform var(--transition-normal);
+  touch-action: none;
+}
+
+.share-menu.active {
+  transform: translateY(0);
+}
+
+.share-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.share-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.share-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.share-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+}
+
+.share-option-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(122,154,118,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  transition: background var(--transition-fast);
+}
+
+.share-option:hover .share-option-icon {
+  background: rgba(122,154,118,0.3);
+}
+
+.share-option-label {
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.share-link-area {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.qr-code {
+  width: 150px;
+  height: 150px;
+  margin-bottom: var(--space-sm);
+}
+
+/* 2025 UI Trends - Reaction System */
+.reaction-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: var(--card-bg);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  padding: var(--space-xs);
+  margin-bottom: var(--space-xs);
+  transform: scale(0.8);
+  opacity: 0;
+  transform-origin: bottom left;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.reaction-menu.active {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.reaction-option {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.reaction-option:hover {
+  transform: scale(1.2);
+  background: rgba(122,154,118,0.15);
+}
+
+.reaction-summary {
+  display: flex;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-full);
+  padding: 4px 8px 4px 4px;
+  font-size: 0.9rem;
+  margin-right: auto;
+}
+
+.reaction-icons {
+  display: flex;
+  margin-right: 4px;
+}
+
+.reaction-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -8px;
+  border: 2px solid var(--card-bg);
+  font-size: 0.8rem;
+}
+
+.reaction-icon:first-child {
+  margin-left: 0;
+}
+
+/* 2025 UI Trends - Create Post */
+.create-post {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-md);
+}
+
+.create-post-header {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.create-post-input {
+  flex: 1;
+  position: relative;
+}
+
+.create-post-button {
+  margin-left: auto;
+}
+
+.attachment-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.attachment-preview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.attachment-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255,0,0,0.8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* 2025 UI Trends - Notifications */
+.notification-menu {
+  position: fixed;
+  top: 70px;
+  right: 0;
+  width: 350px;
+  max-width: 100%;
+  height: calc(100% - 70px);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  transform: translateX(100%);
+  transition: transform var(--transition-normal);
+}
+
+.notification-menu.active {
+  transform: translateX(0);
+}
+
+.notification-header {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-list {
+  height: calc(100% - 56px);
+  overflow-y: auto;
+}
+
+.notification-item {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  gap: var(--space-md);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: rgba(122,154,118,0.05);
+}
+
+.notification-item.unread {
+  background: rgba(122,154,118,0.1);
+}
+
+.notification-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(122,154,118,0.15);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-text {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.notification-time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* 2025 UI Trends - Loading Skeletons */
+.skeleton {
+  background: linear-gradient(90deg, var(--card-border) 0%, rgba(255,255,255,0.5) 50%, var(--card-border) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-feed-item {
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+}
+
+.skeleton-header {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.skeleton-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.skeleton-info {
+  flex: 1;
+}
+
+.skeleton-name {
+  height: 1.2rem;
+  width: 40%;
+  margin-bottom: var(--space-sm);
+}
+
+.skeleton-meta {
+  height: 0.9rem;
+  width: 60%;
+}
+
+.skeleton-content {
+  height: 4rem;
+  margin: var(--space-md) 0;
+}
+
+.skeleton-photos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+}
+
+.skeleton-photo {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+}
+
+/* Animations */
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Animations for new elements */
+.new-element {
+  animation: fade-in 0.5s ease forwards, slide-up 0.5s ease forwards;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  body {
+    padding-top: 60px;
+  }
+  .app-header {
+    height: 60px;
+  }
+  .app-logo {
+    font-size: 1.1rem;
+  }
+  .app-logo img {
+    height: 32px;
+  }
+  .feed-item {
+    padding: var(--space-md);
+  }
+  .feed-header {
+    gap: var(--space-sm);
+  }
+  .feed-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+  .feed-photos {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  .share-options {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .notification-menu {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .feed-actions {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .share-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
