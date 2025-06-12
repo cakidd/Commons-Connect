@@ -3,740 +3,1603 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchase MountainShares - The Commons</title>
+    <title>The Commons – West Virginia Business Network | Mountaineers </title>
+    <meta name="description" content="The future of local commerce. Innovative business networking platform for West Virginia communities.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cakidd.github.io/Commons-Connect/">
+    <meta property="og:title" content="The Commons - West Virginia Business Network">
+    <meta property="og:description" content="Local digital currency, free business analytics, and community marketplace. Launching Fall 2025 in Fayette County, WV.">
+    <meta property="og:image" content="https://i.imgur.com/cLHJYe3.jpg">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://cakidd.github.io/Commons-Connect/">
+    <meta property="twitter:title" content="The Commons - West Virginia Business Network">
+    <meta property="twitter:description" content="Local digital currency, free business analytics, and community marketplace. Launching Fall 2025 in Fayette County, WV.">
+    <meta property="twitter:image" content="https://i.imgur.com/cLHJYe3.jpg">
+    
+    <!-- FORCE CACHE REFRESH -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-526FNHHQ5Y"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-526FNHHQ5Y');
+    </script>
+    
     <style>
-        :root {
-            --wv-blue: #1e3a8a;
-            --wv-gold: #fbbf24;
-            --mountain-dark: #1f2937;
-            --mountain-light: #374151;
-            --mountain-white: #f9fafb;
-            --success-green: #10b981;
-            --error-red: #ef4444;
-            --warning-yellow: #f59e0b;
-            --gold-gradient: linear-gradient(135deg, #fbbf24, #f59e0b);
-        }
-
+        /* ADVANCED DIGITAL DESIGN SYSTEM */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --wv-gold: #FFD700;
+            --mountain-blue: #0066FF;
+            --sky-blue: #00BFFF;
+            --deep-black: #000000;
+            --mountain-dark: #0A0A0A;
+            --stone-gray: #1A1A1A;
+            --mountain-white: #FFFFFF;
+            --mountain-gradient: linear-gradient(45deg, #000000, #001122, #0066FF);
+            --gold-gradient: linear-gradient(135deg, #FFD700, #FFA500, #FF6B35);
+            --premium-gradient: conic-gradient(from 0deg, #FFD700, #0066FF, #FFD700);
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--mountain-dark) 0%, var(--wv-blue) 100%);
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: var(--mountain-dark);
             color: var(--mountain-white);
+            overflow-x: hidden;
+            position: relative;
             min-height: 100vh;
-            line-height: 1.6;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 40px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .header h1 {
-            font-size: 3em;
-            background: var(--gold-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 15px;
-        }
-
-        .header p {
-            font-size: 1.2em;
-            color: var(--mountain-white);
-            opacity: 0.9;
-        }
-
-        .purchase-section {
-            background: var(--mountain-light);
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 30px;
-            border: 2px solid var(--wv-gold);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .input-group {
-            margin-bottom: 25px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--wv-gold);
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid var(--mountain-dark);
-            border-radius: 12px;
-            background: var(--mountain-dark);
-            color: var(--mountain-white);
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--wv-gold);
-            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
-        }
-
-        .price-display {
-            background: var(--mountain-dark);
-            padding: 25px;
-            border-radius: 15px;
-            margin: 25px 0;
-            border: 2px solid var(--wv-gold);
-        }
-
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        .price-row.total {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: var(--wv-gold);
-            border-top: 2px solid var(--wv-gold);
-            padding-top: 15px;
-            margin-top: 15px;
-        }
-
-        .wallet-section {
-            background: rgba(251, 191, 36, 0.1);
-            padding: 20px;
-            border-radius: 12px;
-            margin: 25px 0;
-            border: 1px solid var(--wv-gold);
-        }
-
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: var(--gold-gradient);
-            color: var(--mountain-dark);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(251, 191, 36, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--mountain-dark);
-            color: var(--mountain-white);
-            border: 2px solid var(--wv-gold);
-        }
-
-        .btn-secondary:hover {
-            background: var(--wv-gold);
-            color: var(--mountain-dark);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .status-message {
-            padding: 15px;
-            border-radius: 12px;
-            margin: 20px 0;
-            font-weight: 600;
-            border: 2px solid;
-        }
-
-        .status-success {
-            background: rgba(16, 185, 129, 0.2);
-            border-color: var(--success-green);
-            color: var(--success-green);
-        }
-
-        .status-error {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: var(--error-red);
-            color: var(--error-red);
-        }
-
-        .status-warning {
-            background: rgba(245, 158, 11, 0.2);
-            border-color: var(--warning-yellow);
-            color: var(--warning-yellow);
-        }
-
-        .network-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 1000;
-        }
-
-        .network-online {
-            background: var(--success-green);
-            color: white;
-        }
-
-        .network-offline {
-            background: var(--error-red);
-            color: white;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .feature-card h3 {
-            color: var(--wv-gold);
-            margin-bottom: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .purchase-section {
-                padding: 20px;
-            }
-            
-            .price-row {
-                font-size: 1em;
-            }
-        }
-
-        .modal-overlay {
+        /* DYNAMIC BACKGROUND EFFECTS */
+        body::before {
+            content: '';
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 10000;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 102, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 70%, rgba(0, 191, 255, 0.05) 0%, transparent 50%);
+            animation: dynamicPulse 8s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes dynamicPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .business-app {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            min-height: 100vh;
+            position: relative;
+            border-left: 3px solid var(--wv-gold);
+            border-right: 3px solid var(--mountain-blue);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+        }
+
+        .business-header {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(26, 26, 26, 0.8));
+            backdrop-filter: blur(20px);
+            border-bottom: 3px solid transparent;
+            border-image: var(--premium-gradient) 1;
+            padding: 32px 40px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .premium-logo {
+            width: 80px;
+            height: 80px;
+            background: conic-gradient(from 0deg, #FFD700, #0066FF, #FFD700);
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 36px;
+            animation: logoSpin 6s linear infinite;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+            position: relative;
+            overflow: hidden;
         }
 
-        .modal-content {
-            background: var(--mountain-dark);
-            padding: 40px;
-            border-radius: 20px;
-            max-width: 500px;
-            width: 90%;
-            border: 3px solid var(--wv-gold);
-            text-align: center;
+        .premium-logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: logoScan 3s linear infinite;
         }
 
-        .modal-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
+        @keyframes logoSpin {
+            0% { transform: rotateY(0deg) rotateX(0deg); }
+            100% { transform: rotateY(360deg) rotateX(360deg); }
         }
 
-        .transaction-details {
-            background: rgba(0, 255, 0, 0.1);
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-            border: 2px solid #44ff44;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--wv-gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
+        @keyframes logoScan {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .brand-section h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 48px;
+            font-weight: 900;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+            animation: textGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes textGlow {
+            0%, 100% { filter: brightness(1) saturate(1); }
+            50% { filter: brightness(1.3) saturate(1.5); }
+        }
+
+        .business-tagline {
+            color: var(--sky-blue);
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            animation: taglinePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes taglinePulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .launch-badge {
+            background: var(--gold-gradient);
+            color: var(--mountain-dark);
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.4);
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .business-nav {
+            background: linear-gradient(135deg, rgba(42, 42, 42, 0.9), rgba(26, 26, 26, 0.95));
+            backdrop-filter: blur(30px);
+            border-bottom: 2px solid var(--sky-blue);
+            padding: 0 40px;
+            position: sticky;
+            top: 121px;
+            z-index: 900;
+        }
+
+        .nav-container {
+            display: flex;
+            gap: 4px;
+            max-width: 1600px;
+            margin: 0 auto;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-item {
+            flex-shrink: 0;
+            padding: 24px 36px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            border-bottom: 4px solid transparent;
+            position: relative;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: var(--gold-gradient);
+            transition: all 0.4s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-item:hover {
+            color: var(--wv-gold);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+        }
+
+        .nav-item:hover::before {
+            width: 90%;
+        }
+
+        .nav-item.active {
+            color: var(--wv-gold);
+            border-bottom-color: var(--wv-gold);
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 102, 255, 0.1));
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+        }
+
+        .nav-item.active::before {
+            width: 100%;
+        }
+
+        .main-content {
+            padding: 64px 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .content-tab {
+            display: none;
+        }
+
+        .content-tab.active {
+            display: block;
+            animation: slideIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(50px) scale(0.95) rotateX(10deg); 
+                filter: blur(10px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1) rotateX(0deg); 
+                filter: blur(0px);
+            }
+        }
+
+        .hero-section {
+            background: var(--mountain-gradient);
+            padding: 120px 80px;
+            border-radius: 30px;
+            margin-bottom: 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6), 0 20px 60px rgba(0, 102, 255, 0.3);
+            transform-style: preserve-3d;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: -100%;
+            width: 300%;
+            height: 300%;
+            background: conic-gradient(from 0deg, transparent, rgba(255, 215, 0, 0.1), transparent, rgba(0, 102, 255, 0.1), transparent);
+            animation: heroSpin 15s linear infinite;
+        }
+
+        @keyframes heroSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(360deg) scale(1.1); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 3;
+        }
+
+        .hero-section h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 64px;
+            font-weight: 900;
+            margin-bottom: 32px;
+            line-height: 1.1;
+            color: var(--mountain-white);
+            text-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+            animation: heroTextFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes heroTextFloat {
+            0%, 100% { transform: translateY(0) rotateX(0deg); }
+            50% { transform: translateY(-10px) rotateX(5deg); }
+        }
+
+        .hero-section p {
+            font-size: 24px;
+            margin-bottom: 56px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+            opacity: 0.95;
+            line-height: 1.7;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-premium {
+            padding: 24px 48px;
+            border: 3px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 18px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            min-width: 250px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-6px) scale(1.05) rotateX(10deg);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6), 0 20px 60px rgba(0, 102, 255, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--gold-gradient);
+            color: var(--mountain-dark);
+            border-color: var(--wv-gold);
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(0, 102, 255, 0.2));
+            color: var(--mountain-white);
+            border-color: var(--sky-blue);
+            backdrop-filter: blur(20px);
+        }
+
+        .btn-secondary:hover {
+            background: var(--sky-blue);
+            color: var(--mountain-dark);
+        }
+
+        /* COMING SOON BANNER */
+        .coming-soon-banner {
+            background: var(--gold-gradient);
+            color: var(--mountain-dark);
+            padding: 12px 32px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: inline-block;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.4);
+            border: 2px solid var(--wv-gold);
+            animation: comingSoonPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes comingSoonPulse {
+            0%, 100% { transform: scale(1) rotateZ(0deg); }
+            50% { transform: scale(1.05) rotateZ(1deg); }
+        }
+
+        /* CLICKABLE LINK STYLES */
+        .clickable-link {
+            color: var(--sky-blue);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .clickable-link:hover {
+            color: var(--wv-gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: var(--mountain-white);
+            text-decoration: none;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            background: var(--sky-blue);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 191, 255, 0.3);
+        }
+
+        /* ENHANCED STATUS INDICATORS */
+        .status-online {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .status-offline {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .status-checking {
+            color: #ff9800;
+            font-weight: bold;
+        }
+
+        .status-error {
+            color: #e91e63;
+            font-weight: bold;
+        }
+
+        .status-cors-error {
+            color: #ff6b35;
+            font-weight: bold;
+        }
+
+        .status-network-error {
+            color: #ff5722;
+            font-weight: bold;
+        }
+
+        .status-server-sleep {
+            color: #9c27b0;
+            font-weight: bold;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .business-header, .business-nav, .main-content {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+            
+            .hero-section {
+                padding: 80px 40px;
+            }
+            
+            .hero-section h2 {
+                font-size: 42px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn-premium {
+                width: 100%;
+                max-width: 350px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="network-status" id="network-status">🌐 Online</div>
+    <div class="business-app">
+        <header class="business-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="premium-logo">🏔️</div>
+                    <div class="brand-section">
+                        <h1>The Commons</h1>
+                        <div class="business-tagline">Digital Business Network</div>
+                    </div>
+                </div>
+                <div class="launch-badge">West Virginia • Digital Launch</div>
+            </div>
+        </header>
 
-    <div class="container">
-        <div class="header">
-            <h1>💎 Purchase MountainShares</h1>
-            <p>Digital currency that strengthens West Virginia communities</p>
+        <div class="business-nav">
+            <nav class="nav-container" role="tablist">
+                <button class="nav-item active" onclick="showTab('home')" role="tab">🏔️ Home</button>
+                <button class="nav-item" onclick="showTab('business')" role="tab">🏢 Business</button>
+                <button class="nav-item" onclick="showTab('feed')" role="tab">🌐 Business Feed</button>
+                <button class="nav-item" onclick="showTab('mountainshares')" role="tab">💎 MountainShares</button>
+                <button class="nav-item" onclick="showTab('access')" role="tab">🚀 Business Access</button>
+            </nav>
         </div>
 
-        <div class="purchase-section">
-            <h2 style="color: var(--wv-gold); margin-bottom: 30px; text-align: center;">
-                🏔️ Get Your MountainShares
-            </h2>
-
-            <div class="input-group">
-                <label for="ms-quantity">How many MountainShares do you want?</label>
-                <input type="number" id="ms-quantity" min="1" value="10" placeholder="Enter quantity">
-            </div>
-
-            <div class="price-display" id="pricing-display">
-                <div class="price-row">
-                    <span>💎 MountainShares Price:</span>
-                    <span id="ms-price">$1.00 each</span>
+        <main class="main-content">
+            <div id="home" class="content-tab active" role="tabpanel">
+                <div class="hero-section">
+                    <div class="hero-content">
+                        <h2>West Virginia's Digital Business Revolution</h2>
+                        <p>Keep money in our communities with MountainShares rewards, professional business tools, and a trusted local marketplace. Free for all businesses and residents.</p>
+                        <div class="button-group">
+                            <button class="btn-premium btn-primary" onclick="showTab('access')">🎯 Join The Network</button>
+                            <button class="btn-premium btn-secondary" onclick="showTab('mountainshares')">💎 Learn About MountainShares</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="price-row">
-                    <span>💳 Processing Fee (3.5%):</span>
-                    <span id="processing-fee">$0.35</span>
+
+                <!-- What Is The Commons Section -->
+                <div style="padding: 80px 40px; background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(42, 42, 42, 0.6)); border-radius: 20px; margin-bottom: 60px;">
+                    <h3 style="font-size: 42px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 32px; text-align: center;">🏔️ What Is The Commons?</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 32px; border-radius: 15px; border: 2px solid var(--sky-blue);">
+                            <h4 style="color: var(--wv-gold); font-size: 24px; margin-bottom: 16px;">💎 Local Currency System</h4>
+                            <p style="color: var(--mountain-white); line-height: 1.6;">Earn MountainShares (1 MS = $1) as bonuses for good work and community participation. Keep money circulating locally instead of flowing to big corporations.</p>
+                        </div>
+                        
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 32px; border-radius: 15px; border: 2px solid var(--sky-blue);">
+                            <h4 style="color: var(--wv-gold); font-size: 24px; margin-bottom: 16px;">🏢 Business Directory</h4>
+                            <p style="color: var(--mountain-white); line-height: 1.6;">Free professional listings with $15,000+ worth of business analytics. Customer tracking, competitor analysis, and sales metrics normally only big companies can afford.</p>
+                        </div>
+                        
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 32px; border-radius: 15px; border: 2px solid var(--sky-blue);">
+                            <h4 style="color: var(--wv-gold); font-size: 24px; margin-bottom: 16px;">⚖️ Community Protection</h4>
+                            <p style="color: var(--mountain-white); line-height: 1.6;">Democratic governance system where the community votes out bad actors. Real financial consequences for scams, no-shows, and rude behavior.</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="price-row total">
-                    <span>💰 Total Charge:</span>
-                    <span id="total-price">$10.35</span>
+
+                <!-- Social Sharing Section -->
+                <div style="text-align: center; padding: 40px; background: rgba(255, 255, 255, 0.03); border-radius: 20px; margin-bottom: 60px;">
+                    <h3 style="color: var(--wv-gold); font-size: 28px; margin-bottom: 20px;">📢 Share The Commons</h3>
+                    <p style="color: var(--mountain-white); margin-bottom: 30px;">Help spread the word about West Virginia's digital business revolution!</p>
+                    
+                    <div class="social-links">
+                        <a href="javascript:void(0)" onclick="shareOnFacebook()" class="social-link" title="Share on Facebook">📘</a>
+                        <a href="javascript:void(0)" onclick="shareOnTwitter()" class="social-link" title="Share on Twitter">🐦</a>
+                        <a href="javascript:void(0)" onclick="shareOnLinkedIn()" class="social-link" title="Share on LinkedIn">💼</a>
+                        <a href="javascript:void(0)" onclick="copyLink()" class="social-link" title="Copy Link">🔗</a>
+                        <a href="mailto:?subject=Check out The Commons - WV Business Network&body=I found this amazing local business network for West Virginia: https://cakidd.github.io/Commons-Connect/" class="social-link" title="Share via Email">✉️</a>
+                    </div>
+                </div>
+
+                <!-- How It Helps Section -->
+                <div style="text-align: center; padding: 60px 40px;">
+                    <h3 style="font-size: 36px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 32px;">🎯 How The Commons Helps You</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; max-width: 1000px; margin: 40px auto;">
+                        <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 102, 255, 0.1)); padding: 24px; border-radius: 15px;">
+                            <h4 style="color: var(--sky-blue); font-size: 20px; margin-bottom: 12px;">For Business Owners</h4>
+                            <p style="color: var(--mountain-white); line-height: 1.5;">Professional tools, free analytics, loyal employees who earn MountainShares bonuses, protection from bad customers, and more local customers.</p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 102, 255, 0.1)); padding: 24px; border-radius: 15px;">
+                            <h4 style="color: var(--sky-blue); font-size: 20px; margin-bottom: 12px;">For Employees</h4>
+                            <p style="color: var(--mountain-white); line-height: 1.5;">Earn MountainShares bonuses on top of your regular wage. Double your buying power while keeping money in your community.</p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 102, 255, 0.1)); padding: 24px; border-radius: 15px;">
+                            <h4 style="color: var(--sky-blue); font-size: 20px; margin-bottom: 12px;">For Residents</h4>
+                            <p style="color: var(--mountain-white); line-height: 1.5;">Safe local marketplace, trusted businesses, earn rewards for community participation, and support your neighbors.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="coming-soon-banner" style="margin-top: 50px;">
+                        ⚡ LAUNCHING FALL 2025 IN FAYETTE COUNTY ⚡
+                    </div>
                 </div>
             </div>
 
-            <div class="wallet-section">
-                <h3 style="color: var(--wv-gold); margin-bottom: 15px;">🔐 Wallet Connection</h3>
-                <div class="input-group">
-                    <label for="wallet-address">Your Ethereum Wallet Address:</label>
-                    <input type="text" id="wallet-address" placeholder="0x... or connect MetaMask">
+            <div id="business" class="content-tab" role="tabpanel">
+                <div style="text-align: center; padding: 60px 40px 40px 40px;">
+                    <h2 style="font-size: 48px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 24px;">🏢 Business Directory & Tools</h2>
+                    <p style="font-size: 24px; color: var(--sky-blue); margin-bottom: 50px; max-width: 800px; margin-left: auto; margin-right: auto;">Everything your business needs to succeed - completely free. Professional tools that normally cost thousands.</p>
                 </div>
-                <button class="btn btn-secondary" onclick="connectMetaMask()" style="width: 100%; margin-top: 10px;">
-                    🦊 Connect MetaMask Wallet
-                </button>
+
+                <div style="text-align: center; margin-top: 50px;">
+                    <div class="coming-soon-banner">Business Directory Launching Fall 2025</div>
+                </div>
             </div>
 
-            <div id="payment-status"></div>
+            <div id="feed" class="content-tab" role="tabpanel">
+                <div style="text-align: center; padding: 60px 40px 40px 40px;">
+                    <h2 style="font-size: 48px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 24px;">🌐 Community Feed & Marketplace</h2>
+                    <p style="font-size: 24px; color: var(--sky-blue); margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">Local social network where neighbors buy, sell, and connect. Like Facebook, but only for your community.</p>
+                </div>
 
-            <button class="btn btn-primary" id="purchase-btn" onclick="initiatePurchase()" 
-                    style="width: 100%; margin-top: 20px; font-size: 1.2em;">
-                💎 Purchase MountainShares
-            </button>
-        </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <div class="coming-soon-banner">Community Feed Launching Phase 2 - Winter 2025</div>
+                </div>
+            </div>
 
-        <div class="feature-grid">
-            <div class="feature-card">
-                <h3>🏪 Local Marketplace</h3>
-                <p>Use MountainShares at participating local businesses</p>
+            <div id="mountainshares" class="content-tab" role="tabpanel">
+                <div style="text-align: center; padding: 60px 40px 40px 40px;">
+                    <h2 style="font-size: 48px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 24px;">💎 MountainShares Currency</h2>
+                    <p style="font-size: 24px; color: var(--sky-blue); margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">Local digital currency that keeps money in West Virginia communities. <strong>1 MountainShare = $1 USD</strong></p>
+                    
+                    <!-- Enhanced System Status with Network Error Handling -->
+                    <div id="system-status" style="background: rgba(0, 102, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px auto; max-width: 700px; border: 2px solid var(--sky-blue);">
+                        <p style="color: var(--mountain-white); font-size: 16px;"><strong style="color: var(--wv-gold);">System Status:</strong> <span id="status-text" class="status-checking">Checking...</span></p>
+                        <p style="color: var(--mountain-white); font-size: 14px;"><strong>Blockchain:</strong> <span id="blockchain-status" class="status-checking">Loading...</span></p>
+                        <p style="color: var(--mountain-white); font-size: 14px;"><strong>Last Updated:</strong> <span id="last-updated">--</span></p>
+                        <p style="color: var(--mountain-white); font-size: 12px;"><strong>Debug Info:</strong> <span id="debug-info">Initializing...</span></p>
+                        <p style="color: var(--mountain-white); font-size: 12px;"><strong>Retry Count:</strong> <span id="retry-count">0</span></p>
+                        
+                        <!-- CORS Error Help -->
+                        <div id="cors-help" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255, 107, 53, 0.1); border-radius: 8px; border: 1px solid #ff6b35;">
+                            <h5 style="color: #ff6b35; margin-bottom: 10px;">🌐 CORS Error Detected</h5>
+                            <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.4; margin-bottom: 10px;">
+                                The backend server needs CORS headers configured. Using fallback proxy mode...
+                            </p>
+                            <button onclick="tryProxyMode()" style="padding: 8px 16px; background: var(--sky-blue); color: var(--mountain-dark); border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                🔄 Try Proxy Mode
+                            </button>
+                        </div>
+
+                        <!-- Network Error Help -->
+                        <div id="network-error-help" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255, 87, 34, 0.1); border-radius: 8px; border: 1px solid #ff5722;">
+                            <h5 style="color: #ff5722; margin-bottom: 10px;">🔴 Server Completely Down</h5>
+                            <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.4; margin-bottom: 10px;">
+                                The MountainShares server appears to be completely offline or unreachable. This is likely a server-side issue.
+                            </p>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 12px; color: #ccc;">
+                                <strong>Possible causes:</strong><br>
+                                • Railway.app server crashed or stopped<br>
+                                • DNS resolution issues<br>
+                                • Server maintenance in progress<br>
+                                • Network connectivity problems
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button onclick="retryConnection()" style="padding: 8px 16px; background: var(--sky-blue); color: var(--mountain-dark); border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                    🔄 Retry Connection
+                                </button>
+                                <button onclick="wakeupServer()" style="padding: 8px 16px; background: var(--wv-gold); color: var(--mountain-dark); border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                    ⚡ Try Wakeup
+                                </button>
+                                <button onclick="enableOfflineMode()" style="padding: 8px 16px; background: #9c27b0; color: var(--mountain-white); border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                    📱 Force Offline Mode
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Server Sleep Help -->
+                        <div id="server-sleep-help" style="display: none; margin-top: 15px; padding: 15px; background: rgba(156, 39, 176, 0.1); border-radius: 8px; border: 1px solid #9c27b0;">
+                            <h5 style="color: #9c27b0; margin-bottom: 10px;">😴 Server May Be Sleeping</h5>
+                            <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.4; margin-bottom: 10px;">
+                                Railway.app free tier servers go to sleep when inactive. Waking up the server...
+                            </p>
+                            <div id="wakeup-progress" style="display: none;">
+                                <div style="width: 100%; background: rgba(255,255,255,0.2); border-radius: 4px; margin: 10px 0;">
+                                    <div id="wakeup-progress-bar" style="width: 0%; height: 8px; background: var(--wv-gold); border-radius: 4px; transition: width 0.3s ease;"></div>
+                                </div>
+                                <p style="color: var(--mountain-white); font-size: 12px;" id="wakeup-status">Sending wakeup request...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simple MetaMask Setup Guide -->
+                <div style="background: linear-gradient(135deg, rgba(255, 165, 0, 0.1), rgba(255, 215, 0, 0.1)); padding: 50px 40px; border-radius: 20px; margin-bottom: 50px; border: 2px solid var(--wv-gold);">
+                    <h3 style="font-size: 32px; color: var(--wv-gold); text-align: center; margin-bottom: 32px;">🦊 Easy MetaMask Wallet Setup</h3>
+                    
+                    <div style="max-width: 800px; margin: 0 auto;">
+                        <p style="color: var(--mountain-white); font-size: 18px; text-align: center; margin-bottom: 40px;">
+                            <strong>MetaMask is like a digital wallet.</strong> Think of it like a safe place to keep your MountainShares on your computer or phone.
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+                            <div style="background: rgba(0, 0, 0, 0.3); padding: 24px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+                                <h4 style="color: var(--sky-blue); font-size: 18px; margin-bottom: 12px;">Step 1: Get MetaMask</h4>
+                                <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.5; margin-bottom: 16px;">
+                                    Go to <strong>metamask.io</strong> on your computer or phone. Click "Download" and pick your web browser (Chrome, Firefox, etc.)
+                                </p>
+                                <a href="https://metamask.io/download/" target="_blank" class="clickable-link" style="font-weight: bold;">🔗 Download MetaMask</a>
+                            </div>
+                            
+                            <div style="background: rgba(0, 0, 0, 0.3); padding: 24px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+                                <h4 style="color: var(--sky-blue); font-size: 18px; margin-bottom: 12px;">Step 2: Make Your Wallet</h4>
+                                <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.5;">
+                                    Click "Create a Wallet." Pick a strong password. Write down the 12 secret words they give you and keep them safe!
+                                </p>
+                            </div>
+                            
+                            <div style="background: rgba(0, 0, 0, 0.3); padding: 24px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">💎</div>
+                                <h4 style="color: var(--sky-blue); font-size: 18px; margin-bottom: 12px;">Step 3: Get Your Address</h4>
+                                <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.5;">
+                                    Your wallet address starts with "0x" and has letters and numbers. Copy this address to buy MountainShares.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255, 0, 0, 0.1); padding: 20px; border-radius: 12px; margin-top: 32px; border: 2px solid #ff4444;">
+                            <h4 style="color: #ff4444; font-size: 18px; margin-bottom: 12px; text-align: center;">⚠️ Keep Your Wallet Safe!</h4>
+                            <ul style="color: var(--mountain-white); line-height: 1.5; margin: 0; padding-left: 20px; font-size: 14px;">
+                                <li><strong>Never share your password</strong> or secret words with anyone</li>
+                                <li><strong>Write down the 12 words</strong> on paper and keep them safe</li>
+                                <li><strong>Only you should know</strong> your password and secret words</li>
+                                <li><strong>If you lose them,</strong> you lose your MountainShares forever</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE PURCHASE INTERFACE -->
+                <div style="background: linear-gradient(135deg, rgba(26, 26, 26, 0.9), rgba(42, 42, 42, 0.7)); padding: 50px 40px; border-radius: 20px; margin-bottom: 50px;">
+                    <h3 style="font-size: 36px; color: var(--wv-gold); text-align: center; margin-bottom: 40px;">💳 Purchase MountainShares Now</h3>
+                    
+                    <div style="max-width: 600px; margin: 0 auto;">
+                        <!-- Purchase Calculator -->
+                        <div style="background: rgba(0, 0, 0, 0.3); padding: 32px; border-radius: 15px; margin-bottom: 32px;">
+                            <h4 style="color: var(--sky-blue); font-size: 20px; margin-bottom: 20px; text-align: center;">Calculate Your Purchase</h4>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="color: var(--mountain-white); display: block; margin-bottom: 8px;">Number of MountainShares:</label>
+                                <input type="number" id="ms-quantity" min="1" value="5" style="width: 100%; padding: 15px; border: 2px solid var(--sky-blue); border-radius: 10px; font-size: 18px; background: var(--mountain-dark); color: var(--mountain-white);" oninput="calculatePrice()">
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="color: var(--mountain-white); display: block; margin-bottom: 8px;">Your Ethereum Wallet Address:</label>
+                                <input type="text" id="wallet-address" placeholder="0x..." style="width: 100%; padding: 15px; border: 2px solid var(--sky-blue); border-radius: 10px; font-size: 16px; background: var(--mountain-dark); color: var(--mountain-white);">
+                                <button onclick="connectWallet()" style="margin-top: 10px; padding: 10px 20px; background: var(--sky-blue); color: var(--mountain-dark); border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🦊 Connect MetaMask</button>
+                            </div>
+                            
+                            <!-- Live Price Display -->
+                            <div id="price-breakdown" style="background: rgba(255, 215, 0, 0.1); padding: 20px; border-radius: 10px; border: 2px solid var(--wv-gold);">
+                                <h5 style="color: var(--wv-gold); margin-bottom: 15px;">💰 Price Breakdown:</h5>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: var(--mountain-white);">Token Value (1:1 USD):</span>
+                                    <span style="color: var(--mountain-white);" id="token-value">$5.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: var(--mountain-white);">Stripe Processing Fee:</span>
+                                    <span style="color: var(--mountain-white);" id="stripe-fee">$0.45</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: var(--mountain-white);">MountainShares Fee (2%):</span>
+                                    <span style="color: var(--mountain-white);" id="ms-fee">$0.10</span>
+                                </div>
+                                <hr style="border: 1px solid var(--wv-gold); margin: 15px 0;">
+                                <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
+                                    <span style="color: var(--wv-gold);">Total You Pay:</span>
+                                    <span style="color: var(--wv-gold);" id="total-price">$5.55</span>
+                                </div>
+                            </div>
+                            
+                            <button id="purchase-btn" onclick="initiatePurchase()" style="width: 100%; padding: 20px; margin-top: 20px; background: var(--gold-gradient); color: var(--mountain-dark); border: none; border-radius: 15px; font-size: 20px; font-weight: bold; cursor: pointer; text-transform: uppercase;">
+                                💎 Purchase MountainShares
+                            </button>
+                            
+                            <!-- Payment Status -->
+                            <div id="payment-status" style="margin-top: 20px; padding: 15px; border-radius: 10px; display: none;">
+                                <p id="status-message" style="margin: 0; text-align: center; font-weight: bold;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <div class="coming-soon-banner">MountainShares Phase 1 Launching Fall 2025</div>
+                </div>
             </div>
-            <div class="feature-card">
-                <h3>💰 Employee Bonuses</h3>
-                <p>Employers can reward great work with MountainShares</p>
+
+            <div id="access" class="content-tab" role="tabpanel">
+                <div style="text-align: center; padding: 60px 40px 40px 40px;">
+                    <h2 style="font-size: 48px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 24px;">🚀 Join The Commons Network</h2>
+                    <p style="font-size: 24px; color: var(--sky-blue); margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">Be part of West Virginia's economic revolution. <strong>Completely free</strong> for all businesses and residents.</p>
+                </div>
+
+                <!-- Join Now Section -->
+                <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 102, 255, 0.1)); padding: 50px 40px; border-radius: 20px; text-align: center; margin-bottom: 40px;">
+                    <h3 style="color: var(--wv-gold); font-size: 32px; margin-bottom: 24px;">🎯 Ready to Join?</h3>
+                    
+                    <div style="max-width: 600px; margin: 0 auto 40px auto;">
+                        <p style="color: var(--mountain-white); font-size: 18px; line-height: 1.6; margin-bottom: 32px;">
+                            Get on the waitlist to be among the first businesses and residents in Fayette County to experience The Commons. <strong style="color: var(--sky-blue);">No cost, no risk, huge potential.</strong>
+                        </p>
+                        
+                        <form id="waitlist-form" style="max-width: 500px; margin: 0 auto;">
+                            <input type="email" id="email-input" placeholder="Enter your email address" required style="width: 100%; padding: 20px; border: 3px solid var(--sky-blue); border-radius: 15px; font-size: 18px; background: var(--mountain-dark); color: var(--mountain-white); margin-bottom: 20px;">
+                            <input type="text" id="business-input" placeholder="Business name (optional)" style="width: 100%; padding: 20px; border: 3px solid var(--sky-blue); border-radius: 15px; font-size: 18px; background: var(--mountain-dark); color: var(--mountain-white); margin-bottom: 20px;">
+                            <button type="submit" class="btn-premium btn-primary" style="width: 100%; justify-content: center; font-size: 20px;">
+                                ⚡ Join The Waitlist
+                            </button>
+                        </form>
+                        
+                        <div id="waitlist-status" style="margin-top: 20px; padding: 15px; border-radius: 10px; display: none;">
+                            <p id="waitlist-message" style="margin: 0; text-align: center; font-weight: bold;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information with Clickable Links -->
+                <div style="background: rgba(26, 26, 26, 0.8); padding: 40px; border-radius: 20px;">
+                    <h3 style="color: var(--wv-gold); font-size: 28px; text-align: center; margin-bottom: 32px;">📞 Questions? Get In Touch</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px; max-width: 800px; margin: 0 auto;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">✉️</div>
+                            <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Business Inquiries</h4>
+                            <a href="mailto:thecakidd@gmail.com?subject=The Commons Business Inquiry" class="clickable-link">thecakidd@gmail.com</a>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+                            <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Follow Updates</h4>
+                            <a href="https://github.com/cakidd/Commons-Connect" target="_blank" class="clickable-link">GitHub Project</a>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">🏔️</div>
+                            <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Launch Location</h4>
+                            <a href="https://www.google.com/maps/place/Fayette+County,+WV" target="_blank" class="clickable-link">Fayette County, West Virginia</a>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 40px; padding-top: 32px; border-top: 2px solid rgba(255, 255, 255, 0.1);">
+                        <p style="color: var(--sky-blue); font-size: 16px; line-height: 1.6;">
+                            <strong>The Commons:</strong> Digital infrastructure that strengthens West Virginia's local economy<br>
+                            while providing tools that normally only Fortune 500 companies can afford.
+                        </p>
+                        
+                        <div style="margin-top: 20px;">
+                            <a href="javascript:void(0)" onclick="shareOnFacebook()" class="clickable-link" style="margin: 0 10px;">Share on Facebook</a>
+                            <a href="javascript:void(0)" onclick="shareOnTwitter()" class="clickable-link" style="margin: 0 10px;">Share on Twitter</a>
+                            <a href="javascript:void(0)" onclick="copyLink()" class="clickable-link" style="margin: 0 10px;">Copy Link</a>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="feature-card">
-                <h3>🌟 Community Rewards</h3>
-                <p>Earn extra MountainShares for community participation</p>
-            </div>
-        </div>
+        </main>
     </div>
 
+    <!-- Enhanced JavaScript with Network Error Handling -->
+    <script src="https://js.stripe.com/v3/"></script>
     <script>
-        // Configuration
-        const MOUNTAINSHARES_API = 'https://api.mountainshares.com';
-        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-        const FALLBACK_PRICE = 1.00;
-        const PROCESSING_FEE_RATE = 0.035;
+        console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
         
-        let useProxyMode = false;
-        let currentPricing = null;
-        let confirmationModal = null;
+        // Simplified MountainShares Integration
+        const MOUNTAINSHARES_API = 'https://mountainshares-production.up.railway.app';
+        let stripe = null;
 
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            updatePricing();
-            monitorNetworkStatus();
-            handleUrlParameters();
-            
-            // Auto-update pricing when quantity changes
-            document.getElementById('ms-quantity').addEventListener('input', updatePricing);
-        });
+        function showTab(tabName) {
+            // Hide all tabs
+            const contents = document.querySelectorAll('.content-tab');
+            contents.forEach(content => content.classList.remove('active'));
 
-        // Handle URL parameters for payment returns
-        function handleUrlParameters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const sessionId = urlParams.get('session_id');
-            const success = urlParams.get('success');
-            const canceled = urlParams.get('canceled');
-            
-            if (success === 'true' && sessionId) {
-                handlePaymentSuccess(sessionId);
-            } else if (canceled === 'true') {
-                handlePaymentCanceled();
+            // Remove active from nav
+            const tabs = document.querySelectorAll('.nav-item');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected tab
+            const targetTab = document.getElementById(tabName);
+            if (targetTab) {
+                targetTab.classList.add('active');
             }
-        }
 
-        // Network status monitoring
-        function monitorNetworkStatus() {
-            const statusElement = document.getElementById('network-status');
-            
-            function updateStatus() {
-                if (navigator.onLine) {
-                    statusElement.textContent = '🌐 Online';
-                    statusElement.className = 'network-status network-online';
-                } else {
-                    statusElement.textContent = '⚠️ Offline';
-                    statusElement.className = 'network-status network-offline';
+            // Activate nav item
+            const tabNames = ['home', 'business', 'feed', 'mountainshares', 'access'];
+            const tabIndex = tabNames.indexOf(tabName);
+            if (tabIndex >= 0) {
+                const navTabs = document.querySelectorAll('.nav-item');
+                if (navTabs[tabIndex]) {
+                    navTabs[tabIndex].classList.add('active');
                 }
             }
-            
-            window.addEventListener('online', updateStatus);
-            window.addEventListener('offline', updateStatus);
-            updateStatus();
         }
 
-        // Pricing functions
-        async function updatePricing() {
-            const quantity = parseInt(document.getElementById('ms-quantity').value) || 1;
+        // Enhanced system status with circuit breaker logic
+        async function loadSystemStatus() {
+            const statusElement = document.getElementById('status-text');
+            const blockchainElement = document.getElementById('blockchain-status');
+            const lastUpdatedElement = document.getElementById('last-updated');
+            const debugElement = document.getElementById('debug-info');
+            const retryCountElement = document.getElementById('retry-count');
+            const corsHelpElement = document.getElementById('cors-help');
+            const networkErrorHelp = document.getElementById('network-error-help');
+            const serverSleepHelp = document.getElementById('server-sleep-help');
             
-            try {
-                const pricing = await getPricing(quantity);
-                displayPricing(pricing);
-                currentPricing = pricing;
-            } catch (error) {
-                console.error('Pricing update failed:', error);
-                const fallbackPricing = calculateFallbackPricing(quantity);
-                displayPricing(fallbackPricing);
-                currentPricing = fallbackPricing;
+            // Circuit breaker: Don't make requests if server is known to be down
+            const now = Date.now();
+            if (serverDown && (now - lastFailureTime) < backoffDelay) {
+                const remainingTime = Math.ceil((backoffDelay - (now - lastFailureTime)) / 1000);
+                if (debugElement) {
+                    debugElement.textContent = `🔴 Server marked as down. Next retry in ${remainingTime}s (Circuit breaker active)`;
+                }
+                return;
             }
-        }
-
-        async function getPricing(quantity) {
-            const apiUrl = useProxyMode ? 
-                `${CORS_PROXY}${MOUNTAINSHARES_API}/calculate-purchase` : 
-                `${MOUNTAINSHARES_API}/calculate-purchase`;
             
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ quantity: quantity })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    return {
-                        quantity: data.quantity,
-                        pricePerToken: data.pricePerToken,
-                        subtotal: data.subtotal,
-                        processingFee: data.processingFee,
-                        totalCharge: data.totalCharge,
-                        live: true
-                    };
-                } else {
-                    throw new Error(data.error || 'API returned error');
-                }
-            } catch (error) {
-                if (!useProxyMode) {
-                    useProxyMode = true;
-                    return getPricing(quantity);
-                }
-                throw error;
+            statusCheckAttempts++;
+            
+            // Hide help sections initially
+            if (corsHelpElement) corsHelpElement.style.display = 'none';
+            if (networkErrorHelp) networkErrorHelp.style.display = 'none';
+            if (serverSleepHelp) serverSleepHelp.style.display = 'none';
+            
+            // Update retry count display
+            if (retryCountElement) retryCountElement.textContent = retryCount;
+            
+            // Check browser connectivity first
+            if (!navigator.onLine) {
+                statusElement.textContent = 'No Internet Connection';
+                statusElement.className = 'status-offline';
+                blockchainElement.textContent = 'Browser Offline';
+                blockchainElement.className = 'status-offline';
+                lastUpdatedElement.textContent = 'Check your internet connection';
+                debugElement.textContent = '📵 Browser reports no internet connection';
+                return;
             }
-        }
-
-        function calculateFallbackPricing(quantity) {
-            const subtotal = quantity * FALLBACK_PRICE;
-            const processingFee = subtotal * PROCESSING_FEE_RATE;
-            const totalCharge = subtotal + processingFee;
             
-            return {
-                quantity: quantity,
-                pricePerToken: FALLBACK_PRICE,
-                subtotal: subtotal,
-                processingFee: processingFee,
-                totalCharge: totalCharge,
-                live: false
-            };
-        }
-
-        function displayPricing(pricing) {
-            document.getElementById('ms-price').textContent = 
-                `$${pricing.pricePerToken.toFixed(2)} each ${pricing.live ? '🟢' : '🔴'}`;
-            document.getElementById('processing-fee').textContent = 
-                `$${pricing.processingFee.toFixed(2)}`;
-            document.getElementById('total-price').textContent = 
-                `$${pricing.totalCharge.toFixed(2)}`;
-        }
-
-        // MetaMask integration
-        async function connectMetaMask() {
-            if (typeof window.ethereum === 'undefined') {
-                showStatus('⚠️ MetaMask not found. Please install MetaMask browser extension.', 'error', 'payment-status');
+            // If we've hit max retries, force offline mode permanently
+            if (retryCount >= maxRetries) {
+                if (!offlineMode) {
+                    serverDown = true;
+                    lastFailureTime = now;
+                    statusElement.textContent = 'Server Down - Offline Mode';
+                    statusElement.className = 'status-server-sleep';
+                    blockchainElement.textContent = 'Using Local Calculations';
+                    blockchainElement.className = 'status-server-sleep';
+                    lastUpdatedElement.textContent = 'Permanent offline mode';
+                    debugElement.textContent = `🔴 Server unreachable after ${maxRetries} attempts - Circuit breaker activated`;
+                    enableOfflineMode();
+                }
                 return;
             }
             
             try {
-                showStatus('🦊 Connecting to MetaMask...', 'success', 'payment-status');
+                const apiUrl = useProxyMode ? `${CORS_PROXY}${MOUNTAINSHARES_API}/health` : `${MOUNTAINSHARES_API}/health`;
+                debugElement.textContent = `🔄 Attempt ${statusCheckAttempts} (${retryCount}/${maxRetries}): Testing connection...`;
                 
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
+                // Short timeout for faster failure detection
+                const timeoutDuration = 5000;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    mode: useProxyMode ? 'cors' : 'cors',
+                    credentials: 'omit',
+                    signal: controller.signal
                 });
                 
-                if (accounts.length > 0) {
-                    document.getElementById('wallet-address').value = accounts[0];
-                    showStatus(`✅ MetaMask connected: ${accounts[0].substring(0, 10)}...${accounts[0].substring(accounts[0].length - 8)}`, 'success', 'payment-status');
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ API Response:', data);
+                    
+                    // Success - reset all failure states
+                    retryCount = 0;
+                    serverDown = false;
+                    lastFailureTime = 0;
+                    if (offlineMode) {
+                        hideOfflineMode();
+                        offlineMode = false;
+                    }
+                    
+                    statusElement.textContent = data.status === 'healthy' ? 'Online' : 'Partial';
+                    statusElement.className = data.status === 'healthy' ? 'status-online' : 'status-checking';
+                    
+                    if (data.checks && data.checks.ethereum) {
+                        blockchainElement.textContent = data.checks.ethereum;
+                        blockchainElement.className = 'status-online';
+                    } else {
+                        blockchainElement.textContent = 'Connected';
+                        blockchainElement.className = 'status-online';
+                    }
+                    
+                    lastUpdatedElement.textContent = new Date().toLocaleString();
+                    debugElement.textContent = `✅ Server back online! ${useProxyMode ? '(via proxy)' : '(direct)'}`;
+                    
                 } else {
-                    showStatus('⚠️ No MetaMask accounts found. Please unlock MetaMask.', 'warning', 'payment-status');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
             } catch (error) {
-                console.error('MetaMask connection failed:', error);
-                if (error.code === 4001) {
-                    showStatus('⚠️ MetaMask connection cancelled by user.', 'warning', 'payment-status');
+                console.error('❌ Status check failed:', error);
+                retryCount++;
+                lastFailureTime = now;
+                
+                // Handle different error types
+                if (error.message.includes('Failed to fetch') || 
+                    error.message.includes('NetworkError') ||
+                    error.name === 'TypeError') {
+                    
+                    statusElement.textContent = `Server Down (${retryCount}/${maxRetries})`;
+                    statusElement.className = 'status-network-error';
+                    blockchainElement.textContent = 'Cannot Reach Server';
+                    blockchainElement.className = 'status-network-error';
+                    debugElement.textContent = `🔴 Server completely unreachable (${retryCount}/${maxRetries})`;
+                    
+                    // Show appropriate help
+                    if (retryCount <= 2 && networkErrorHelp) {
+                        networkErrorHelp.style.display = 'block';
+                    } else if (retryCount > 2 && serverSleepHelp) {
+                        serverSleepHelp.style.display = 'block';
+                    }
+                    
+                    // Activate circuit breaker after max retries
+                    if (retryCount >= maxRetries) {
+                        serverDown = true;
+                        debugElement.textContent = `🔴 Circuit breaker activated - No more attempts for ${backoffDelay/1000}s`;
+                        setTimeout(() => enableOfflineMode(), 1000);
+                    }
+                    
+                } else if (error.name === 'AbortError') {
+                    statusElement.textContent = `Timeout (${retryCount}/${maxRetries})`;
+                    statusElement.className = 'status-error';
+                    blockchainElement.textContent = 'Request Timed Out';
+                    blockchainElement.className = 'status-error';
+                    debugElement.textContent = `⏱️ Connection timeout (${retryCount}/${maxRetries})`;
                 } else {
-                    showStatus(`❌ MetaMask connection failed: ${error.message}`, 'error', 'payment-status');
+                    statusElement.textContent = `Error (${retryCount}/${maxRetries})`;
+                    statusElement.className = 'status-network-error';
+                    blockchainElement.textContent = 'Connection Problem';
+                    blockchainElement.className = 'status-network-error';
+                    debugElement.textContent = `⚠️ ${error.message} (${retryCount}/${maxRetries})`;
                 }
+                
+                lastUpdatedElement.textContent = `Failed (${retryCount}/${maxRetries})`;
             }
         }
 
-        // Purchase flow
+        // Try proxy mode when CORS fails
+        async function tryProxyMode() {
+            useProxyMode = true;
+            const debugElement = document.getElementById('debug-info');
+            debugElement.textContent = '🔄 Switching to proxy mode...';
+            await loadSystemStatus();
+        }
+
+        // Retry connection with circuit breaker reset
+        async function retryConnection() {
+            const debugElement = document.getElementById('debug-info');
+            debugElement.textContent = '🔄 Manual retry initiated - resetting circuit breaker...';
+            
+            // Reset circuit breaker and failure states
+            serverDown = false;
+            lastFailureTime = 0;
+            retryCount = 0;
+            statusCheckAttempts = 0;
+            
+            // Hide offline mode if it was active
+            if (offlineMode) {
+                hideOfflineMode();
+                offlineMode = false;
+            }
+            
+            await loadSystemStatus();
+        }
+
+        // Enhanced Wake up server (for Railway.app sleeping servers)
+        async function wakeupServer() {
+            if (wakeupInProgress) {
+                logWakeup('⚠️ Wakeup already in progress...');
+                return;
+            }
+            
+            wakeupInProgress = true;
+            const wakeupProgress = document.getElementById('wakeup-progress');
+            const progressBar = document.getElementById('wakeup-progress-bar');
+            const wakeupStatus = document.getElementById('wakeup-status');
+            const wakeupBtn = document.getElementById('wakeup-btn');
+            const debugElement = document.getElementById('debug-info');
+            
+            // Initialize UI
+            if (wakeupProgress) wakeupProgress.style.display = 'block';
+            if (wakeupBtn) {
+                wakeupBtn.disabled = true;
+                wakeupBtn.textContent = '⚡ Waking Up Server...';
+                wakeupBtn.style.background = 'linear-gradient(45deg, #666, #888)';
+            }
+            if (debugElement) debugElement.textContent = '🚀 Starting server wakeup sequence...';
+            
+            clearWakeupLog();
+            logWakeup('🌟 Initiating Railway.app server wakeup...');
+            
+            try {
+                // Enhanced progress steps with real server pinging
+                const progressSteps = [
+                    { progress: 15, message: 'Preparing wakeup requests...', action: async () => {
+                        logWakeup('📋 Preparing multiple endpoint requests');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }},
+                    { progress: 35, message: 'Sending initial ping to /health...', action: async () => {
+                        logWakeup('📡 GET /health');
+                        try {
+                            await Promise.race([
+                                fetch(`${MOUNTAINSHARES_API}/health`, { method: 'GET', mode: 'no-cors' }),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                            ]);
+                            logWakeup('✅ Health endpoint responded');
+                        } catch (error) {
+                            logWakeup('⏱️ Health endpoint timeout (expected)');
+                        }
+                    }},
+                    { progress: 55, message: 'Sending ping to root endpoint...', action: async () => {
+                        logWakeup('📡 GET /');
+                        try {
+                            await Promise.race([
+                                fetch(`${MOUNTAINSHARES_API}/`, { method: 'GET', mode: 'no-cors' }),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                            ]);
+                            logWakeup('✅ Root endpoint responded');
+                        } catch (error) {
+                            logWakeup('⏱️ Root endpoint timeout (expected)');
+                        }
+                    }},
+                    { progress: 75, message: 'Multiple concurrent wakeup calls...', action: async () => {
+                        logWakeup('📡 Sending 5 concurrent requests...');
+                        const wakeupEndpoints = [
+                            `${MOUNTAINSHARES_API}/health`,
+                            `${MOUNTAINSHARES_API}/`,
+                            `${MOUNTAINSHARES_API}/api/status`,
+                            `${MOUNTAINSHARES_API}/ping`,
+                            `${MOUNTAINSHARES_API}/wake`
+                        ];
+                        
+                        const wakeupPromises = wakeupEndpoints.map(url => 
+                            fetch(url, { 
+                                method: 'GET', 
+                                mode: 'no-cors',
+                                cache: 'no-cache'
+                            }).catch(() => {})
+                        );
+                        
+                        await Promise.allSettled(wakeupPromises);
+                        logWakeup('🚀 All wakeup requests sent');
+                    }},
+                    { progress: 90, message: 'Waiting for server initialization...', action: async () => {
+                        logWakeup('⏳ Waiting 5 seconds for full server startup...');
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        logWakeup('⚡ Server should now be awake');
+                    }},
+                    { progress: 100, message: 'Testing server connection...', action: async () => {
+                        logWakeup('🔍 Testing live connection...');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }}
+                ];
+                
+                // Execute each step
+                for (let step of progressSteps) {
+                    if (progressBar) progressBar.style.width = step.progress + '%';
+                    if (wakeupStatus) wakeupStatus.textContent = step.message;
+                    if (debugElement) debugElement.textContent = `🚀 Wakeup: ${step.message}`;
+                    
+                    await step.action();
+                }
+                
+                // Final connection test
+                logWakeup('🎯 Running final connection test...');
+                if (wakeupStatus) wakeupStatus.textContent = 'Verifying connection...';
+                if (debugElement) debugElement.textContent = '🔍 Final connection verification...';
+                
+                // Reset retry count for fresh connection attempt
+                retryCount = 0;
+                await loadSystemStatus();
+                
+                // Check if connection was successful
+                const statusElement = document.getElementById('status-text');
+                if (statusElement && statusElement.className === 'status-online') {
+                    logWakeup('🎉 SUCCESS! Server is now online');
+                    if (wakeupStatus) wakeupStatus.textContent = '✅ Server successfully awakened!';
+                    if (debugElement) debugElement.textContent = '🎉 Server wakeup successful!';
+                    
+                    // Hide wakeup interface after success
+                    setTimeout(() => {
+                        if (wakeupProgress) wakeupProgress.style.display = 'none';
+                    }, 3000);
+                } else {
+                    logWakeup('⚠️ Server may need more time to fully initialize');
+                    if (wakeupStatus) wakeupStatus.textContent = '⏳ Server waking up, may need another minute...';
+                    if (debugElement) debugElement.textContent = '⏳ Server partially awake, continue retrying...';
+                }
+                
+            } catch (error) {
+                console.error('❌ Wakeup process failed:', error);
+                logWakeup(`❌ Error: ${error.message}`);
+                if (wakeupStatus) wakeupStatus.textContent = '❌ Wakeup failed, try manual retry';
+                if (debugElement) debugElement.textContent = `❌ Wakeup failed: ${error.message}`;
+            } finally {
+                wakeupInProgress = false;
+                if (wakeupBtn) {
+                    wakeupBtn.disabled = false;
+                    wakeupBtn.textContent = '🔄 Try Wakeup Again';
+                    wakeupBtn.style.background = 'linear-gradient(45deg, var(--wv-gold), #FFA500)';
+                }
+                logWakeup('🏁 Wakeup sequence completed');
+            }
+        }
+
+        // Helper functions for wakeup logging
+        function logWakeup(message) {
+            const wakeupLog = document.getElementById('wakeup-log');
+            if (wakeupLog) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                logEntry.style.marginBottom = '2px';
+                wakeupLog.appendChild(logEntry);
+                wakeupLog.scrollTop = wakeupLog.scrollHeight;
+            }
+            console.log(`🚀 Wakeup: ${message}`);
+        }
+
+        function clearWakeupLog() {
+            const wakeupLog = document.getElementById('wakeup-log');
+            if (wakeupLog) {
+                wakeupLog.innerHTML = '';
+            }
+        }
+
+        // Enhanced offline mode with better user experience
+        function enableOfflineMode() {
+            offlineMode = true;
+            const offlineCalculator = document.getElementById('offline-calculator');
+            const statusElement = document.getElementById('status-text');
+            const blockchainElement = document.getElementById('blockchain-status');
+            const lastUpdatedElement = document.getElementById('last-updated');
+            const debugElement = document.getElementById('debug-info');
+            
+            // Update status display
+            if (statusElement) {
+                statusElement.textContent = 'Offline Mode Active';
+                statusElement.className = 'status-server-sleep';
+            }
+            if (blockchainElement) {
+                blockchainElement.textContent = 'Local Calculations';
+                blockchainElement.className = 'status-server-sleep';
+            }
+            if (lastUpdatedElement) {
+                lastUpdatedElement.textContent = 'Switched to offline mode';
+            }
+            if (debugElement) {
+                debugElement.textContent = '📱 Offline mode: Full site functionality available with local calculations';
+            }
+            
+            // Show offline calculator
+            if (offlineCalculator) {
+                offlineCalculator.style.display = 'block';
+                calculateOfflinePrice();
+            }
+            
+            // Hide network help sections
+            const networkErrorHelp = document.getElementById('network-error-help');
+            const serverSleepHelp = document.getElementById('server-sleep-help');
+            const corsHelp = document.getElementById('cors-help');
+            
+            if (networkErrorHelp) networkErrorHelp.style.display = 'none';
+            if (serverSleepHelp) serverSleepHelp.style.display = 'none';
+            if (corsHelp) corsHelp.style.display = 'none';
+            
+            console.log('📱 Offline mode enabled - Local price calculations active');
+            
+            // Show user-friendly notification
+            showStatus('📱 Offline Mode: Server unreachable, but you can still explore pricing and features!', 'success', 'payment-status');
+        }
+
+        // Hide offline mode
+        function hideOfflineMode() {
+            const offlineCalculator = document.getElementById('offline-calculator');
+            if (offlineCalculator) offlineCalculator.style.display = 'none';
+        }
+
+        // Calculate live pricing with circuit breaker protection
+        async function calculatePrice() {
+            const quantity = parseInt(document.getElementById('ms-quantity').value) || 1;
+            
+            // Circuit breaker: Use offline calculation if server is known to be down
+            if (serverDown || offlineMode) {
+                console.log('📱 Using offline calculation (server down or offline mode)');
+                calculateFallbackPrice(quantity);
+                return;
+            }
+            
+            try {
+                const apiUrl = useProxyMode ? 
+                    `${CORS_PROXY}${MOUNTAINSHARES_API}/calculate-purchase` : 
+                    `${MOUNTAINSHARES_API}/calculate-purchase`;
+                
+                // Short timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                    
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify({ msTokens: quantity }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const pricing = data.pricing;
+                    document.getElementById('token-value').textContent = `${pricing.tokenValue.toFixed(2)}`;
+                    document.getElementById('stripe-fee').textContent = `${pricing.stripeFee.toFixed(2)}`;
+                    document.getElementById('ms-fee').textContent = `${pricing.mountainSharesFee.toFixed(2)}`;
+                    document.getElementById('total-price').textContent = `${pricing.totalCharge.toFixed(2)}`;
+                    return;
+                }
+            } catch (error) {
+                console.error('Failed to calculate price:', error);
+                
+                // If this is a "Failed to fetch" error, mark server as down and switch to offline
+                if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                    console.log('📱 Price calculation failed - switching to offline mode');
+                    serverDown = true;
+                    lastFailureTime = Date.now();
+                    enableOfflineMode();
+                }
+            }
+            
+            // Fallback calculation
+            calculateFallbackPrice(quantity);
+        }
+
+        // Fallback price calculation
+        function calculateFallbackPrice(quantity) {
+            const tokenValue = quantity * 1.00;
+            const stripeFee = tokenValue * 0.029 + 0.30;
+            const msFee = tokenValue * 0.02;
+            const total = tokenValue + stripeFee + msFee;
+            
+            document.getElementById('token-value').textContent = `${tokenValue.toFixed(2)}`;
+            document.getElementById('stripe-fee').textContent = `${stripeFee.toFixed(2)}`;
+            document.getElementById('ms-fee').textContent = `${msFee.toFixed(2)}`;
+            document.getElementById('total-price').textContent = `${total.toFixed(2)}`;
+        }
+
+        // Connect MetaMask wallet
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    document.getElementById('wallet-address').value = accounts[0];
+                    showStatus('✅ Wallet connected successfully!', 'success', 'payment-status');
+                    console.log('Wallet connected:', accounts[0]);
+                } catch (error) {
+                    console.error('Failed to connect wallet:', error);
+                    showStatus('❌ Failed to connect MetaMask. Please try again.', 'error', 'payment-status');
+                }
+            } else {
+                showStatus('🦊 MetaMask not detected. Please install MetaMask to connect your wallet.', 'error', 'payment-status');
+                window.open('https://metamask.io/download/', '_blank');
+            }
+        }
+
+        // Simple purchase initiation (placeholder)
         async function initiatePurchase() {
             const quantity = parseInt(document.getElementById('ms-quantity').value);
-            const walletAddress = document.getElementById('wallet-address').value.trim();
+            const walletAddress = document.getElementById('wallet-address').value;
             
-            // Validation
             if (!quantity || quantity < 1) {
                 showStatus('⚠️ Please enter a valid quantity (minimum 1 MountainShare)', 'error', 'payment-status');
                 return;
             }
             
-            if (!walletAddress || !walletAddress.startsWith('0x') || walletAddress.length !== 42) {
+            if (!walletAddress || !walletAddress.startsWith('0x')) {
                 showStatus('⚠️ Please enter a valid Ethereum wallet address or connect MetaMask', 'error', 'payment-status');
                 return;
             }
             
-            // Show confirmation modal
-            showPurchaseConfirmation(quantity, currentPricing.totalCharge, walletAddress);
+            // For demo purposes - show coming soon message
+            showStatus('🚀 MountainShares purchasing will be available when the platform launches in Fall 2025!', 'success', 'payment-status');
         }
 
-        function showPurchaseConfirmation(quantity, totalPrice, walletAddress) {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3 style="color: var(--wv-gold); margin-bottom: 20px;">Confirm Purchase</h3>
-                    <p style="color: var(--mountain-white); margin-bottom: 15px; text-align: left;">
-                        <strong>Quantity:</strong> ${quantity} MountainShare${quantity > 1 ? 's' : ''}<br>
-                        <strong>Total Price:</strong> $${totalPrice.toFixed(2)}<br>
-                        <strong>Wallet:</strong> ${walletAddress.substring(0, 10)}...${walletAddress.substring(walletAddress.length - 8)}<br>
-                        <strong>Payment Method:</strong> Credit/Debit Card via Stripe
-                    </p>
-                    <p style="color: #ccc; font-size: 14px; margin-bottom: 20px;">
-                        You will be redirected to Stripe's secure checkout page to complete your payment.
-                    </p>
-                    <div class="modal-buttons">
-                        <button class="btn btn-primary" onclick="confirmPurchase()" style="flex: 1;">
-                            ✅ Confirm Purchase
-                        </button>
-                        <button class="btn btn-secondary" onclick="cancelPurchase()" style="flex: 1;">
-                            ❌ Cancel
-                        </button>
-                    </div>
-                </div>
-            `;
+        // Show status messages with specific target
+        function showStatus(message, type, targetId = 'payment-status') {
+            const statusDiv = document.getElementById(targetId);
+            const messageP = targetId === 'payment-status' ? 
+                document.getElementById('status-message') : 
+                document.getElementById('waitlist-message');
             
-            confirmationModal = modal;
-            document.body.appendChild(modal);
-        }
-
-        async function confirmPurchase() {
-            if (confirmationModal) {
-                document.body.removeChild(confirmationModal);
-                confirmationModal = null;
+            if (!statusDiv || !messageP) return;
+            
+            messageP.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                statusDiv.style.background = 'rgba(0, 255, 0, 0.1)';
+                statusDiv.style.border = '2px solid #44ff44';
+                messageP.style.color = '#44ff44';
+            } else if (type === 'error') {
+                statusDiv.style.background = 'rgba(255, 0, 0, 0.1)';
+                statusDiv.style.border = '2px solid #ff4444';
+                messageP.style.color = '#ff4444';
             }
             
-            const quantity = parseInt(document.getElementById('ms-quantity').value);
-            const walletAddress = document.getElementById('wallet-address').value.trim();
-            
-            try {
-                showStatus('🔄 Creating payment session...', 'success', 'payment-status');
-                document.getElementById('purchase-btn').disabled = true;
-                document.getElementById('purchase-btn').innerHTML = '<span class="loading-spinner"></span> Processing...';
-                
-                const pricing = currentPricing || await getPricing(quantity);
-                const amountInCents = Math.round(pricing.totalCharge * 100);
-                
-                const apiUrl = useProxyMode ? 
-                    `${CORS_PROXY}${MOUNTAINSHARES_API}/create-payment-session` : 
-                    `${MOUNTAINSHARES_API}/create-payment-session`;
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        quantity: quantity,
-                        walletAddress: walletAddress,
-                        amount: amountInCents,
-                        productName: `${quantity} MountainShare${quantity > 1 ? 's' : ''}`,
-                        customerEmail: null,
-                        successUrl: `${window.location.origin}${window.location.pathname}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-                        cancelUrl: `${window.location.origin}${window.location.pathname}?canceled=true`
-                    })
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Social sharing functions
+        function shareOnFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            const title = encodeURIComponent('The Commons - West Virginia Business Network');
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+        }
+
+        function shareOnTwitter() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent('Check out The Commons - West Virginia\'s Digital Business Revolution! 🏔️💎');
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+        }
+
+        function shareOnLinkedIn() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400');
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showStatus('✅ Link copied to clipboard!', 'success', 'payment-status');
+            }).catch(() => {
+                showStatus('❌ Failed to copy link. Please copy manually.', 'error', 'payment-status');
+            });
+        }
+
+        // Waitlist form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('waitlist-form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('email-input').value;
+                    const business = document.getElementById('business-input').value;
+                    
+                    if (!email) {
+                        showStatus('⚠️ Please enter a valid email address', 'error', 'waitlist-status');
+                        return;
+                    }
+                    
+                    // Simulate form submission (replace with actual endpoint)
+                    showStatus('✅ Thank you! You\'ve been added to the waitlist. We\'ll notify you when The Commons launches in Fall 2025!', 'success', 'waitlist-status');
+                    
+                    // Reset form
+                    form.reset();
                 });
-                
-                const session = await response.json();
-                
-                if (session.success && session.checkoutUrl) {
-                    showStatus('✅ Payment session created! Redirecting to checkout...', 'success', 'payment-status');
-                    
-                    // Add small delay for user feedback
-                    setTimeout(() => {
-                        window.location.href = session.checkoutUrl;
-                    }, 1000);
-                    
-                } else {
-                    throw new Error(session.error || 'Failed to create payment session');
+            }
+        });
+
+        // Listen for network changes (simplified)
+        window.addEventListener('online', () => {
+            console.log('🌐 Network connection restored');
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📵 Network connection lost');
+        });
+
+        // Simple initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 THE COMMONS BUSINESS NETWORK LOADED 🚀');
+            console.log('🏔️ West Virginia Digital Business Revolution');
+            
+            // Initialize price calculator
+            calculatePrice();
+            
+            // Set up real-time price updates
+            const quantityInput = document.getElementById('ms-quantity');
+            if (quantityInput) {
+                quantityInput.addEventListener('input', calculatePrice);
+            }
+            
+            console.log('💎 MountainShares price calculator ready');
+            
+            // Add floating particles for visual effect
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.style.cssText = `
+                    position: fixed;
+                    width: 3px;
+                    height: 3px;
+                    background: var(--wv-gold);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: -1;
+                    left: ${Math.random() * 100}%;
+                    animation: particleFloat ${10 + Math.random() * 20}s linear infinite;
+                    animation-delay: ${Math.random() * 5}s;
+                    box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+                `;
+                document.body.appendChild(particle);
+            }
+        });
+
+        // Add CSS animation for particles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes particleFloat {
+                0% {
+                    transform: translateY(100vh) rotate(0deg);
+                    opacity: 0;
                 }
-                
-            } catch (error) {
-                console.error('Purchase failed:', error);
-                handlePurchaseError(error);
-            } finally {
-                document.getElementById('purchase-btn').disabled = false;
-                document.getElementById('purchase-btn').textContent = '💎 Purchase MountainShares';
-            }
-        }
-
-        function cancelPurchase() {
-            if (confirmationModal) {
-                document.body.removeChild(confirmationModal);
-                confirmationModal = null;
-            }
-            showStatus('⚠️ Purchase cancelled.', 'warning', 'payment-status');
-        }
-
-        // Payment result handlers
-        async function handlePaymentSuccess(sessionId) {
-            showStatus('🎉 Payment successful! Processing your MountainShares...', 'success', 'payment-status');
-            
-            try {
-                const response = await fetch(`${MOUNTAINSHARES_API}/verify-payment/${sessionId}`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    showStatus('', 'success', 'payment-status');
-                    displayTransactionDetails(result);
-                } else {
-                    showStatus('⚠️ Payment received but token delivery pending. Check your email for updates.', 'success', 'payment-status');
+                10% {
+                    opacity: 1;
                 }
-            } catch (error) {
-                console.error('Payment verification failed:', error);
-                showStatus('✅ Payment successful! Your MountainShares will be delivered shortly.', 'success', 'payment-status');
-            }
-        }
-
-        function handlePaymentCanceled() {
-            showStatus('⚠️ Payment was canceled. You can try again anytime.', 'warning', 'payment-status');
-        }
-
-        function displayTransactionDetails(transaction) {
-            const detailsHtml = `
-                <div class="transaction-details">
-                    <h4 style="color: #44ff44; margin-bottom: 15px;">🎉 Transaction Complete!</h4>
-                    <p style="margin-bottom: 10px;"><strong>Quantity:</strong> ${transaction.quantity} MountainShare${transaction.quantity > 1 ? 's' : ''}</p>
-                    <p style="margin-bottom: 10px;"><strong>Wallet:</strong> ${transaction.walletAddress.substring(0, 10)}...${transaction.walletAddress.substring(transaction.walletAddress.length - 8)}</p>
-                    <p style="margin-bottom: 10px;"><strong>Transaction ID:</strong> ${transaction.transactionId}</p>
-                    ${transaction.blockNumber ? `<p style="margin-bottom: 10px;"><strong>Block Number:</strong> ${transaction.blockNumber}</p>` : ''}
-                    <p style="margin-top: 15px; font-size: 14px; color: #ccc;">
-                        Your MountainShares have been sent to your wallet. It may take a few minutes to appear in MetaMask.
-                    </p>
-                    ${transaction.explorerUrl ? `<p style="margin-top: 10px;"><a href="${transaction.explorerUrl}" target="_blank" style="color: #44ff44;">View on blockchain explorer →</a></p>` : ''}
-                </div>
-            `;
-            
-            document.getElementById('payment-status').innerHTML = detailsHtml;
-        }
-
-        // Error handling
-        function handlePurchaseError(error) {
-            let errorMessage = '❌ Purchase failed: ';
-            
-            if (error.message.includes('insufficient funds')) {
-                errorMessage += 'Insufficient funds in your payment method.';
-            } else if (error.message.includes('network') || error.message.includes('Failed to fetch')) {
-                errorMessage += 'Network error. Please check your connection and try again.';
-            } else if (error.message.includes('wallet')) {
-                errorMessage += 'Wallet connection error. Please reconnect MetaMask.';
-            } else if (error.message.includes('session')) {
-                errorMessage += 'Unable to create payment session. Please try again.';
-            } else {
-                errorMessage += error.message;
-            }
-            
-            showStatus(errorMessage, 'error', 'payment-status');
-        }
-
-        // Utility functions
-        function showStatus(message, type, elementId) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            element.innerHTML = message ? 
-                `<div class="status-message status-${type}">${message}</div>` : '';
-        }
-
-        // Auto-retry for failed network requests
-        async function retryRequest(requestFunc, maxRetries = 3) {
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    return await requestFunc();
-                } catch (error) {
-                    if (i === maxRetries - 1) throw error;
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                90% {
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-100px) rotate(360deg);
+                    opacity: 0;
                 }
             }
-        }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
