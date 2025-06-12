@@ -482,7 +482,7 @@
             box-shadow: 0 10px 30px rgba(0, 191, 255, 0.3);
         }
 
-        /* STATUS INDICATORS */
+        /* ENHANCED STATUS INDICATORS */
         .status-online {
             color: #4CAF50;
             font-weight: bold;
@@ -500,6 +500,11 @@
 
         .status-error {
             color: #e91e63;
+            font-weight: bold;
+        }
+
+        .status-cors-error {
+            color: #ff6b35;
             font-weight: bold;
         }
 
@@ -658,12 +663,23 @@
                     <h2 style="font-size: 48px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 24px;">💎 MountainShares Currency</h2>
                     <p style="font-size: 24px; color: var(--sky-blue); margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">Local digital currency that keeps money in West Virginia communities. <strong>1 MountainShare = $1 USD</strong></p>
                     
-                    <!-- Enhanced System Status with Debug Info -->
+                    <!-- Enhanced System Status with CORS-specific debugging -->
                     <div id="system-status" style="background: rgba(0, 102, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px auto; max-width: 700px; border: 2px solid var(--sky-blue);">
                         <p style="color: var(--mountain-white); font-size: 16px;"><strong style="color: var(--wv-gold);">System Status:</strong> <span id="status-text" class="status-checking">Checking...</span></p>
                         <p style="color: var(--mountain-white); font-size: 14px;"><strong>Blockchain:</strong> <span id="blockchain-status" class="status-checking">Loading...</span></p>
                         <p style="color: var(--mountain-white); font-size: 14px;"><strong>Last Updated:</strong> <span id="last-updated">--</span></p>
                         <p style="color: var(--mountain-white); font-size: 12px;"><strong>Debug Info:</strong> <span id="debug-info">Initializing...</span></p>
+                        
+                        <!-- CORS Error Help -->
+                        <div id="cors-help" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255, 107, 53, 0.1); border-radius: 8px; border: 1px solid #ff6b35;">
+                            <h5 style="color: #ff6b35; margin-bottom: 10px;">🌐 CORS Error Detected</h5>
+                            <p style="color: var(--mountain-white); font-size: 14px; line-height: 1.4; margin-bottom: 10px;">
+                                The backend server needs CORS headers configured. Using fallback proxy mode...
+                            </p>
+                            <button onclick="tryProxyMode()" style="padding: 8px 16px; background: var(--sky-blue); color: var(--mountain-dark); border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                🔄 Try Proxy Mode
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -844,14 +860,17 @@
         </main>
     </div>
 
-    <!-- Enhanced JavaScript with Debugging -->
+    <!-- Enhanced JavaScript with CORS Solutions -->
     <script src="https://js.stripe.com/v3/"></script>
     <script>
         console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
         
+        // MountainShares Integration with CORS handling
         const MOUNTAINSHARES_API = 'https://mountainshares-production.up.railway.app';
+        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
         let stripe = null;
         let statusCheckAttempts = 0;
+        let useProxyMode = false;
 
         function showTab(tabName) {
             // Hide all tabs
@@ -879,14 +898,18 @@
             }
         }
 
-        // Enhanced system status loading with detailed debugging
+        // Enhanced system status with CORS-specific error detection
         async function loadSystemStatus() {
             const statusElement = document.getElementById('status-text');
             const blockchainElement = document.getElementById('blockchain-status');
             const lastUpdatedElement = document.getElementById('last-updated');
             const debugElement = document.getElementById('debug-info');
+            const corsHelpElement = document.getElementById('cors-help');
             
             statusCheckAttempts++;
+            
+            // Hide CORS help initially
+            if (corsHelpElement) corsHelpElement.style.display = 'none';
             
             // Check browser connectivity first
             if (!navigator.onLine) {
@@ -895,25 +918,26 @@
                 blockchainElement.textContent = 'Cannot Check';
                 blockchainElement.className = 'status-offline';
                 lastUpdatedElement.textContent = 'Check your connection';
-                debugElement.textContent = '❌ Browser is offline';
+                debugElement.textContent = '📵 Browser is offline';
                 return;
             }
             
             try {
-                // Update debug info
-                debugElement.textContent = `🔄 Attempt ${statusCheckAttempts}: Connecting to ${MOUNTAINSHARES_API}/health`;
+                const apiUrl = useProxyMode ? `${CORS_PROXY}${MOUNTAINSHARES_API}/health` : `${MOUNTAINSHARES_API}/health`;
+                debugElement.textContent = `🔄 Attempt ${statusCheckAttempts}: ${useProxyMode ? 'Proxy' : 'Direct'} → ${apiUrl}`;
                 
-                // Add timeout and more detailed error handling
+                // Add timeout and enhanced error handling
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
                 
-                const response = await fetch(`${MOUNTAINSHARES_API}/health`, {
+                const response = await fetch(apiUrl, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    mode: 'cors', // Explicitly set CORS mode
+                    mode: useProxyMode ? 'cors' : 'cors',
+                    credentials: 'omit',
                     signal: controller.signal
                 });
                 
@@ -934,7 +958,7 @@
                     }
                     
                     lastUpdatedElement.textContent = new Date().toLocaleString();
-                    debugElement.textContent = `✅ Connected successfully at ${new Date().toLocaleTimeString()}`;
+                    debugElement.textContent = `✅ Connected successfully at ${new Date().toLocaleTimeString()} ${useProxyMode ? '(via proxy)' : '(direct)'}`;
                     
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -943,18 +967,25 @@
             } catch (error) {
                 console.error('❌ Status check failed:', error);
                 
-                if (error.name === 'AbortError') {
+                // Detect CORS-specific errors
+                if ((error.message.includes('Failed to fetch') || 
+                    error.message.includes('NetworkError') ||
+                    error.message.includes('CORS') ||
+                    error.name === 'TypeError') && !useProxyMode) {
+                    
+                    statusElement.textContent = 'CORS Error';
+                    statusElement.className = 'status-cors-error';
+                    blockchainElement.textContent = 'Backend Needs CORS Config';
+                    blockchainElement.className = 'status-cors-error';
+                    debugElement.textContent = `🌐 CORS issue detected. Server missing Access-Control-Allow-Origin header`;
+                    if (corsHelpElement) corsHelpElement.style.display = 'block';
+                    
+                } else if (error.name === 'AbortError') {
                     statusElement.textContent = 'Connection Timeout';
                     statusElement.className = 'status-error';
                     blockchainElement.textContent = 'Request Timed Out';
                     blockchainElement.className = 'status-error';
-                    debugElement.textContent = `⏱️ Timeout after 10 seconds (Attempt ${statusCheckAttempts})`;
-                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    statusElement.textContent = 'Network Error';
-                    statusElement.className = 'status-error';
-                    blockchainElement.textContent = 'Connection Failed';
-                    blockchainElement.className = 'status-error';
-                    debugElement.textContent = `🌐 Network/CORS issue: ${error.message}`;
+                    debugElement.textContent = `⏱️ Timeout after 15 seconds (Attempt ${statusCheckAttempts})`;
                 } else {
                     statusElement.textContent = 'API Error';
                     statusElement.className = 'status-error';
@@ -967,25 +998,24 @@
             }
         }
 
-        // Test direct connection (for debugging)
-        async function testDirectConnection() {
-            console.log('🔍 Testing direct connection...');
-            try {
-                const response = await fetch(`${MOUNTAINSHARES_API}/health`);
-                console.log('Direct test response:', response);
-                const text = await response.text();
-                console.log('Direct test body:', text);
-            } catch (error) {
-                console.error('Direct test failed:', error);
-            }
+        // Try proxy mode when CORS fails
+        async function tryProxyMode() {
+            useProxyMode = true;
+            const debugElement = document.getElementById('debug-info');
+            debugElement.textContent = '🔄 Switching to proxy mode...';
+            await loadSystemStatus();
         }
 
-        // Calculate live pricing
+        // Calculate live pricing with CORS handling
         async function calculatePrice() {
             const quantity = parseInt(document.getElementById('ms-quantity').value) || 1;
             
             try {
-                const response = await fetch(`${MOUNTAINSHARES_API}/calculate-purchase`, {
+                const apiUrl = useProxyMode ? 
+                    `${CORS_PROXY}${MOUNTAINSHARES_API}/calculate-purchase` : 
+                    `${MOUNTAINSHARES_API}/calculate-purchase`;
+                    
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ msTokens: quantity })
@@ -999,20 +1029,27 @@
                     document.getElementById('stripe-fee').textContent = `$${pricing.stripeFee.toFixed(2)}`;
                     document.getElementById('ms-fee').textContent = `$${pricing.mountainSharesFee.toFixed(2)}`;
                     document.getElementById('total-price').textContent = `$${pricing.totalCharge.toFixed(2)}`;
+                    return;
                 }
             } catch (error) {
                 console.error('Failed to calculate price:', error);
-                // Fallback calculation
-                const tokenValue = quantity * 1.00;
-                const stripeFee = tokenValue * 0.029 + 0.30;
-                const msFee = tokenValue * 0.02;
-                const total = tokenValue + stripeFee + msFee;
-                
-                document.getElementById('token-value').textContent = `$${tokenValue.toFixed(2)}`;
-                document.getElementById('stripe-fee').textContent = `$${stripeFee.toFixed(2)}`;
-                document.getElementById('ms-fee').textContent = `$${msFee.toFixed(2)}`;
-                document.getElementById('total-price').textContent = `$${total.toFixed(2)}`;
+                // Try proxy mode if not already using it
+                if (!useProxyMode && error.message.includes('Failed to fetch')) {
+                    useProxyMode = true;
+                    return calculatePrice(); // Retry with proxy
+                }
             }
+            
+            // Fallback calculation
+            const tokenValue = quantity * 1.00;
+            const stripeFee = tokenValue * 0.029 + 0.30;
+            const msFee = tokenValue * 0.02;
+            const total = tokenValue + stripeFee + msFee;
+            
+            document.getElementById('token-value').textContent = `$${tokenValue.toFixed(2)}`;
+            document.getElementById('stripe-fee').textContent = `$${stripeFee.toFixed(2)}`;
+            document.getElementById('ms-fee').textContent = `$${msFee.toFixed(2)}`;
+            document.getElementById('total-price').textContent = `$${total.toFixed(2)}`;
         }
 
         // Connect MetaMask wallet
@@ -1033,7 +1070,7 @@
             }
         }
 
-        // Initiate purchase
+        // Initiate purchase with CORS handling
         async function initiatePurchase() {
             const quantity = parseInt(document.getElementById('ms-quantity').value);
             const walletAddress = document.getElementById('wallet-address').value;
@@ -1056,8 +1093,12 @@
                 const pricing = await getPricing(quantity);
                 const amountInCents = Math.round(pricing.totalCharge * 100);
                 
+                const apiUrl = useProxyMode ? 
+                    `${CORS_PROXY}${MOUNTAINSHARES_API}/create-payment-session` : 
+                    `${MOUNTAINSHARES_API}/create-payment-session`;
+                
                 // Create payment session
-                const response = await fetch(`${MOUNTAINSHARES_API}/create-payment-session`, {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1087,10 +1128,14 @@
             }
         }
 
-        // Helper function to get pricing
+        // Helper function to get pricing with CORS handling
         async function getPricing(quantity) {
             try {
-                const response = await fetch(`${MOUNTAINSHARES_API}/calculate-purchase`, {
+                const apiUrl = useProxyMode ? 
+                    `${CORS_PROXY}${MOUNTAINSHARES_API}/calculate-purchase` : 
+                    `${MOUNTAINSHARES_API}/calculate-purchase`;
+                    
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ msTokens: quantity })
@@ -1099,7 +1144,12 @@
                 return data.success ? data.pricing : null;
             } catch (error) {
                 console.error('Failed to get pricing:', error);
-                return null;
+                return {
+                    tokenValue: quantity * 1.00,
+                    stripeFee: (quantity * 1.00) * 0.029 + 0.30,
+                    mountainSharesFee: (quantity * 1.00) * 0.02,
+                    totalCharge: quantity * 1.00 + ((quantity * 1.00) * 0.029 + 0.30) + ((quantity * 1.00) * 0.02)
+                };
             }
         }
 
@@ -1202,19 +1252,17 @@
             debugElement.textContent = '📵 Browser went offline';
         });
 
-        // Initialize with enhanced debugging
+        // Initialize with enhanced debugging and CORS handling
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
             console.log('🎯 API Endpoint:', MOUNTAINSHARES_API);
+            console.log('🌐 CORS Proxy Available:', CORS_PROXY);
             
-            // Test connection immediately
-            testDirectConnection();
-            
-            // Load system status
+            // Load system status immediately
             loadSystemStatus();
             
-            // Set up periodic checks every 30 seconds
-            setInterval(loadSystemStatus, 30000);
+            // Set up periodic checks every 45 seconds
+            setInterval(loadSystemStatus, 45000);
             
             // Initialize pricing
             calculatePrice();
@@ -1225,7 +1273,7 @@
                 quantityInput.addEventListener('input', calculatePrice);
             }
             
-            console.log('🏔️ MountainShares Integration Loaded');
+            console.log('🏔️ MountainShares Integration Loaded with CORS handling');
             
             // Add floating particles
             for (let i = 0; i < 20; i++) {
