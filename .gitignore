@@ -1,0 +1,24 @@
+firebase.json
+serviceAccount.json
+# Block executable files
+*.exe
+
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Environment variables
+.env
+server/.env
+
+# Build files
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
