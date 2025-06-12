@@ -658,11 +658,12 @@
                     <h2 style="font-size: 48px; font-family: 'Orbitron', monospace; color: var(--wv-gold); margin-bottom: 24px;">💎 MountainShares Currency</h2>
                     <p style="font-size: 24px; color: var(--sky-blue); margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">Local digital currency that keeps money in West Virginia communities. <strong>1 MountainShare = $1 USD</strong></p>
                     
-                    <!-- Enhanced Live System Status -->
-                    <div id="system-status" style="background: rgba(0, 102, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px auto; max-width: 600px; border: 2px solid var(--sky-blue);">
-                        <p style="color: var(--mountain-white); font-size: 16px;"><strong style="color: var(--wv-gold);">System Status:</strong> <span id="status-text">Checking...</span></p>
-                        <p style="color: var(--mountain-white); font-size: 14px;"><strong>Blockchain:</strong> <span id="blockchain-status">Loading...</span></p>
+                    <!-- Enhanced System Status with Debug Info -->
+                    <div id="system-status" style="background: rgba(0, 102, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px auto; max-width: 700px; border: 2px solid var(--sky-blue);">
+                        <p style="color: var(--mountain-white); font-size: 16px;"><strong style="color: var(--wv-gold);">System Status:</strong> <span id="status-text" class="status-checking">Checking...</span></p>
+                        <p style="color: var(--mountain-white); font-size: 14px;"><strong>Blockchain:</strong> <span id="blockchain-status" class="status-checking">Loading...</span></p>
                         <p style="color: var(--mountain-white); font-size: 14px;"><strong>Last Updated:</strong> <span id="last-updated">--</span></p>
+                        <p style="color: var(--mountain-white); font-size: 12px;"><strong>Debug Info:</strong> <span id="debug-info">Initializing...</span></p>
                     </div>
                 </div>
 
@@ -843,14 +844,14 @@
         </main>
     </div>
 
-    <!-- Stripe Elements Integration -->
+    <!-- Enhanced JavaScript with Debugging -->
     <script src="https://js.stripe.com/v3/"></script>
     <script>
         console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
         
-        // MountainShares Integration
         const MOUNTAINSHARES_API = 'https://mountainshares-production.up.railway.app';
         let stripe = null;
+        let statusCheckAttempts = 0;
 
         function showTab(tabName) {
             // Hide all tabs
@@ -878,38 +879,104 @@
             }
         }
 
-        // Enhanced system status loading with improved error handling
+        // Enhanced system status loading with detailed debugging
         async function loadSystemStatus() {
             const statusElement = document.getElementById('status-text');
             const blockchainElement = document.getElementById('blockchain-status');
             const lastUpdatedElement = document.getElementById('last-updated');
+            const debugElement = document.getElementById('debug-info');
+            
+            statusCheckAttempts++;
+            
+            // Check browser connectivity first
+            if (!navigator.onLine) {
+                statusElement.textContent = 'No Internet Connection';
+                statusElement.className = 'status-offline';
+                blockchainElement.textContent = 'Cannot Check';
+                blockchainElement.className = 'status-offline';
+                lastUpdatedElement.textContent = 'Check your connection';
+                debugElement.textContent = '❌ Browser is offline';
+                return;
+            }
             
             try {
+                // Update debug info
+                debugElement.textContent = `🔄 Attempt ${statusCheckAttempts}: Connecting to ${MOUNTAINSHARES_API}/health`;
+                
+                // Add timeout and more detailed error handling
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
                 const response = await fetch(`${MOUNTAINSHARES_API}/health`, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json'
-                    }
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors', // Explicitly set CORS mode
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
+                
+                debugElement.textContent = `📡 Response received: Status ${response.status}`;
                 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('✅ API Response:', data);
+                    
                     statusElement.textContent = data.status === 'healthy' ? 'Online' : 'Offline';
                     statusElement.className = data.status === 'healthy' ? 'status-online' : 'status-offline';
-                    blockchainElement.textContent = data.checks.ethereum || 'Connected';
-                    blockchainElement.className = 'status-online';
+                    
+                    if (data.checks && data.checks.ethereum) {
+                        blockchainElement.textContent = data.checks.ethereum;
+                        blockchainElement.className = 'status-online';
+                    }
+                    
                     lastUpdatedElement.textContent = new Date().toLocaleString();
+                    debugElement.textContent = `✅ Connected successfully at ${new Date().toLocaleTimeString()}`;
+                    
                 } else {
-                    throw new Error(`Server returned ${response.status}`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
             } catch (error) {
-                statusElement.textContent = 'Server Unreachable';
-                statusElement.className = 'status-error';
-                blockchainElement.textContent = 'Backend Offline';
-                blockchainElement.className = 'status-error';
-                lastUpdatedElement.textContent = 'Cannot connect to server';
-                console.log('Status check failed:', error);
+                console.error('❌ Status check failed:', error);
+                
+                if (error.name === 'AbortError') {
+                    statusElement.textContent = 'Connection Timeout';
+                    statusElement.className = 'status-error';
+                    blockchainElement.textContent = 'Request Timed Out';
+                    blockchainElement.className = 'status-error';
+                    debugElement.textContent = `⏱️ Timeout after 10 seconds (Attempt ${statusCheckAttempts})`;
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    statusElement.textContent = 'Network Error';
+                    statusElement.className = 'status-error';
+                    blockchainElement.textContent = 'Connection Failed';
+                    blockchainElement.className = 'status-error';
+                    debugElement.textContent = `🌐 Network/CORS issue: ${error.message}`;
+                } else {
+                    statusElement.textContent = 'API Error';
+                    statusElement.className = 'status-error';
+                    blockchainElement.textContent = 'Service Error';
+                    blockchainElement.className = 'status-error';
+                    debugElement.textContent = `⚠️ ${error.message}`;
+                }
+                
+                lastUpdatedElement.textContent = 'Failed to connect';
+            }
+        }
+
+        // Test direct connection (for debugging)
+        async function testDirectConnection() {
+            console.log('🔍 Testing direct connection...');
+            try {
+                const response = await fetch(`${MOUNTAINSHARES_API}/health`);
+                console.log('Direct test response:', response);
+                const text = await response.text();
+                console.log('Direct test body:', text);
+            } catch (error) {
+                console.error('Direct test failed:', error);
             }
         }
 
@@ -962,7 +1029,6 @@
                 }
             } else {
                 showStatus('🦊 MetaMask not detected. Please install MetaMask to connect your wallet.', 'error', 'payment-status');
-                // Open MetaMask download in new tab
                 window.open('https://metamask.io/download/', '_blank');
             }
         }
@@ -1115,12 +1181,39 @@
             }
         });
 
-        // Initialize
+        // Listen for network changes
+        window.addEventListener('online', () => {
+            console.log('🌐 Network connection restored');
+            loadSystemStatus();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📵 Network connection lost');
+            const statusElement = document.getElementById('status-text');
+            const blockchainElement = document.getElementById('blockchain-status');
+            const lastUpdatedElement = document.getElementById('last-updated');
+            const debugElement = document.getElementById('debug-info');
+            
+            statusElement.textContent = 'No Internet Connection';
+            statusElement.className = 'status-offline';
+            blockchainElement.textContent = 'Cannot Check';
+            blockchainElement.className = 'status-offline';
+            lastUpdatedElement.textContent = 'Connection lost';
+            debugElement.textContent = '📵 Browser went offline';
+        });
+
+        // Initialize with enhanced debugging
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
+            console.log('🎯 API Endpoint:', MOUNTAINSHARES_API);
             
-            // Load system status and set up periodic checks
+            // Test connection immediately
+            testDirectConnection();
+            
+            // Load system status
             loadSystemStatus();
+            
+            // Set up periodic checks every 30 seconds
             setInterval(loadSystemStatus, 30000);
             
             // Initialize pricing
