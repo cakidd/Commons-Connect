@@ -625,9 +625,11 @@
         }
 
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            initWeb3();
-            showTab('home');
+        window.addEventListener('load', async () => {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await updateStatus();
+            }
         });
 
         document.getElementById('purchase-amount').addEventListener('input', function(e) {
