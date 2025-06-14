@@ -839,7 +839,24 @@
 
 
                 <div style="text-align: center; margin-top: 30px;">
-                    <div class="coming-soon-banner">MountainShares Phase 1 Launching Fall 2025</div>
+                    <div id="status" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; border: 2px solid var(--sky-blue);">
+                        <h3 style="color: var(--wv-gold); margin-bottom: 15px;">System Status</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div>
+                                <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Blockchain Status</h4>
+                                <p id="blockchain-status" class="status-checking">Checking...</p>
+                            </div>
+                            <div>
+                                <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Contract Status</h4>
+                                <p id="contract-status" class="status-checking">Checking...</p>
+                            </div>
+                            <div>
+                                <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Last Updated</h4>
+                                <p id="last-updated">Never</p>
+                            </div>
+                        </div>
+                        <button onclick="updateStatus()" class="refresh-button" style="margin-top: 15px;">🔄 Refresh Status</button>
+                    </div>
                 </div>
             </div>
 
@@ -880,19 +897,19 @@
                         <div style="text-align: center;">
                             <div style="font-size: 48px; margin-bottom: 16px;">✉️</div>
                             <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Business Inquiries</h4>
-                            <a href="mailto:thecakidd@gmail.com?subject=The Commons Business Inquiry" class="clickable-link">thecakidd@gmail.com</a>
+                            <a href="mailto:thecakidd@gmail.com?subject=The Commons Business Inquiry" target="_blank" rel="noopener" class="clickable-link">thecakidd@gmail.com</a>
                         </div>
                         
                         <div style="text-align: center;">
                             <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
                             <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Follow Updates</h4>
-                            <a href="https://github.com/cakidd/Commons-Connect" target="_blank" class="clickable-link">GitHub Project</a>
+                            <a href="https://github.com/cakidd/Commons-Connect" target="_blank" rel="noopener" class="clickable-link">GitHub Project</a>
                         </div>
                         
                         <div style="text-align: center;">
                             <div style="font-size: 48px; margin-bottom: 16px;">🏔️</div>
                             <h4 style="color: var(--sky-blue); margin-bottom: 8px;">Launch Location</h4>
-                            <a href="https://www.google.com/maps/place/Fayette+County,+WV" target="_blank" class="clickable-link">Fayette County, West Virginia</a>
+                            <a href="https://www.google.com/maps/place/Fayette+County,+WV" target="_blank" rel="noopener" class="clickable-link">Fayette County, West Virginia</a>
                         </div>
                     </div>
                     
