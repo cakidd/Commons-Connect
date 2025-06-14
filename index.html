@@ -315,6 +315,16 @@
             background: rgba(244, 67, 54, 0.2);
             color: #f44336;
         }
+
+        .price-display {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(0, 102, 255, 0.1);
+            border-radius: 8px;
+            color: var(--ms-sky);
+            font-size: 16px;
+            min-height: 24px;
+        }
     </style>
 </head>
 <body>
@@ -362,6 +372,7 @@
                         <div class="input-group">
                             <label for="purchase-amount">Amount (ETH)</label>
                             <input type="number" id="purchase-amount" min="0.001" step="0.001" placeholder="Enter amount in ETH">
+                            <div id="price-display" class="price-display"></div>
                         </div>
                         <button class="purchase-button" id="purchase-button" onclick="purchaseMountainShares()">Purchase MountainShares</button>
                         <div id="transaction-status" class="transaction-status"></div>
@@ -407,14 +418,49 @@
             if (window.ethereum) {
                 try {
                     provider = new ethers.providers.Web3Provider(window.ethereum);
+                    
+                    // Request account access
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    
+                    // Check if we're on Arbitrum One
+                    const network = await provider.getNetwork();
+                    if (network.chainId !== 42161) { // Arbitrum One chainId
+                        try {
+                            // Try to switch to Arbitrum One
+                            await window.ethereum.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: '0xA4B1' }], // 42161 in hex
+                            });
+                        } catch (switchError) {
+                            // If Arbitrum One is not added to MetaMask, add it
+                            if (switchError.code === 4902) {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [{
+                                        chainId: '0xA4B1',
+                                        chainName: 'Arbitrum One',
+                                        nativeCurrency: {
+                                            name: 'ETH',
+                                            symbol: 'ETH',
+                                            decimals: 18
+                                        },
+                                        rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                                        blockExplorerUrls: ['https://arbiscan.io']
+                                    }]
+                                });
+                            } else {
+                                throw switchError;
+                            }
+                        }
+                    }
+                    
                     signer = provider.getSigner();
                     contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
                     updateStatus();
                     return true;
                 } catch (error) {
                     console.error("Error initializing Web3:", error);
-                    showTransactionStatus("Error connecting to wallet. Please install MetaMask.", "error");
+                    showTransactionStatus("Error connecting to wallet: " + error.message, "error");
                     return false;
                 }
             } else {
@@ -513,12 +559,13 @@
 
         function updatePrice() {
             const amount = document.getElementById('purchase-amount').value;
+            const priceDisplay = document.getElementById('price-display');
             if (amount && amount > 0) {
                 // Example: 1 ETH = 100 MountainShares
                 const mountainShares = amount * 100;
-                document.getElementById('transaction-status').textContent = `You will receive ${mountainShares} MountainShares`;
+                priceDisplay.textContent = `You will receive ${mountainShares} MountainShares`;
             } else {
-                document.getElementById('transaction-status').textContent = '';
+                priceDisplay.textContent = '';
             }
         }
 
