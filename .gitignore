@@ -5,15 +5,18 @@ node_modules/
 
 # Testing
 coverage/
+test/
 
 # Production
 build/
 dist/
 out/
+artifacts/
+cache/
 
 # Misc
 .DS_Store
-.env
+.env*
 .env.local
 .env.development.local
 .env.test.local
@@ -56,27 +59,30 @@ Thumbs.db
 *~
 *.bak
 *.backup
+backups/
 
 # System files
 desktop.ini
 $RECYCLE.BIN/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-server/.env
-
-# Deployment
-.vercel/
+# Contract related
+contracts_broken/
+contracts_heritage_only/
 deployments/
 
-# Test files
-test/
+# Scripts
+fix_scripts/
+config_backups/
+payment_backups/
+scripts/
 
-# Backup files
-backups/
+# Vercel
+.vercel/
+.vercelignore
 
-# Firebase/Service files
-firebase.json
-serviceAccount.json
+# GitHub
+.github/
+
+# Other
+mountainshares-dapp@1.0.0/
+temp_scripts.json
