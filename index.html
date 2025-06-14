@@ -508,6 +508,23 @@
             initWeb3();
             showTab('home');
         });
+
+        document.getElementById('purchase-amount').addEventListener('input', updatePrice);
+
+        function updatePrice() {
+            const amount = document.getElementById('purchase-amount').value;
+            if (amount && amount > 0) {
+                // Example: 1 ETH = 100 MountainShares
+                const mountainShares = amount * 100;
+                document.getElementById('transaction-status').textContent = `You will receive ${mountainShares} MountainShares`;
+            } else {
+                document.getElementById('transaction-status').textContent = '';
+            }
+        }
+
+        function checkPlatformStatus() {
+            return true; // Allow purchases now
+        }
     </script>
 </body>
 </html>
