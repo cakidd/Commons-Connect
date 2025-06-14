@@ -600,10 +600,9 @@
                 
                 // Update last updated timestamp
                 lastUpdated.textContent = new Date().toLocaleString();
-                
             } catch (error) {
-                console.error('Status update failed:', error);
-                showError('Error updating status: ' + error.message);
+                console.error('Error updating status:', error);
+                showError('Error checking system status: ' + error.message);
             }
         }
 
