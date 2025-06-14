@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+server/node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
@@ -14,6 +15,7 @@ artifacts/
 .env
 .env.local
 .env.*.local
+server/.env
 
 # IDE and editor files
 .idea/
@@ -21,6 +23,7 @@ artifacts/
 *.swp
 *.swo
 .DS_Store
+Thumbs.db
 
 # Deployment
 .vercel/
@@ -37,3 +40,10 @@ backups/
 # Temporary files
 *.tmp
 *.temp
+
+# Firebase/Service files
+firebase.json
+serviceAccount.json
+
+# Block executable files
+*.exe

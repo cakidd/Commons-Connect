@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - MountainShares</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="success-message">
+            <h1>Payment Successful!</h1>
+            <p>Your MountainShares tokens are being processed.</p>
+            <div id="status-message" class="status-message status-info">Verifying payment...</div>
+            <a href="index.html" class="button">Return to Home</a>
+        </div>
+    </div>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="js/payment.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            handlePaymentReturn();
+        });
+    </script>
+</body>
+</html> 
