@@ -325,6 +325,37 @@
             font-size: 16px;
             min-height: 24px;
         }
+
+        .status-actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .refresh-button {
+            background: var(--ms-gold-gradient);
+            color: var(--ms-dark);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -400,6 +431,9 @@
                         <p>Blockchain: <span id="blockchain-status" class="status-checking">Checking...</span></p>
                         <p>Contract: <span id="contract-status" class="status-checking">Checking...</span></p>
                         <p>Last Updated: <span id="last-updated">--</span></p>
+                    </div>
+                    <div class="status-actions">
+                        <button onclick="updateStatus()" class="refresh-button">🔄 Refresh Status</button>
                     </div>
                 </div>
             </div>
@@ -528,16 +562,38 @@
         async function updateStatus() {
             try {
                 const network = await provider.getNetwork();
-                document.getElementById('blockchain-status').textContent = 'Connected';
-                document.getElementById('blockchain-status').className = 'status-online';
-
-                const contractCode = await provider.getCode(CONTRACT_ADDRESS);
-                document.getElementById('contract-status').textContent = contractCode !== '0x' ? 'Verified' : 'Not Found';
-                document.getElementById('contract-status').className = contractCode !== '0x' ? 'status-online' : 'status-error';
+                const blockchainStatus = document.getElementById('blockchain-status');
+                const contractStatus = document.getElementById('contract-status');
+                const lastUpdated = document.getElementById('last-updated');
                 
-                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+                // Update blockchain status
+                if (network.chainId === 42161) { // Arbitrum One
+                    blockchainStatus.textContent = 'Connected to Arbitrum One';
+                    blockchainStatus.className = 'status-online';
+                } else {
+                    blockchainStatus.textContent = 'Please switch to Arbitrum One';
+                    blockchainStatus.className = 'status-error';
+                }
+
+                // Update contract status
+                const contractCode = await provider.getCode(CONTRACT_ADDRESS);
+                if (contractCode !== '0x') {
+                    contractStatus.textContent = 'Contract Verified';
+                    contractStatus.className = 'status-online';
+                } else {
+                    contractStatus.textContent = 'Contract Not Found';
+                    contractStatus.className = 'status-error';
+                }
+                
+                // Update last updated timestamp
+                lastUpdated.textContent = new Date().toLocaleString();
+                
+                // Remove any error messages
+                const errorMessages = document.querySelectorAll('.error-message');
+                errorMessages.forEach(msg => msg.remove());
             } catch (error) {
                 console.error('Status update failed:', error);
+                showTransactionStatus("Error updating status: " + error.message, "error");
             }
         }
 
