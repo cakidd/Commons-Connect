@@ -435,6 +435,7 @@
                     <div class="status-actions">
                         <button onclick="updateStatus()" class="refresh-button">🔄 Refresh Status</button>
                     </div>
+                    <div id="error-container"></div>
                 </div>
             </div>
         </main>
@@ -468,37 +469,43 @@
                         } catch (switchError) {
                             // If Arbitrum One is not added to MetaMask, add it
                             if (switchError.code === 4902) {
-                                await window.ethereum.request({
-                                    method: 'wallet_addEthereumChain',
-                                    params: [{
-                                        chainId: '0xA4B1',
-                                        chainName: 'Arbitrum One',
-                                        nativeCurrency: {
-                                            name: 'ETH',
-                                            symbol: 'ETH',
-                                            decimals: 18
-                                        },
-                                        rpcUrls: ['https://arb1.arbitrum.io/rpc'],
-                                        blockExplorerUrls: ['https://arbiscan.io']
-                                    }]
-                                });
+                                try {
+                                    await window.ethereum.request({
+                                        method: 'wallet_addEthereumChain',
+                                        params: [{
+                                            chainId: '0xA4B1',
+                                            chainName: 'Arbitrum One',
+                                            nativeCurrency: {
+                                                name: 'ETH',
+                                                symbol: 'ETH',
+                                                decimals: 18
+                                            },
+                                            rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                                            blockExplorerUrls: ['https://arbiscan.io']
+                                        }]
+                                    });
+                                } catch (addError) {
+                                    showError('Failed to add Arbitrum One network: ' + addError.message);
+                                    return false;
+                                }
                             } else {
-                                throw switchError;
+                                showError('Failed to switch to Arbitrum One: ' + switchError.message);
+                                return false;
                             }
                         }
                     }
                     
                     signer = provider.getSigner();
                     contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-                    updateStatus();
+                    await updateStatus();
                     return true;
                 } catch (error) {
                     console.error("Error initializing Web3:", error);
-                    showTransactionStatus("Error connecting to wallet: " + error.message, "error");
+                    showError("Error connecting to wallet: " + error.message);
                     return false;
                 }
             } else {
-                showTransactionStatus("Please install MetaMask to purchase MountainShares.", "error");
+                showError("Please install MetaMask to purchase MountainShares.");
                 return false;
             }
         }
@@ -565,6 +572,10 @@
                 const blockchainStatus = document.getElementById('blockchain-status');
                 const contractStatus = document.getElementById('contract-status');
                 const lastUpdated = document.getElementById('last-updated');
+                const errorContainer = document.getElementById('error-container');
+                
+                // Clear previous errors
+                errorContainer.innerHTML = '';
                 
                 // Update blockchain status
                 if (network.chainId === 42161) { // Arbitrum One
@@ -573,6 +584,7 @@
                 } else {
                     blockchainStatus.textContent = 'Please switch to Arbitrum One';
                     blockchainStatus.className = 'status-error';
+                    showError('Please switch to Arbitrum One network in MetaMask');
                 }
 
                 // Update contract status
@@ -583,25 +595,32 @@
                 } else {
                     contractStatus.textContent = 'Contract Not Found';
                     contractStatus.className = 'status-error';
+                    showError('Smart contract not found on Arbitrum One');
                 }
                 
                 // Update last updated timestamp
                 lastUpdated.textContent = new Date().toLocaleString();
                 
-                // Remove any error messages
-                const errorMessages = document.querySelectorAll('.error-message');
-                errorMessages.forEach(msg => msg.remove());
             } catch (error) {
                 console.error('Status update failed:', error);
-                showTransactionStatus("Error updating status: " + error.message, "error");
+                showError('Error updating status: ' + error.message);
             }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            errorContainer.appendChild(errorDiv);
         }
 
         // Connect Wallet
         async function connectWallet() {
             if (await initWeb3()) {
-                showTransactionStatus("Wallet connected successfully!", "success");
-                showTab('purchase');
+                const address = await signer.getAddress();
+                showTransactionStatus("Connected to wallet: " + address.substring(0, 6) + "..." + address.substring(38), "success");
             }
         }
 
@@ -611,19 +630,16 @@
             showTab('home');
         });
 
-        document.getElementById('purchase-amount').addEventListener('input', updatePrice);
-
-        function updatePrice() {
-            const amount = document.getElementById('purchase-amount').value;
+        document.getElementById('purchase-amount').addEventListener('input', function(e) {
+            const amount = e.target.value;
             const priceDisplay = document.getElementById('price-display');
             if (amount && amount > 0) {
-                // Example: 1 ETH = 100 MountainShares
-                const mountainShares = amount * 100;
-                priceDisplay.textContent = `You will receive ${mountainShares} MountainShares`;
+                const price = (amount * 1).toFixed(2); // 1:1 conversion rate
+                priceDisplay.textContent = `You will receive ${price} MountainShares`;
             } else {
                 priceDisplay.textContent = '';
             }
-        }
+        });
 
         function checkPlatformStatus() {
             return true; // Allow purchases now
