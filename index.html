@@ -588,6 +588,134 @@
             }
         `;
         document.head.appendChild(style);
+        // MOUNTAINSHARES PURCHASE FUNCTIONS
+        const MOUNTAINSHARESAPI = 'https://mountainshares-api-only-42blmxm9u-cakidds-projects.vercel.app';
+        
+        async function calculatePrice() {
+            const tokens = document.getElementById('msTokens').value;
+            
+            try {
+                const response = await fetch(`${MOUNTAINSHARESAPI}/calculate-purchase`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({amount: parseFloat(tokens)})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('pricingDetails').innerHTML = `
+                        <div style="color: var(--mountain-white); line-height: 1.6;">
+                            <div style="color: var(--wv-gold);">🪙 MS Tokens: ${tokens}</div>
+                            <div>💰 Token Value: $${(data.pricing.tokenValue * tokens).toFixed(2)}</div>
+                            <div>💳 Stripe Fee: $${data.pricing.stripeFee.toFixed(2)}</div>
+                            <div>🏔️ MS Fee: $${data.pricing.mountainSharesFee.toFixed(2)}</div>
+                            <div style="color: var(--wv-gold); font-weight: bold; font-size: 18px; margin-top: 10px; border-top: 2px solid var(--wv-gold); padding-top: 10px;">
+                                💎 Total Cost: $${data.pricing.totalCharge.toFixed(2)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('pricingDetails').innerHTML = `
+                        <div style="color: #ff4444;">❌ Error calculating price. Please try again.</div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Pricing calculation failed:', error);
+                document.getElementById('pricingDetails').innerHTML = `
+                    <div style="color: #ff4444;">❌ Connection error. Please check your internet connection.</div>
+                `;
+            }
+        }
+
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // Request account access
+                    const accounts = await window.ethereum.request({
+                        method: 'eth_requestAccounts'
+                    });
+                    
+                    // Switch to Arbitrum One
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xA4B1' }] // Arbitrum One
+                        });
+                    } catch (switchError) {
+                        // If Arbitrum One is not added, add it
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0xA4B1',
+                                    chainName: 'Arbitrum One',
+                                    nativeCurrency: {
+                                        name: 'ETH',
+                                        symbol: 'ETH',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                                    blockExplorerUrls: ['https://arbiscan.io/']
+                                }]
+                            });
+                        }
+                    }
+                    
+                    document.getElementById('walletButton').innerHTML = 
+                        `✅ Connected: ${accounts[0].slice(0,6)}...${accounts[0].slice(-4)}`;
+                    
+                    return accounts[0];
+                } catch (error) {
+                    console.error('Wallet connection failed:', error);
+                    alert('Failed to connect wallet. Please make sure MetaMask is unlocked and try again.');
+                    return null;
+                }
+            } else {
+                alert('MetaMask not detected! Please install MetaMask to purchase MountainShares.\n\nGet MetaMask at: https://metamask.io');
+                return null;
+            }
+        }
+
+        async function purchaseMS() {
+            const tokens = document.getElementById('msTokens').value;
+            
+            if (!tokens || tokens <= 0) {
+                alert('Please enter a valid number of tokens to purchase.');
+                return;
+            }
+            
+            const wallet = await connectWallet();
+            if (!wallet) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${MOUNTAINSHARESAPI}/create-payment-session`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        amount: parseFloat(tokens),
+                        customerWallet: wallet
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Payment session created successfully!\n\nSession ID: ${data.id}\nOrder ID: ${data.orderid}\n\nNext: Integration with Stripe checkout coming soon!`);
+                    
+                    // Log success for development
+                    console.log('🏔️ MOUNTAINSHARES PURCHASE INITIATED 🏔️');
+                    console.log('Payment Session:', data);
+                } else {
+                    alert('❌ Failed to create payment session. Please try again.');
+                }
+            } catch (error) {
+                console.error('Purchase failed:', error);
+                alert('❌ Connection error during purchase. Please check your internet connection and try again.');
+            }
+        }
     </script>
 </body>
 </html>
