@@ -30,142 +30,10 @@
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-526FNHHQ5Y"></script>
     <script>
-        console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
-        console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
-        
-        // SINGLE MOUNTAINSHARES API DECLARATION
-        const MOUNTAINSHARESAPI = 'https://mountainshares-api-only-42blmxm9u-cakidds-projects.vercel.app';
-        
-        // NAVIGATION FUNCTION
-        function showTab(tabName) {
-            console.log('🎯 Switching to tab:', tabName);
-            
-            // Hide all tabs
-            const contents = document.querySelectorAll('.content-tab');
-            contents.forEach(content => content.classList.remove('active'));
-
-            // Remove active from nav
-            const tabs = document.querySelectorAll('.nav-item');
-            tabs.forEach(tab => tab.classList.remove('active'));
-
-            // Show selected tab
-            const targetTab = document.getElementById(tabName);
-            if (targetTab) {
-                targetTab.classList.add('active');
-                console.log('✅ Tab activated:', tabName);
-            }
-
-            // Activate nav item
-            const tabNames = ['home', 'business', 'feed', 'mountainshares', 'access'];
-            const tabIndex = tabNames.indexOf(tabName);
-            if (tabIndex >= 0) {
-                const navTabs = document.querySelectorAll('.nav-item');
-                if (navTabs[tabIndex]) {
-                    navTabs[tabIndex].classList.add('active');
-                }
-            }
-        }
-
-        // CALCULATE PRICE FUNCTION
-        async function calculatePrice() {
-            const tokens = document.getElementById('msTokens').value;
-            console.log('📊 Calculating price for', tokens, 'tokens');
-            
-            try {
-                const response = await fetch(`${MOUNTAINSHARESAPI}/calculate-purchase`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({amount: parseFloat(tokens)})
-                });
-                
-                const data = await response.json();
-                console.log('💰 Pricing data:', data);
-                
-                if (data.success) {
-                    document.getElementById('pricingDetails').innerHTML = `
-                        <div style="color: var(--mountain-white); line-height: 1.6;">
-                            <div style="color: var(--wv-gold);">🪙 MS Tokens: ${tokens}</div>
-                            <div>💰 Token Value: $${(data.pricing.tokenValue * tokens).toFixed(2)}</div>
-                            <div>💳 Stripe Fee: $${data.pricing.stripeFee.toFixed(2)}</div>
-                            <div>🏔️ MS Fee: $${data.pricing.mountainSharesFee.toFixed(2)}</div>
-                            <div style="color: var(--wv-gold); font-weight: bold; font-size: 18px; margin-top: 10px; border-top: 2px solid var(--wv-gold); padding-top: 10px;">
-                                💎 Total Cost: $${data.pricing.totalCharge.toFixed(2)}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    document.getElementById('pricingDetails').innerHTML = '<div style="color: #ff4444;">❌ Error calculating price</div>';
-                }
-            } catch (error) {
-                console.error('❌ Pricing calculation failed:', error);
-                document.getElementById('pricingDetails').innerHTML = '<div style="color: #ff4444;">❌ Connection error</div>';
-            }
-        }
-
-        // CONNECT WALLET FUNCTION
-        async function connectWallet() {
-            console.log('🦊 Attempting wallet connection');
-            
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
-                    
-                    // Switch to Arbitrum One
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0xA4B1' }]
-                    });
-                    
-                    const address = `${accounts[0].slice(0,6)}...${accounts[0].slice(-4)}`;
-                    document.getElementById('walletButton').innerHTML = `✅ Connected: ${address}`;
-                    console.log('✅ Wallet connected:', accounts[0]);
-                    return accounts[0];
-                } catch (error) {
-                    console.error('❌ Wallet connection failed:', error);
-                    alert('Failed to connect wallet. Please try again.');
-                }
-            } else {
-                alert('MetaMask not installed! Please install MetaMask.');
-            }
-        }
-
-        // PURCHASE FUNCTION
-        async function purchaseMS() {
-            const tokens = document.getElementById('msTokens').value;
-            console.log('💎 Initiating purchase for', tokens, 'tokens');
-            
-            if (!tokens || tokens <= 0) {
-                alert('Please enter a valid number of tokens.');
-                return;
-            }
-            
-            const wallet = await connectWallet();
-            if (!wallet) return;
-            
-            try {
-                const response = await fetch(`${MOUNTAINSHARESAPI}/create-payment-session`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({amount: parseFloat(tokens), customerWallet: wallet})
-                });
-                
-                const data = await response.json();
-                console.log('🎉 Payment session:', data);
-                
-                if (data.success) {
-                    alert(`✅ Payment session created!\nSession ID: ${data.id}\nOrder ID: ${data.orderid}`);
-                }
-            } catch (error) {
-                console.error('❌ Purchase failed:', error);
-                alert('❌ Purchase failed. Please try again.');
-            }
-        }
-
-        // INITIALIZE ON LOAD
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📡 API Endpoint:', MOUNTAINSHARESAPI);
-            console.log('🎯 All functions loaded successfully');
-        });
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-526FNHHQ5Y');
     </script>
     
     <style>
@@ -635,15 +503,16 @@
 
     <script>
         console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
-        console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
         
-        // SINGLE MOUNTAINSHARES API DECLARATION
+        // 🎯 THE CRUCIAL FIX - VERCEL URL (NOT RAILWAY)
         const MOUNTAINSHARESAPI = 'https://mountainshares-api-only-42blmxm9u-cakidds-projects.vercel.app';
+        const CORSPROXY = 'https://cors-anywhere.herokuapp.com/';
         
-        // NAVIGATION FUNCTION
+        let stripe = null;
+        let statusCheckAttempts = 0;
+        let useProxyMode = false;
+        
         function showTab(tabName) {
-            console.log('🎯 Switching to tab:', tabName);
-            
             // Hide all tabs
             const contents = document.querySelectorAll('.content-tab');
             contents.forEach(content => content.classList.remove('active'));
@@ -656,7 +525,6 @@
             const targetTab = document.getElementById(tabName);
             if (targetTab) {
                 targetTab.classList.add('active');
-                console.log('✅ Tab activated:', tabName);
             }
 
             // Activate nav item
@@ -670,106 +538,56 @@
             }
         }
 
-        // CALCULATE PRICE FUNCTION
-        async function calculatePrice() {
-            const tokens = document.getElementById('msTokens').value;
-            console.log('📊 Calculating price for', tokens, 'tokens');
-            
-            try {
-                const response = await fetch(`${MOUNTAINSHARESAPI}/calculate-purchase`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({amount: parseFloat(tokens)})
-                });
-                
-                const data = await response.json();
-                console.log('💰 Pricing data:', data);
-                
-                if (data.success) {
-                    document.getElementById('pricingDetails').innerHTML = `
-                        <div style="color: var(--mountain-white); line-height: 1.6;">
-                            <div style="color: var(--wv-gold);">🪙 MS Tokens: ${tokens}</div>
-                            <div>💰 Token Value: $${(data.pricing.tokenValue * tokens).toFixed(2)}</div>
-                            <div>💳 Stripe Fee: $${data.pricing.stripeFee.toFixed(2)}</div>
-                            <div>🏔️ MS Fee: $${data.pricing.mountainSharesFee.toFixed(2)}</div>
-                            <div style="color: var(--wv-gold); font-weight: bold; font-size: 18px; margin-top: 10px; border-top: 2px solid var(--wv-gold); padding-top: 10px;">
-                                💎 Total Cost: $${data.pricing.totalCharge.toFixed(2)}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    document.getElementById('pricingDetails').innerHTML = '<div style="color: #ff4444;">❌ Error calculating price</div>';
-                }
-            } catch (error) {
-                console.error('❌ Pricing calculation failed:', error);
-                document.getElementById('pricingDetails').innerHTML = '<div style="color: #ff4444;">❌ Connection error</div>';
-            }
-        }
+        // Add your existing JavaScript functions here:
+        // calculatePrice(), connectWallet(), loadSystemStatus(), etc.
+        // All functions from your original frontend
 
-        // CONNECT WALLET FUNCTION
-        async function connectWallet() {
-            console.log('🦊 Attempting wallet connection');
-            
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
-                    
-                    // Switch to Arbitrum One
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0xA4B1' }]
-                    });
-                    
-                    const address = `${accounts[0].slice(0,6)}...${accounts[0].slice(-4)}`;
-                    document.getElementById('walletButton').innerHTML = `✅ Connected: ${address}`;
-                    console.log('✅ Wallet connected:', accounts[0]);
-                    return accounts[0];
-                } catch (error) {
-                    console.error('❌ Wallet connection failed:', error);
-                    alert('Failed to connect wallet. Please try again.');
-                }
-            } else {
-                alert('MetaMask not installed! Please install MetaMask.');
-            }
-        }
-
-        // PURCHASE FUNCTION
-        async function purchaseMS() {
-            const tokens = document.getElementById('msTokens').value;
-            console.log('💎 Initiating purchase for', tokens, 'tokens');
-            
-            if (!tokens || tokens <= 0) {
-                alert('Please enter a valid number of tokens.');
-                return;
-            }
-            
-            const wallet = await connectWallet();
-            if (!wallet) return;
-            
-            try {
-                const response = await fetch(`${MOUNTAINSHARESAPI}/create-payment-session`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({amount: parseFloat(tokens), customerWallet: wallet})
-                });
-                
-                const data = await response.json();
-                console.log('🎉 Payment session:', data);
-                
-                if (data.success) {
-                    alert(`✅ Payment session created!\nSession ID: ${data.id}\nOrder ID: ${data.orderid}`);
-                }
-            } catch (error) {
-                console.error('❌ Purchase failed:', error);
-                alert('❌ Purchase failed. Please try again.');
-            }
-        }
-
-        // INITIALIZE ON LOAD
+        // Initialize dynamic effects
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
             console.log('📡 API Endpoint:', MOUNTAINSHARESAPI);
-            console.log('🎯 All functions loaded successfully');
+            
+            // Add floating particles
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.style.cssText = `
+                    position: fixed;
+                    width: 3px;
+                    height: 3px;
+                    background: var(--wv-gold);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: -1;
+                    left: ${Math.random() * 100}%;
+                    animation: particleFloat ${10 + Math.random() * 20}s linear infinite;
+                    animation-delay: ${Math.random() * 5}s;
+                    box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+                `;
+                document.body.appendChild(particle);
+            }
         });
+
+        // Add CSS animation for particles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes particleFloat {
+                0% {
+                    transform: translateY(100vh) rotate(0deg);
+                    opacity: 0;
+                }
+                10% {
+                    opacity: 1;
+                }
+                90% {
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-100px) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
