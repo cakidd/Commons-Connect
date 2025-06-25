@@ -2,3 +2,4 @@ firebase.json
 serviceAccount.json
 # Block executable files
 *.exe
+.vercel
