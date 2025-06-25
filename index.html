@@ -591,3 +591,69 @@
     </script>
 </body>
 </html>
+            <!-- HOME TAB -->
+            <div id="home" class="content-tab active">
+                <div class="hero-section">
+                    <div class="hero-content">
+                        <h2>Welcome to The Commons</h2>
+                        <p>Building the future of West Virginia's digital economy through community-driven innovation and blockchain technology.</p>
+                        <div class="button-group">
+                            <a href="#" class="btn-premium btn-primary" onclick="showTab('business')">Explore Business Network</a>
+                            <a href="#" class="btn-premium btn-secondary" onclick="showTab('mountainshares')">Learn About MountainShares</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MOUNTAINSHARES TAB -->
+            <div id="mountainshares" class="content-tab">
+                <div class="coming-soon-banner">🏔️ MountainShares - Local Digital Currency</div>
+                
+                <div class="hero-section">
+                    <div class="hero-content">
+                        <h2>MountainShares Token</h2>
+                        <p>1 MountainShares = $1 USD • Community-owned digital currency for West Virginia</p>
+                        
+                        <div style="background: rgba(255,215,0,0.1); padding: 40px; border-radius: 20px; margin: 40px 0;">
+                            <h3 style="color: var(--wv-gold); margin-bottom: 20px;">💰 Purchase MountainShares</h3>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Amount (MS Tokens):</label>
+                                    <input type="number" id="msTokens" value="1" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: 2px solid var(--wv-gold); background: rgba(0,0,0,0.8); color: white; font-size: 18px;">
+                                    
+                                    <button onclick="calculatePrice()" style="width: 100%; margin-top: 20px; padding: 15px; background: var(--gold-gradient); border: none; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer;">Calculate Total</button>
+                                </div>
+                                
+                                <div id="pricingBreakdown" style="background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px;">
+                                    <h4 style="color: var(--wv-gold); margin-bottom: 15px;">💎 Pricing Breakdown</h4>
+                                    <div id="pricingDetails">Click "Calculate Total" to see pricing...</div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 30px; text-align: center;">
+                                <button onclick="connectWallet()" id="walletButton" style="padding: 20px 40px; background: var(--mountain-blue); color: white; border: none; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer;">🦊 Connect MetaMask Wallet</button>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+                            <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px;">
+                                <h3 style="color: var(--sky-blue);">🏛️ Democratic Governance</h3>
+                                <p>Community decisions backed by financial consequences. Your tokens = your voice in West Virginia's digital future.</p>
+                            </div>
+                            
+                            <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px;">
+                                <h3 style="color: var(--wv-gold);">💰 Fee Distribution</h3>
+                                <p>30% Harmony for Hope • 30% Treasury • 15% Development • 15% Community Programs • 10% Governance</p>
+                            </div>
+                            
+                            <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px;">
+                                <h3 style="color: var(--mountain-blue);">🔗 Blockchain Security</h3>
+                                <p>Built on Arbitrum One for fast, secure transactions. Smart contracts verified and audited.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add other tab contents as needed -->
