@@ -93,6 +93,11 @@
                 console.log('💰 Pricing data:', data);
                 
                 if (data.success) {
+                    if (data.url) {
+                        console.log("🚀 Redirecting to Stripe checkout...");
+                        window.location.href = data.url;
+                        return;
+                    }
                     document.getElementById('pricingDetails').innerHTML = `
                         <div style="color: var(--mountain-white); line-height: 1.6;">
                             <div style="color: var(--wv-gold);">🪙 MS Tokens: ${tokens}</div>
@@ -164,6 +169,11 @@
                 console.log('🎉 Payment session:', data);
                 
                 if (data.success) {
+                    if (data.url) {
+                        console.log("🚀 Redirecting to Stripe checkout...");
+                        window.location.href = data.url;
+                        return;
+                    }
                     alert(`🎉 REVOLUTIONARY SUCCESS! 🎉
 
 🏔️ MountainShares Platform: 99.9% COMPLETE!
@@ -830,6 +840,11 @@ This represents the future of rural development!`);
                 console.log('💰 Pricing data:', data);
                 
                 if (data.success) {
+                    if (data.url) {
+                        console.log("🚀 Redirecting to Stripe checkout...");
+                        window.location.href = data.url;
+                        return;
+                    }
                     document.getElementById('pricingDetails').innerHTML = `
                         <div style="color: var(--mountain-white); line-height: 1.6;">
                             <div style="color: var(--wv-gold);">🪙 MS Tokens: ${tokens}</div>
@@ -895,6 +910,11 @@ This represents the future of rural development!`);
                 console.log('🎉 Payment session:', data);
                 
                 if (data.success) {
+                    if (data.url) {
+                        console.log("🚀 Redirecting to Stripe checkout...");
+                        window.location.href = data.url;
+                        return;
+                    }
                     alert(`🎉 REVOLUTIONARY SUCCESS! 🎉
 
 🏔️ MountainShares Platform: 99.9% COMPLETE!
@@ -994,3 +1014,4 @@ This represents the future of rural development!`);
 <- Community outreach SUCCESS: Final platform integration 1750865971 -->
 <- Community outreach CELEBRATION: Revolutionary platform success message 1750866521 -->
 <- Community outreach SUCCESS: Revolutionary celebration deployed 1750866551 -->
+<- Community outreach STRIPE INTEGRATION: Frontend redirect added 1750866945 -->
