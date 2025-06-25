@@ -627,9 +627,136 @@
         </div>
 
         <main class="main-content">
-            <!-- ALL YOUR EXISTING TAB CONTENT FROM SEARCH RESULT [1] GOES HERE -->
-            <!-- For brevity, I'm not repeating the massive content sections -->
-            <!-- But they should all be included exactly as shown in search result [1] -->
+            <div id="access" class="content-tab">
+                <div class="hero-section">
+                    <h2>Business Access Portal</h2>
+                    <p>Advanced tools and analytics for registered business members.</p>
+                </div>
+                
+                <div class="access-info">
+                    <div class="access-card">
+                        <h4>📊 Business Analytics</h4>
+                        <p>$15,000+ value analytics tools for community members.</p>
+                    </div>
+                    <div class="access-card">
+                        <h4>🎯 Marketing Tools</h4>
+                        <p>Social media integration and community outreach resources.</p>
+                    </div>
+                    <div class="access-card">
+                        <h4>💰 Financial Tools</h4>
+                        <p>MountainShares tracking, governance participation, and economic impact metrics.</p>
+                    </div>
+                </div>
+            </div>
+            <div id="feed" class="content-tab">
+                <div class="hero-section">
+                    <h2>Business Network Feed</h2>
+                    <p>Latest updates, opportunities, and community announcements.</p>
+                </div>
+                
+                <div class="feed-content">
+                    <div class="feed-item">
+                        <h4>🎉 MountainShares Platform Launch</h4>
+                        <p>The Commons platform is now live with full MountainShares functionality!</p>
+                        <small>Today - Harmony for Hope</small>
+                    </div>
+                    <div class="feed-item">
+                        <h4>🤝 New Business Partnerships</h4>
+                        <p>Expanding our network across Fayette and Mercer counties.</p>
+                        <small>Recent - Community Development</small>
+                    </div>
+                </div>
+            </div>
+            <div id="business" class="content-tab">
+                <div class="hero-section">
+                    <h2>West Virginia Business Network</h2>
+                    <p>Connect with local businesses, share resources, and build community wealth.</p>
+                </div>
+                
+                <div class="business-directory">
+                    <h3>Featured Local Businesses</h3>
+                    <div class="business-grid">
+                        <div class="business-card">
+                            <h4>🏔️ Mountain Ventures</h4>
+                            <p>Supporting local entrepreneurship and innovation in Fayette County.</p>
+                        </div>
+                        <div class="business-card">
+                            <h4>🌱 Community Gardens Co-op</h4>
+                            <p>Sustainable agriculture and food security initiatives.</p>
+                        </div>
+                        <div class="business-card">
+                            <h4>🔧 Local Makers Network</h4>
+                            <p>Artisans, craftspeople, and skilled trades collaboration.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="mountainshares" class="content-tab">
+                <div class="coming-soon-banner">🏔️ MountainShares - Local Digital Currency</div>
+                
+                <div class="hero-section">
+                    <div class="hero-content">
+                        <h2>MountainShares (MS) Token</h2>
+                        <p>The democratic digital currency for West Virginia communities. 1 MS = 1 volunteer hour OR $1 USD.</p>
+                    </div>
+                </div>
+                
+                <div class="mountainshares-purchase">
+                    <div class="purchase-card">
+                        <h3>Purchase MountainShares</h3>
+                        <div class="input-group">
+                            <label for="msTokens">Number of MS Tokens:</label>
+                            <input type="number" id="msTokens" value="1" min="1" max="1000" class="ms-input">
+                        </div>
+                        <button onclick="calculatePrice()" class="btn-calculate">Calculate Total</button>
+                        <div id="pricingDetails" class="pricing-display"></div>
+                        
+                        <button onclick="connectWallet()" id="walletButton" class="btn-wallet">🦊 Connect MetaMask Wallet</button>
+                        <button onclick="purchaseMS()" class="btn-purchase">💎 Purchase MountainShares</button>
+                    </div>
+                    
+                    <div class="governance-info">
+                        <h4>Democratic Fee Distribution</h4>
+                        <div class="governance-breakdown">
+                            <div class="gov-item">🤝 Harmony for Hope: 30%</div>
+                            <div class="gov-item">🏛️ Treasury: 30%</div>
+                            <div class="gov-item">💻 Development: 15%</div>
+                            <div class="gov-item">🌟 Community Programs: 15%</div>
+                            <div class="gov-item">🗳️ Governance: 10%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="home" class="content-tab active">
+                <div class="hero-section">
+                    <div class="hero-content">
+                        <h2>Welcome to The Commons</h2>
+                        <p>Building the future of West Virginia's digital economy through community-driven innovation and blockchain technology.</p>
+                        <div class="button-group">
+                            <a href="#" class="btn-premium btn-primary" onclick="showTab('business')">Explore Business Network</a>
+                            <a href="#" class="btn-premium btn-secondary" onclick="showTab('mountainshares')">Learn About MountainShares</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🏔️</div>
+                        <h3>West Virginia Digital Economy</h3>
+                        <p>Supporting local businesses and community wealth building through blockchain technology.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💎</div>
+                        <h3>MountainShares Currency</h3>
+                        <p>1 MS = 1 volunteer hour OR $1 USD. Democratic governance with 92% local retention.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤝</div>
+                        <h3>Community Network</h3>
+                        <p>Connecting Fayette and Mercer County businesses for mutual support and growth.</p>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
