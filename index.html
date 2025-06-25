@@ -502,32 +502,21 @@
     </div>
 
     <script>
-        console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
-        
-        // 🎯 THE CRUCIAL FIX - VERCEL URL (NOT RAILWAY)
+
+        // MOUNTAINSHARES PURCHASE FUNCTIONS
         const MOUNTAINSHARESAPI = 'https://mountainshares-api-only-42blmxm9u-cakidds-projects.vercel.app';
-        const CORSPROXY = 'https://cors-anywhere.herokuapp.com/';
         
-        let stripe = null;
-        let statusCheckAttempts = 0;
-        let useProxyMode = false;
-        
+        // Navigation function
         function showTab(tabName) {
-            // Hide all tabs
+            console.log('🎯 Switching to tab:', tabName);
             const contents = document.querySelectorAll('.content-tab');
             contents.forEach(content => content.classList.remove('active'));
-
-            // Remove active from nav
             const tabs = document.querySelectorAll('.nav-item');
             tabs.forEach(tab => tab.classList.remove('active'));
-
-            // Show selected tab
             const targetTab = document.getElementById(tabName);
             if (targetTab) {
                 targetTab.classList.add('active');
             }
-
-            // Activate nav item
             const tabNames = ['home', 'business', 'feed', 'mountainshares', 'access'];
             const tabIndex = tabNames.indexOf(tabName);
             if (tabIndex >= 0) {
@@ -538,71 +527,16 @@
             }
         }
 
-        // Add your existing JavaScript functions here:
-        // calculatePrice(), connectWallet(), loadSystemStatus(), etc.
-        // All functions from your original frontend
-
-        // Initialize dynamic effects
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
-            console.log('📡 API Endpoint:', MOUNTAINSHARESAPI);
-            
-            // Add floating particles
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.style.cssText = `
-                    position: fixed;
-                    width: 3px;
-                    height: 3px;
-                    background: var(--wv-gold);
-                    border-radius: 50%;
-                    pointer-events: none;
-                    z-index: -1;
-                    left: ${Math.random() * 100}%;
-                    animation: particleFloat ${10 + Math.random() * 20}s linear infinite;
-                    animation-delay: ${Math.random() * 5}s;
-                    box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
-                `;
-                document.body.appendChild(particle);
-            }
-        });
-
-        // Add CSS animation for particles
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes particleFloat {
-                0% {
-                    transform: translateY(100vh) rotate(0deg);
-                    opacity: 0;
-                }
-                10% {
-                    opacity: 1;
-                }
-                90% {
-                    opacity: 1;
-                }
-                100% {
-                    transform: translateY(-100px) rotate(360deg);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-        // MOUNTAINSHARES PURCHASE FUNCTIONS
-        const MOUNTAINSHARESAPI = 'https://mountainshares-api-only-42blmxm9u-cakidds-projects.vercel.app';
-        
+        // Calculate price function
         async function calculatePrice() {
             const tokens = document.getElementById('msTokens').value;
-            
             try {
                 const response = await fetch(`${MOUNTAINSHARESAPI}/calculate-purchase`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({amount: parseFloat(tokens)})
                 });
-                
                 const data = await response.json();
-                
                 if (data.success) {
                     document.getElementById('pricingDetails').innerHTML = `
                         <div style="color: var(--mountain-white); line-height: 1.6;">
@@ -615,107 +549,65 @@
                             </div>
                         </div>
                     `;
-                } else {
-                    document.getElementById('pricingDetails').innerHTML = `
-                        <div style="color: #ff4444;">❌ Error calculating price. Please try again.</div>
-                    `;
                 }
             } catch (error) {
                 console.error('Pricing calculation failed:', error);
-                document.getElementById('pricingDetails').innerHTML = `
-                    <div style="color: #ff4444;">❌ Connection error. Please check your internet connection.</div>
-                `;
+                document.getElementById('pricingDetails').innerHTML = '<div style="color: #ff4444;">❌ Connection error. Please try again.</div>';
             }
         }
 
+        // Connect wallet function
         async function connectWallet() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
-                    // Request account access
-                    const accounts = await window.ethereum.request({
-                        method: 'eth_requestAccounts'
+                    const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0xA4B1' }]
                     });
-                    
-                    // Switch to Arbitrum One
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0xA4B1' }] // Arbitrum One
-                        });
-                    } catch (switchError) {
-                        // If Arbitrum One is not added, add it
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: '0xA4B1',
-                                    chainName: 'Arbitrum One',
-                                    nativeCurrency: {
-                                        name: 'ETH',
-                                        symbol: 'ETH',
-                                        decimals: 18
-                                    },
-                                    rpcUrls: ['https://arb1.arbitrum.io/rpc'],
-                                    blockExplorerUrls: ['https://arbiscan.io/']
-                                }]
-                            });
-                        }
-                    }
-                    
-                    document.getElementById('walletButton').innerHTML = 
-                        `✅ Connected: ${accounts[0].slice(0,6)}...${accounts[0].slice(-4)}`;
-                    
+                    document.getElementById('walletButton').innerHTML = `✅ Connected: ${accounts[0].slice(0,6)}...${accounts[0].slice(-4)}`;
                     return accounts[0];
                 } catch (error) {
                     console.error('Wallet connection failed:', error);
-                    alert('Failed to connect wallet. Please make sure MetaMask is unlocked and try again.');
-                    return null;
+                    alert('Failed to connect wallet. Please try again.');
                 }
             } else {
-                alert('MetaMask not detected! Please install MetaMask to purchase MountainShares.\n\nGet MetaMask at: https://metamask.io');
-                return null;
+                alert('MetaMask not installed! Please install MetaMask to purchase MountainShares.');
             }
         }
 
+        // Purchase function
         async function purchaseMS() {
             const tokens = document.getElementById('msTokens').value;
-            
             if (!tokens || tokens <= 0) {
                 alert('Please enter a valid number of tokens to purchase.');
                 return;
             }
-            
             const wallet = await connectWallet();
-            if (!wallet) {
-                return;
-            }
-            
+            if (!wallet) return;
             try {
                 const response = await fetch(`${MOUNTAINSHARESAPI}/create-payment-session`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        amount: parseFloat(tokens),
-                        customerWallet: wallet
-                    })
+                    body: JSON.stringify({amount: parseFloat(tokens), customerWallet: wallet})
                 });
-                
                 const data = await response.json();
-                
                 if (data.success) {
-                    alert(`✅ Payment session created successfully!\n\nSession ID: ${data.id}\nOrder ID: ${data.orderid}\n\nNext: Integration with Stripe checkout coming soon!`);
-                    
-                    // Log success for development
-                    console.log('🏔️ MOUNTAINSHARES PURCHASE INITIATED 🏔️');
-                    console.log('Payment Session:', data);
-                } else {
-                    alert('❌ Failed to create payment session. Please try again.');
+                    alert(`✅ Payment session created successfully!\nSession ID: ${data.id}\nOrder ID: ${data.orderid}`);
+                    console.log('🏔️ MOUNTAINSHARES PURCHASE INITIATED 🏔️', data);
                 }
             } catch (error) {
                 console.error('Purchase failed:', error);
-                alert('❌ Connection error during purchase. Please check your internet connection and try again.');
+                alert('❌ Connection error during purchase. Please try again.');
             }
         }
+
+
+        // Initialize dynamic effects
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 BUSINESS INTERFACE LOADED 🚀');
+            console.log('🏔️ BUSINESS NETWORK ACTIVATED 🏔️');
+        });
     </script>
 </body>
 </html>
