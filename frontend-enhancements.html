@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏔️ MountainShares - West Virginia's Digital Currency</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c5530;
+            --secondary-color: #4a7c59;
+            --accent-color: #6b8e73;
+            --success-color: #28a745;
+            --background-gradient: linear-gradient(135deg, #2c5530 0%, #4a7c59 100%);
+            --card-shadow: 0 10px 30px rgba(44, 85, 48, 0.1);
+            --border-radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: var(--background-gradient);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .payment-form {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.1);
+        }
+
+        .payment-summary {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            padding-top: 12px;
+            border-top: 2px solid #e1e5e9;
+        }
+
+        .purchase-button {
+            width: 100%;
+            background: var(--background-gradient);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .purchase-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(44, 85, 48, 0.3);
+        }
+
+        .purchase-button:active {
+            transform: translateY(0);
+        }
+
+        .purchase-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            background: var(--success-color);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .blockchain-info {
+            background: #e8f5e8;
+            border-left: 4px solid var(--success-color);
+            padding: 16px;
+            margin-top: 16px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .blockchain-info h4 {
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .contract-address {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        @media (max-width: 768px) {
+            .payment-container {
+                margin: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .payment-form {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <h1>🏔️ MountainShares</h1>
+            <p>West Virginia's Digital Currency Revolution</p>
+        </div>
+        
+        <div class="payment-form">
+            <form id="payment-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="payment-summary">
+                    <div class="summary-row">
+                        <span>MountainShares Token (1 MS)</span>
+                        <span>$1.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Governance Fee (2%)</span>
+                        <span>$0.02</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Processing Fee</span>
+                        <span>$0.35</span>
+                    </div>
+                    <div class="summary-total">
+                        <span>Total</span>
+                        <span>$1.37</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Payment Information</label>
+                    <div id="card-element" class="form-input">
+                        <!-- Stripe Elements will create form elements here -->
+                    </div>
+                </div>
+                
+                <button type="submit" id="submit-payment" class="purchase-button">
+                    🚀 Purchase MountainShares
+                </button>
+            </form>
+            
+            <div class="blockchain-info">
+                <h4>🔗 Blockchain Integration</h4>
+                <p>Your purchase automatically triggers:</p>
+                <ul style="margin: 8px 0 8px 20px;">
+                    <li>$1.00 → Settlement Treasury</li>
+                    <li>$0.02 → Democratic Governance (5-way split)</li>
+                    <li>1 MS Token → Your wallet</li>
+                </ul>
+                <div class="contract-address">
+                    Contract: 0x1F0c8a4c920E1094f85b18F681dcfB2e2b7DE076
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        // Your existing Stripe integration code here
+        const stripe = Stripe('pk_live_your_publishable_key');
+        const elements = stripe.elements();
+        const cardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                        color: '#aab7c4',
+                    },
+                },
+            },
+        });
+        cardElement.mount('#card-element');
+
+        // Enhanced form submission with better UX
+        document.getElementById('payment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitButton = document.getElementById('submit-payment');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '⏳ Processing...';
+            
+            try {
+                const {paymentMethod} = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardElement,
+                });
+
+                const response = await fetch('/process-payment', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        amount: 1.37,
+                        customerEmail: document.getElementById('email').value,
+                        paymentMethodId: paymentMethod.id
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.querySelector('.payment-form').innerHTML = `
+                        <div class="success-message">
+                            <h3>🎉 Payment Successful!</h3>
+                            <p>Your MountainShares token has been minted!</p>
+                            <div class="blockchain-info">
+                                <h4>Transaction Details</h4>
+                                <div class="contract-address">
+                                    TX: ${result.blockchainTx || 'Processing...'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                alert('Payment failed: ' + error.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = '🚀 Purchase MountainShares';
+            }
+        });
+    </script>
+</body>
+</html>

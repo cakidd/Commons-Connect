@@ -123,3 +123,161 @@ app.listen(PORT, () => {
     console.log(`💳 Stripe configured: ${!!stripe}`);
     console.log(`🏔️ Ready to process MountainShares payments!`);
 });
+
+// Serve static frontend files
+app.use(express.static('public'));
+
+// Serve frontend at root path
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
+});
+
+// Enhanced payment processing endpoint
+app.post('/process-payment', async (req, res) => {
+    try {
+        if (!stripe) {
+            return res.status(503).json({ 
+                error: 'Stripe not configured - payment processing unavailable' 
+            });
+        }
+        
+        const { amount, quantity, customerEmail, walletAddress } = req.body;
+        
+        console.log('🔄 Processing enhanced payment:', {
+            amount,
+            quantity,
+            customerEmail,
+            walletAddress: walletAddress?.substring(0, 6) + '...'
+        });
+        
+        // Calculate amounts
+        const tokenCost = quantity * 1.00;
+        const governanceFee = quantity * 0.02;
+        const processingFee = 0.35;
+        
+        // Here you would integrate with Stripe Checkout
+        // and your blockchain contracts
+        
+        res.json({
+            success: true,
+            message: 'Enhanced payment processor ready',
+            details: {
+                quantity,
+                tokenCost,
+                governanceFee,
+                processingFee,
+                totalAmount: amount,
+                walletAddress,
+                contracts: {
+                    paymentProcessor: COMPLETE_PAYMENT_PROCESSOR,
+                    settlementTreasury: SETTLEMENT_TREASURY,
+                    governance: GOVERNANCE_CONTRACT
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Enhanced payment processing error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create Stripe Checkout session
+app.post('/create-checkout-session', async (req, res) => {
+    try {
+        const { amount, quantity, customerEmail, walletAddress } = req.body;
+        
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: `${quantity} MountainShares Token${quantity > 1 ? 's' : ''}`,
+                        description: 'West Virginia Digital Currency with Governance Fee Distribution',
+                    },
+                    unit_amount: Math.round(amount * 100), // Convert to cents
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${req.headers.origin}/cancel`,
+            customer_email: customerEmail,
+            metadata: {
+                quantity: quantity.toString(),
+                walletAddress: walletAddress,
+                tokenCost: (quantity * 1.00).toString(),
+                governanceFee: (quantity * 0.02).toString()
+            }
+        });
+
+        res.json({ url: session.url });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create Stripe Checkout session
+app.post('/create-checkout-session', async (req, res) => {
+    try {
+        const { amount, quantity, customerEmail, walletAddress } = req.body;
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: `${quantity} MountainShares Token${quantity > 1 ? 's' : ''}`,
+                        description: 'West Virginia Digital Currency with Governance Fee Distribution',
+                    },
+                    unit_amount: Math.round(amount * 100), // Convert to cents
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${req.headers.origin}/cancel`,
+            customer_email: customerEmail,
+            metadata: {
+                quantity: quantity.toString(),
+                walletAddress: walletAddress,
+                tokenCost: (quantity * 1.00).toString(),
+                governanceFee: (quantity * 0.02).toString()
+            }
+        });
+
+        res.json({ url: session.url });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Success and cancel pages
+app.get('/success', (req, res) => {
+    res.send(`
+        <html>
+            <head><title>Payment Successful - MountainShares</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1>🎉 Payment Successful!</h1>
+                <p>Your MountainShares tokens are being processed.</p>
+                <p>Session ID: ${req.query.session_id}</p>
+                <a href="/">Return to MountainShares</a>
+            </body>
+        </html>
+    `);
+});
+
+app.get('/cancel', (req, res) => {
+    res.send(`
+        <html>
+            <head><title>Payment Cancelled - MountainShares</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1>❌ Payment Cancelled</h1>
+                <p>Your payment was cancelled. No charges were made.</p>
+                <a href="/">Return to MountainShares</a>
+            </body>
+        </html>
+    `);
+});
