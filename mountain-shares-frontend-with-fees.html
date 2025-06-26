@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏔️ Mountain Shares - West Virginia Community Currency</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a2e 0%, #2c5530 50%, #4a7c5a 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+        
+        .header h1 {
+            font-size: 3.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .payment-section {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .payment-title {
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ffd700;
+        }
+        
+        .pricing-breakdown {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .pricing-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+        
+        .pricing-row.total {
+            border-top: 1px solid rgba(255,255,255,0.3);
+            margin-top: 15px;
+            padding-top: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #ffd700;
+        }
+        
+        .form-group {
+            margin: 25px 0;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #e8f5e8;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.9);
+            color: #2c5530;
+        }
+        
+        .purchase-button {
+            width: 100%;
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,107,53,0.4);
+            margin-top: 20px;
+        }
+        
+        .purchase-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,107,53,0.6);
+        }
+        
+        .purchase-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: rgba(76,175,80,0.2);
+            border: 1px solid #4caf50;
+        }
+        
+        .status.error {
+            background: rgba(244,67,54,0.2);
+            border: 1px solid #f44336;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        
+        .feature {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .feature h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.5em; }
+            .payment-section { padding: 20px; }
+            .container { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏔️ Mountain Shares</h1>
+            <p>West Virginia's Community Currency - Supporting Local Economy & Building Community Wealth</p>
+        </div>
+        
+        <div class="payment-section">
+            <div class="payment-title">💎 Purchase Mountain Shares Tokens</div>
+            
+            <div class="form-group">
+                <label for="purchase-amount">💵 Purchase Amount (USD):</label>
+                <select id="purchase-amount" onchange="updatePricing()">
+                    <option value="10">$10.00</option>
+                    <option value="25" selected>$25.00</option>
+                    <option value="50">$50.00</option>
+                    <option value="100">$100.00</option>
+                    <option value="250">$250.00</option>
+                    <option value="500">$500.00</option>
+                    <option value="1000">$1,000.00</option>
+                </select>
+            </div>
+            
+            <div class="pricing-breakdown" id="pricing-breakdown">
+                <!-- Pricing breakdown will be populated by JavaScript -->
+            </div>
+            
+            <div class="form-group">
+                <label for="wallet-address">🔐 Your wallet address (optional):</label>
+                <input type="text" id="wallet-address" placeholder="0x... (Leave blank to generate automatically)">
+            </div>
+            
+            <button id="purchase-button" class="purchase-button" onclick="startPurchase()">
+                🚀 Purchase Mountain Shares - <span id="final-total">$25.00</span>
+            </button>
+            
+            <div id="status" class="status" style="display:none;"></div>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>🏠 Local Impact</h3>
+                <p>Every token purchased directly supports West Virginia communities and local businesses.</p>
+            </div>
+            <div class="feature">
+                <h3>🔒 Secure</h3>
+                <p>Powered by Stripe's secure payment processing and blockchain technology.</p>
+            </div>
+            <div class="feature">
+                <h3>🌱 Community Owned</h3>
+                <p>Building a decentralized economy that benefits everyone in the community.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const BACKEND_URL = 'https://mountainshares-backend-adlmd9xfn-cakidds-projects.vercel.app';
+        
+        // Fee configuration
+        const MOUNTAIN_SHARES_FEE_PERCENT = 2; // 2% fee
+        const STRIPE_FEE_PERCENT = 2.9; // 2.9% + $0.30
+        const STRIPE_FIXED_FEE = 0.30; // $0.30 fixed fee
+        
+        function calculatePricing(purchaseAmount) {
+            // Calculate Mountain Shares fee (2%)
+            const mountainSharesFee = purchaseAmount * (MOUNTAIN_SHARES_FEE_PERCENT / 100);
+            
+            // Calculate total before Stripe fees
+            const subtotalAfterMSFee = purchaseAmount + mountainSharesFee;
+            
+            // Calculate Stripe fees (2.9% + $0.30 on the total including MS fee)
+            const stripeFeePercent = subtotalAfterMSFee * (STRIPE_FEE_PERCENT / 100);
+            const totalStripeFee = stripeFeePercent + STRIPE_FIXED_FEE;
+            
+            // Calculate final total (rounded to nearest cent)
+            const finalTotal = Math.round((subtotalAfterMSFee + totalStripeFee) * 100) / 100;
+            
+            // Calculate how many tokens customer gets (based on original purchase amount)
+            const tokensReceived = Math.floor(purchaseAmount * 100) / 100; // 1 token per $1
+            
+            return {
+                purchaseAmount: purchaseAmount,
+                mountainSharesFee: Math.round(mountainSharesFee * 100) / 100,
+                subtotalAfterMSFee: Math.round(subtotalAfterMSFee * 100) / 100,
+                stripeFeePercent: Math.round(stripeFeePercent * 100) / 100,
+                stripeFeeFixed: STRIPE_FIXED_FEE,
+                totalStripeFee: Math.round(totalStripeFee * 100) / 100,
+                finalTotal: finalTotal,
+                tokensReceived: tokensReceived
+            };
+        }
+        
+        function updatePricing() {
+            const purchaseAmount = parseFloat(document.getElementById('purchase-amount').value);
+            const pricing = calculatePricing(purchaseAmount);
+            
+            const breakdownHTML = `
+                <div class="pricing-row">
+                    <span>🎯 Base Purchase Amount:</span>
+                    <span>$${pricing.purchaseAmount.toFixed(2)}</span>
+                </div>
+                <div class="pricing-row">
+                    <span>🏔️ Mountain Shares Fee (${MOUNTAIN_SHARES_FEE_PERCENT}%):</span>
+                    <span>$${pricing.mountainSharesFee.toFixed(2)}</span>
+                </div>
+                <div class="pricing-row">
+                    <span>💳 Stripe Fee (${STRIPE_FEE_PERCENT}% + $${STRIPE_FIXED_FEE}):</span>
+                    <span>$${pricing.totalStripeFee.toFixed(2)}</span>
+                </div>
+                <div class="pricing-row total">
+                    <span>💰 Total Amount:</span>
+                    <span>$${pricing.finalTotal.toFixed(2)}</span>
+                </div>
+                <div class="pricing-row" style="color: #ffd700; margin-top: 10px;">
+                    <span>💎 Tokens You'll Receive:</span>
+                    <span>${pricing.tokensReceived.toFixed(2)} tokens</span>
+                </div>
+            `;
+            
+            document.getElementById('pricing-breakdown').innerHTML = breakdownHTML;
+            document.getElementById('final-total').textContent = `$${pricing.finalTotal.toFixed(2)}`;
+        }
+        
+        async function startPurchase() {
+            const button = document.getElementById('purchase-button');
+            const status = document.getElementById('status');
+            const purchaseAmount = parseFloat(document.getElementById('purchase-amount').value);
+            const walletAddress = document.getElementById('wallet-address').value || `0x${Date.now()}`;
+            const pricing = calculatePricing(purchaseAmount);
+            
+            // Show loading state
+            button.textContent = '⏳ Creating secure payment session...';
+            button.disabled = true;
+            status.style.display = 'block';
+            status.className = 'status';
+            status.textContent = 'Connecting to payment processor...';
+            
+            try {
+                // Send the final total amount (in cents) to backend
+                const amountInCents = Math.round(pricing.finalTotal * 100);
+                
+                const response = await fetch(`${BACKEND_URL}/create-payment-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: amountInCents, // Send amount in cents
+                        customerWallet: walletAddress,
+                        baseAmount: pricing.purchaseAmount,
+                        tokensToReceive: pricing.tokensReceived
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.url) {
+                    status.className = 'status success';
+                    status.textContent = `✅ Payment session created! You'll receive ${pricing.tokensReceived} tokens. Redirecting...`;
+                    
+                    setTimeout(() => {
+                        window.location.href = data.url;
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to create payment session');
+                }
+                
+            } catch (error) {
+                console.error('Payment error:', error);
+                status.className = 'status error';
+                status.textContent = `❌ Error: ${error.message}`;
+                
+                // Reset button
+                button.innerHTML = `🚀 Purchase Mountain Shares - $${pricing.finalTotal.toFixed(2)}`;
+                button.disabled = false;
+            }
+        }
+        
+        // Test backend connection
+        fetch(`${BACKEND_URL}/health`)
+            .then(r => r.json())
+            .then(data => {
+                console.log('✅ Mountain Shares backend connected:', data);
+                document.title += ' - System Online';
+            })
+            .catch(e => {
+                console.error('❌ Backend connection failed:', e);
+                const status = document.getElementById('status');
+                status.style.display = 'block';
+                status.className = 'status error';
+                status.textContent = '⚠️ Connection issue - please refresh page';
+            });
+        
+        // Initialize pricing
+        updatePricing();
+    </script>
+</body>
+</html>

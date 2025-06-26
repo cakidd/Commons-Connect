@@ -1,0 +1,6 @@
+2025-06-25 21:58 -04:00: ✅ Stripe initialized successfully
+2025-06-25 21:58 -04:00: 🚀 MountainShares Payment Server running on port 3001
+2025-06-25 21:58 -04:00: 📊 Health check: http://localhost:3001/health
+2025-06-25 21:58 -04:00: 🔄 Keep-alive: http://localhost:3001/ping
+2025-06-25 21:58 -04:00: 💳 Stripe configured: true
+2025-06-25 21:58 -04:00: 🏔️ Ready to process MountainShares payments!

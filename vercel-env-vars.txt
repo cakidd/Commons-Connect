@@ -1,0 +1,2 @@
+STRIPE_SECRET_KEY=sk_test_... (from Stripe dashboard)
+STRIPE_WEBHOOK_SECRET=whsec_... (from Stripe dashboard after webhook creation)

@@ -1,0 +1,115 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/aubre/Commons-Connect/mountainshares-backend/contracts/CompleteUSDCPaymentProcessor.sol": {
+      "lastModificationDate": 1750898793282,
+      "contentHash": "ae179e70c752c00526f82be8510ffbdb",
+      "sourceName": "contracts/CompleteUSDCPaymentProcessor.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "CompleteUSDCPaymentProcessor",
+        "IGovernanceContract",
+        "IUSDCSettlementTreasury"
+      ]
+    },
+    "/home/aubre/Commons-Connect/mountainshares-backend/contracts/USDCGovernance.sol": {
+      "lastModificationDate": 1750896460759,
+      "contentHash": "1848c699efeb015350855a7adaad0676",
+      "sourceName": "contracts/USDCGovernance.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "USDCGovernanceFeeDistributor"
+      ]
+    },
+    "/home/aubre/Commons-Connect/mountainshares-backend/contracts/USDCSettlementTreasury.sol": {
+      "lastModificationDate": 1750898778011,
+      "contentHash": "e5fcf109817b7af14f39884b7042f2e7",
+      "sourceName": "contracts/USDCSettlementTreasury.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "USDCSettlementTreasury"
+      ]
+    }
+  }
+}

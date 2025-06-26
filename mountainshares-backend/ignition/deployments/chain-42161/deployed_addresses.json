@@ -1,0 +1,5 @@
+{
+  "USDCGovernanceModule#USDCGovernanceFeeDistributor": "0x57fC62371582F9Ba976887658fd44AE86fa0298a",
+  "USDCSettlementTreasury#USDCSettlementTreasury": "0x5574A3EcCFd6e9Af35F0B204f148D021be5b9C95",
+  "CompletePaymentProcessor#CompleteUSDCPaymentProcessor": "0x1F0c8a4c920E1094f85b18F681dcfB2e2b7DE076"
+}

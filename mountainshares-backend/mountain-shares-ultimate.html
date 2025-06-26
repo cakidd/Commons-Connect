@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏔️ Mountain Shares - West Virginia Community Currency</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a2e 0%, #2c5530 50%, #4a7c5a 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        
+        .header { text-align: center; margin-bottom: 40px; padding: 40px 0; }
+        .header h1 { font-size: 3.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .header p { font-size: 1.3em; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+        
+        .payment-section {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .payment-title { font-size: 2.2em; margin-bottom: 20px; text-align: center; color: #ffd700; }
+        
+        .amount-type-toggle {
+            display: flex;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .amount-type-btn {
+            flex: 1; padding: 12px; background: transparent; border: none; color: white;
+            cursor: pointer; border-radius: 8px; font-size: 1em; transition: all 0.3s ease;
+        }
+        
+        .amount-type-btn.active {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+            color: white; font-weight: bold;
+        }
+        
+        .amount-input-group { display: none; }
+        .amount-input-group.active { display: block; }
+        
+        .custom-amount-container { position: relative; }
+        
+        .dollar-sign {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+            font-size: 1.2em; color: #2c5530; font-weight: bold; z-index: 1;
+        }
+        
+        .custom-amount-input {
+            width: 100%; padding: 15px 15px 15px 35px; font-size: 1.2em;
+            border: none; border-radius: 10px; background: rgba(255,255,255,0.9);
+            color: #2c5530; font-weight: bold;
+        }
+        
+        .quick-amounts {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px; margin-top: 15px;
+        }
+        
+        .quick-amount-btn {
+            padding: 12px; background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3); color: white;
+            border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
+        }
+        
+        .quick-amount-btn:hover {
+            background: rgba(255,107,53,0.3); border-color: #ff6b35;
+        }
+        
+        .pricing-breakdown {
+            background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;
+            margin: 20px 0; border: 1px solid rgba(255,255,255,0.3); min-height: 140px;
+        }
+        
+        .pricing-row {
+            display: flex; justify-content: space-between;
+            margin: 8px 0; padding: 5px 0;
+        }
+        
+        .pricing-row.total {
+            border-top: 1px solid rgba(255,255,255,0.3);
+            margin-top: 15px; padding-top: 15px;
+            font-weight: bold; font-size: 1.2em; color: #ffd700;
+        }
+        
+        .form-group { margin: 25px 0; }
+        .form-group label { display: block; font-size: 1.1em; margin-bottom: 8px; color: #e8f5e8; }
+        
+        .form-group select, .form-group input {
+            width: 100%; padding: 15px; font-size: 1.1em;
+            border: none; border-radius: 10px;
+            background: rgba(255,255,255,0.9); color: #2c5530;
+        }
+        
+        .purchase-button {
+            width: 100%; background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+            color: white; border: none; padding: 20px; font-size: 1.3em;
+            font-weight: bold; border-radius: 15px; cursor: pointer;
+            transition: all 0.3s ease; margin-top: 20px;
+        }
+        
+        .purchase-button:hover { transform: translateY(-2px); }
+        .purchase-button:disabled { opacity: 0.7; cursor: not-allowed; }
+        
+        .status {
+            margin-top: 20px; padding: 15px; border-radius: 10px;
+            text-align: center; font-weight: bold; display: none;
+        }
+        
+        .status.success { background: rgba(76,175,80,0.2); border: 1px solid #4caf50; }
+        .status.error { background: rgba(244,67,54,0.2); border: 1px solid #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏔️ Mountain Shares</h1>
+            <p>West Virginia's Community Currency - Supporting Local Economy</p>
+        </div>
+        
+        <div class="payment-section">
+            <div class="payment-title">💎 Purchase Mountain Shares Tokens</div>
+            
+            <div class="amount-type-toggle">
+                <button class="amount-type-btn active" onclick="switchAmountType('preset')">📋 Quick Amounts</button>
+                <button class="amount-type-btn" onclick="switchAmountType('custom')">✏️ Custom Amount</button>
+            </div>
+            
+            <div id="preset-amounts" class="amount-input-group active">
+                <select id="preset-amount" onchange="updateFromPreset()">
+                    <option value="10">$10.00</option>
+                    <option value="25" selected>$25.00</option>
+                    <option value="50">$50.00</option>
+                    <option value="100">$100.00</option>
+                    <option value="250">$250.00</option>
+                    <option value="500">$500.00</option>
+                </select>
+                
+                <div class="quick-amounts">
+                    <button class="quick-amount-btn" onclick="setPresetAmount(15)">$15</button>
+                    <button class="quick-amount-btn" onclick="setPresetAmount(35)">$35</button>
+                    <button class="quick-amount-btn" onclick="setPresetAmount(75)">$75</button>
+                    <button class="quick-amount-btn" onclick="setPresetAmount(150)">$150</button>
+                </div>
+            </div>
+            
+            <div id="custom-amounts" class="amount-input-group">
+                <div class="custom-amount-container">
+                    <span class="dollar-sign">$</span>
+                    <input type="number" id="custom-amount" class="custom-amount-input"
+                           placeholder="Enter amount (minimum $5.00)" min="5" step="0.01"
+                           onchange="updateFromCustom()" oninput="updateFromCustom()">
+                </div>
+                
+                <div class="quick-amounts">
+                    <button class="quick-amount-btn" onclick="setCustomAmount(20)">$20</button>
+                    <button class="quick-amount-btn" onclick="setCustomAmount(42)">$42</button>
+                    <button class="quick-amount-btn" onclick="setCustomAmount(69)">$69</button>
+                    <button class="quick-amount-btn" onclick="setCustomAmount(125)">$125</button>
+                </div>
+            </div>
+            
+            <div class="pricing-breakdown" id="pricing-breakdown"></div>
+            
+            <div class="form-group">
+                <label for="wallet-address">🔐 Your wallet address (optional):</label>
+                <input type="text" id="wallet-address" placeholder="0x... (auto-generated if blank)">
+            </div>
+            
+            <button id="purchase-button" class="purchase-button" onclick="startPurchase()">
+                🚀 Purchase Mountain Shares - <span id="final-total">$25.77</span>
+            </button>
+            
+            <div id="status" class="status"></div>
+        </div>
+    </div>
+    
+    <script>
+        const BACKEND_URL = 'https://mountainshares-backend-adlmd9xfn-cakidds-projects.vercel.app';
+        const MOUNTAIN_SHARES_FEE_PERCENT = 2;
+        const STRIPE_FEE_PERCENT = 2.9;
+        const STRIPE_FIXED_FEE = 0.30;
+        const MINIMUM_AMOUNT = 5.00;
+        
+        let currentAmountType = 'preset';
+        
+        function switchAmountType(type) {
+            currentAmountType = type;
+            document.querySelectorAll('.amount-type-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.amount-input-group').forEach(group => group.classList.remove('active'));
+            document.getElementById(type + '-amounts').classList.add('active');
+            if (type === 'preset') updateFromPreset(); else updateFromCustom();
+        }
+        
+        function setPresetAmount(amount) {
+            document.getElementById('preset-amount').value = amount;
+            updateFromPreset();
+        }
+        
+        function setCustomAmount(amount) {
+            document.getElementById('custom-amount').value = amount;
+            updateFromCustom();
+        }
+        
+        function updateFromPreset() {
+            if (currentAmountType === 'preset') {
+                updatePricing(parseFloat(document.getElementById('preset-amount').value));
+            }
+        }
+        
+        function updateFromCustom() {
+            if (currentAmountType === 'custom') {
+                updatePricing(parseFloat(document.getElementById('custom-amount').value) || 0);
+            }
+        }
+        
+        function getCurrentAmount() {
+            return currentAmountType === 'preset' ? 
+                parseFloat(document.getElementById('preset-amount').value) :
+                parseFloat(document.getElementById('custom-amount').value) || 0;
+        }
+        
+        function calculatePricing(purchaseAmount) {
+            if (purchaseAmount < MINIMUM_AMOUNT) return null;
+            
+            const mountainSharesFee = purchaseAmount * (MOUNTAIN_SHARES_FEE_PERCENT / 100);
+            const subtotalAfterMSFee = purchaseAmount + mountainSharesFee;
+            const stripeFeePercent = subtotalAfterMSFee * (STRIPE_FEE_PERCENT / 100);
+            const totalStripeFee = stripeFeePercent + STRIPE_FIXED_FEE;
+            const finalTotal = Math.round((subtotalAfterMSFee + totalStripeFee) * 100) / 100;
+            const tokensReceived = Math.round(purchaseAmount * 100) / 100;
+            
+            return {
+                purchaseAmount, mountainSharesFee: Math.ceil(mountainSharesFee * 100) / 100,
+                totalStripeFee: Math.ceil(totalStripeFee * 100) / 100,
+                finalTotal, tokensReceived
+            };
+        }
+        
+        function updatePricing(purchaseAmount = null) {
+            if (purchaseAmount === null) purchaseAmount = getCurrentAmount();
+            const pricing = calculatePricing(purchaseAmount);
+            
+            if (!pricing) {
+                document.getElementById('pricing-breakdown').innerHTML = 
+                    '<div style="text-align: center; color: #ff6b35;">💡 Please enter at least $5.00</div>';
+                document.getElementById('final-total').textContent = '$0.00';
+                document.getElementById('purchase-button').disabled = true;
+                return;
+            }
+            
+            document.getElementById('purchase-button').disabled = false;
+            document.getElementById('pricing-breakdown').innerHTML = `
+                <div class="pricing-row"><span>🎯 Base Amount:</span><span>$${pricing.purchaseAmount.toFixed(2)}</span></div>
+                <div class="pricing-row"><span>🏔️ MS Fee (2%):</span><span>$${pricing.mountainSharesFee.toFixed(2)}</span></div>
+                <div class="pricing-row"><span>💳 Stripe Fee:</span><span>$${pricing.totalStripeFee.toFixed(2)}</span></div>
+                <div class="pricing-row total"><span>💰 Total:</span><span>$${pricing.finalTotal.toFixed(2)}</span></div>
+                <div class="pricing-row" style="color: #ffd700;"><span>💎 Tokens:</span><span>${pricing.tokensReceived.toFixed(2)}</span></div>
+            `;
+            document.getElementById('final-total').textContent = `$${pricing.finalTotal.toFixed(2)}`;
+        }
+        
+        async function startPurchase() {
+            const button = document.getElementById('purchase-button');
+            const status = document.getElementById('status');
+            const purchaseAmount = getCurrentAmount();
+            const pricing = calculatePricing(purchaseAmount);
+            
+            if (!pricing) {
+                status.style.display = 'block';
+                status.className = 'status error';
+                status.textContent = '⚠️ Please enter at least $5.00';
+                return;
+            }
+            
+            button.textContent = '⏳ Creating payment session...';
+            button.disabled = true;
+            status.style.display = 'block';
+            status.className = 'status';
+            status.textContent = 'Connecting to Stripe...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/create-payment-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: Math.round(pricing.finalTotal * 100),
+                        customerWallet: document.getElementById('wallet-address').value || `0x${Date.now()}`,
+                        baseAmount: pricing.purchaseAmount,
+                        tokensToReceive: pricing.tokensReceived
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.url) {
+                    status.className = 'status success';
+                    status.textContent = `✅ Redirecting to Stripe checkout...`;
+                    setTimeout(() => window.location.href = data.url, 1500);
+                } else {
+                    throw new Error(data.error || 'Payment session failed');
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `❌ Error: ${error.message}`;
+                button.innerHTML = `🚀 Purchase Mountain Shares - $${pricing.finalTotal.toFixed(2)}`;
+                button.disabled = false;
+            }
+        }
+        
+        // Initialize
+        updatePricing();
+        fetch(`${BACKEND_URL}/health`).then(r => r.json()).then(data => {
+            console.log('✅ Backend connected:', data);
+        }).catch(e => console.error('❌ Backend error:', e));
+    </script>
+</body>
+</html>

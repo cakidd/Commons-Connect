@@ -1,0 +1,5 @@
+1. Add stripe dependency: npm install stripe
+2. Update create-payment-session endpoint with stripe-backend-update.js code
+3. Add stripe-webhook.js as webhook endpoint
+4. Add environment variables from vercel-env-vars.txt
+5. Test with curl command to verify url field appears

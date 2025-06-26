@@ -1,0 +1,159 @@
+// Debug logging
+console.log("🚀 Function starting...");
+console.log("Environment check:");
+console.log("- STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "Found" : "Missing");
+console.log("- NODE_ENV:", process.env.NODE_ENV);
+
+if (!process.env.STRIPE_SECRET_KEY) {
+    console.error("❌ Missing STRIPE_SECRET_KEY environment variable");
+    process.exit(1);
+}
+
+const express = require('express');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const cors = require('cors');
+const { mintTokensToWallet } = require('./contract-mint');
+require('dotenv').config();
+
+const app = express();
+
+// CRITICAL: Handle Stripe webhooks with raw body BEFORE general JSON parsing
+app.use('/api/webhooks/stripe-complete', express.raw({ type: 'application/json' }));
+
+// General middleware for other routes
+app.use(cors());
+app.use(express.json());
+
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        cors: 'working',
+        timestamp: new Date().toISOString(),
+        contract: process.env.PRIVATE_KEY ? 'configured' : 'missing'
+    });
+});
+
+app.post('/create-payment-session', async (req, res) => {
+    const { amount, customerWallet, baseAmount, tokensToReceive } = req.body;
+
+    try {
+        console.log('Creating payment session:', { 
+            amount: amount + ' cents', 
+            baseAmount: '$' + baseAmount,
+            tokensToReceive: tokensToReceive + ' tokens',
+            customerWallet
+        });
+        
+        const totalAmountInCents = parseInt(amount);
+        const tokenCount = parseFloat(tokensToReceive) || 1;
+        
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: `${tokenCount} Mountain Shares Token${tokenCount > 1 ? 's' : ''}`,
+                        description: `West Virginia Community Currency - ${tokenCount} token${tokenCount > 1 ? 's' : ''}`
+                    },
+                    unit_amount: totalAmountInCents,
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: 'https://cakidd.github.io/Commons-Connect/?success=true',
+            cancel_url: 'https://cakidd.github.io/Commons-Connect/?cancel=true',
+            metadata: {
+                customerWallet: customerWallet,
+                tokenAmount: tokensToReceive,
+                baseAmount: baseAmount,
+                totalPaid: totalAmountInCents/100
+            }
+        });
+
+        console.log('✅ Stripe session created:', session.id);
+        console.log('💰 Customer will pay: $' + (totalAmountInCents/100));
+        console.log('💎 Customer will receive:', tokenCount, 'tokens');
+
+        res.json({
+            success: true,
+            id: `ms_session_${Date.now()}`,
+            orderid: `ms_order_${Date.now()}`,
+            url: session.url
+        });
+    } catch (error) {
+        console.error('❌ Stripe error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// FIXED: Webhook handler with proper raw body handling
+app.post('/api/webhooks/stripe-complete', async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        // req.body is now raw Buffer data, exactly what Stripe needs
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        console.log('✅ Webhook verified:', event.type);
+    } catch (err) {
+        console.log('❌ Webhook verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const customerWallet = session.metadata.customerWallet;
+        const tokenAmount = parseFloat(session.metadata.tokenAmount);
+        const baseAmount = session.metadata.baseAmount;
+        const totalPaid = session.metadata.totalPaid;
+
+        console.log('🎉 PAYMENT COMPLETED!');
+        console.log('💎 Customer wallet:', customerWallet);
+        console.log('💰 Tokens to mint:', tokenAmount);
+        console.log('💵 Base amount:', baseAmount);
+        console.log('💳 Total paid:', totalPaid);
+
+        // 🔥 MINT TOKENS TO CUSTOMER WALLET
+        console.log('🏔️ Starting token minting process...');
+        const mintResult = await mintTokensToWallet(customerWallet, tokenAmount);
+        
+        if (mintResult.success) {
+            console.log('🎉 SUCCESS! Tokens minted to', customerWallet);
+            console.log('📄 Transaction hash:', mintResult.txHash);
+        } else {
+            console.error('❌ MINT FAILED:', mintResult.error);
+        }
+    } else {
+        console.log('📝 Received event:', event.type);
+    }
+
+    res.json({ received: true });
+});
+
+module.exports = app;
+
+// Temporary debug endpoint
+app.get('/debug-contract', (req, res) => {
+    res.json({
+        contract_address: process.env.CONTRACT_ADDRESS,
+        rpc_url: process.env.RPC_URL ? 'configured' : 'missing',
+        private_key: process.env.PRIVATE_KEY ? 'configured' : 'missing',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Show system wallet address
+app.get('/debug-wallet', (req, res) => {
+    try {
+        const { ethers } = require('ethers');
+        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY);
+        res.json({
+            system_wallet: wallet.address,
+            contract_address: process.env.CONTRACT_ADDRESS,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.json({ error: error.message });
+    }
+});

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mountain Shares - Quick Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f8f0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        button { background: #2c5530; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #4a7c5a; }
+        .status { margin: 20px 0; padding: 10px; background: #e8f5e8; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏔️ Mountain Shares Payment Test</h1>
+        <p>Click the button below to test your payment integration:</p>
+        
+        <button onclick="testPayment()">🚀 Test Payment (3 tokens - $4.11)</button>
+        
+        <div id="status" class="status" style="display:none;"></div>
+        
+        <script>
+            const BACKEND_URL = 'https://mountainshares-backend-adlmd9xfn-cakidds-projects.vercel.app';
+            
+            async function testPayment() {
+                const statusDiv = document.getElementById('status');
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '⏳ Creating payment session...';
+                
+                try {
+                    const response = await fetch(BACKEND_URL + '/create-payment-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: 3,
+                            customerWallet: '0xtest' + Date.now()
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success && data.url) {
+                        statusDiv.innerHTML = '✅ Payment session created! Redirecting to Stripe...';
+                        setTimeout(() => {
+                            window.location.href = data.url;
+                        }, 1000);
+                    } else {
+                        statusDiv.innerHTML = '❌ Error: ' + (data.error || 'Unknown error');
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = '❌ Network error: ' + error.message;
+                }
+            }
+            
+            // Test backend connection on page load
+            fetch(BACKEND_URL + '/health')
+                .then(r => r.json())
+                .then(data => {
+                    console.log('✅ Backend connected:', data);
+                    document.title += ' - Backend Connected';
+                })
+                .catch(e => {
+                    console.error('❌ Backend connection failed:', e);
+                    document.title += ' - Backend Error';
+                });
+        </script>
+    </div>
+</body>
+</html>
