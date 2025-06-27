@@ -1,4 +1,14 @@
 export default async function handler(req, res) {
+    // ---- ensure body is parsed ----
+
+    let body = req.body;
+
+    if (typeof body === "string") {
+
+        try { body = JSON.parse(body); } catch (_) { body = {}; }
+
+    }
+
     // 🔍 DEBUG LOGGING – shows exactly what the backend receives
 
     console.log("🔍 Full request object:", JSON.stringify({\
