@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
     
     try {
-        const { quantity, customerEmail, walletAddress } = req.body;
+        const { quantity, customerEmail, walletAddress } = body;
         
         // Validate required fields
         if (!quantity || !customerEmail || !walletAddress) {
