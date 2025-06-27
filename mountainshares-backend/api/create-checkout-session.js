@@ -1,4 +1,16 @@
 export default async function handler(req, res) {
+    // ---- universal body parser ----
+    let body = req.body && Object.keys(req.body).length ? req.body : null;
+    if (!body) {
+        let raw = "";
+        await new Promise(resolve => {
+            req.on("data", ch => (raw += ch));
+            req.on("end", resolve);
+        });
+        try { body = JSON.parse(raw); } catch { body = {}; }
+    }
+    // --------------------------------
+
     // ---- ensure body is parsed ----
 
     let body = req.body;
