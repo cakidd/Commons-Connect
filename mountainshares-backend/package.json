@@ -1,14 +1,1 @@
-{
-  "name": "mountainshares-backend",
-  "version": "1.0.0",
-  "description": "MountainShares Backend API",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
-  },
-  "dependencies": {
-    "ethers": "^6.14.4",
-    "dotenv": "^16.3.1"
-  }
-}
+{"type":"module","dependencies":{"ethers":"^6.14.4","micro":"^10.0.1","stripe":"^18.2.1"}}

@@ -1,100 +1,47 @@
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 export default async function handler(req, res) {
-    // ---- universal body parser ----
-    let body = req.body && Object.keys(req.body).length ? req.body : null;
-    if (!body) {
-        let raw = "";
-        await new Promise(resolve => {
-            req.on("data", ch => (raw += ch));
-            req.on("end", resolve);
-        });
-        try { body = JSON.parse(raw); } catch { body = {}; }
-    }
-    // --------------------------------
+  // Read body (works in prod and `vercel dev`)
+  let body = req.body && Object.keys(req.body).length ? req.body : null;
+  if (!body) body = JSON.parse(await req.text?.() || '{}');
 
-    // ---- ensure body is parsed ----
+  const { quantity = 1, customerEmail, walletAddress } = body;
+  const q = parseInt(quantity, 10) || 1;
 
-    let body = req.body;
+  if (!customerEmail || !walletAddress)
+    return res
+      .status(400)
+      .json({ error: 'Missing customerEmail or walletAddress' });
 
-    if (typeof body === "string") {
+  // Pricing – driven by q
+  const tokenCost     = +(q * 1.0).toFixed(2);
+  const governanceFee = +(tokenCost * 0.02).toFixed(2);
+  const subtotal      = tokenCost + governanceFee;
+  const stripeFee     = Math.ceil(((subtotal * 0.022) + 0.30) * 100) / 100;
+  const total         = +(subtotal + stripeFee).toFixed(2);
 
-        try { body = JSON.parse(body); } catch (_) { body = {}; }
+  // Real Stripe Checkout
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['card'],
+    customer_email: customerEmail,
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        product_data: { name: 'MountainShare Token' },
+        unit_amount: Math.round(tokenCost * 100),   // cents
+      },
+      quantity: q,
+    }],
+    success_url: `${process.env.ORIGIN || 'https://mountback.vercel.app'}/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url:  `${process.env.ORIGIN || 'https://mountback.vercel.app'}/cancel`,
+  });
 
-    }
-
-    // 🔍 DEBUG LOGGING – shows exactly what the backend receives
-
-    console.log("🔍 Full request object:", JSON.stringify({\
-
-        method: req.method,\
-
-        url: req.url,\
-
-        headers: req.headers,\
-
-        body: req.body\
-
-    }, null, 2));
-
-    console.log("🔍 Body type:", typeof req.body);
-
-    console.log("🔍 Body keys:", req.body ? Object.keys(req.body) : "no body");
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-    
-    try {
-        const { quantity, customerEmail, walletAddress } = body;
-        
-        // Validate required fields
-        if (!quantity || !customerEmail || !walletAddress) {
-            return res.status(400).json({ 
-                error: 'Missing required fields: quantity, customerEmail, walletAddress' 
-            });
-        }
-        
-        // Calculate pricing with mathematical precision
-        const tokenCost = parseFloat((quantity * 1.00).toFixed(2));
-        const governanceFee = parseFloat((tokenCost * 0.02).toFixed(2));
-        const subtotal = tokenCost + governanceFee;
-        const stripeFeeExact = (subtotal * 0.022) + 0.30;
-        const stripeFee = Math.ceil(stripeFeeExact * 100) / 100;
-        const total = subtotal + stripeFee;
-        
-        // Convert to cents for Stripe
-        const amountInCents = Math.round(total * 100);
-        
-        // For now, create mock session (replace with real Stripe when ready)
-        const sessionId = `cs_live_${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-        const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}`;
-        
-        console.log('✅ Stripe session created:', sessionId);
-        
-        res.status(200).json({
-            id: sessionId,
-            url: checkoutUrl,
-            amount: total,
-            breakdown: {
-                tokenCost,
-                governanceFee,
-                stripeFee,
-                total
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Checkout session creation failed:', error);
-        res.status(500).json({ 
-            error: 'Failed to create checkout session',
-            details: error.message 
-        });
-    }
-}
+  return res.status(200).json({
+    id: session.id,
+    url: session.url,
+    amount: total,
+    breakdown: { tokenCost, governanceFee, stripeFee, total },
+  });
+}      // <- single closing brace, nothing after

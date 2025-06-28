@@ -3,19 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MountainShares Payment System</title>
+    <title>🏔️ MountainShares - West Virginia's Digital Currency</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .container { text-align: center; }
-        .status { color: #28a745; font-weight: bold; }
+        /* Your existing styles */
+        :root {
+            --primary-color: #2c5530;
+            --secondary-color: #4a7c59;
+            --background-gradient: linear-gradient(135deg, #2c5530 0%, #4a7c59 100%);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .payment-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(44, 85, 48, 0.1);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .header {
+            background: var(--background-gradient);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .payment-form {
+            padding: 40px;
+        }
+        .wallet-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .wallet-button, .install-button {
+            background: var(--background-gradient);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 8px;
+        }
+        .install-button {
+            background: #ff6b35;
+        }
+        .wallet-button:hover, .install-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(44, 85, 48, 0.3);
+        }
+        .wallet-connected {
+            background: #28a745;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .form-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+        }
+        .purchase-button {
+            width: 100%;
+            background: var(--background-gradient);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .purchase-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .debug-info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🏔️ MountainShares Payment System</h1>
-        <p class="status">✅ System Online and Ready</p>
-        <p>Backend server running with Stripe integration</p>
-        <p>Webhook endpoint configured for blockchain execution</p>
+    <div class="payment-container">
+        <div class="header">
+            <h1>🏔️ MountainShares</h1>
+            <p>West Virginia's Digital Currency Revolution</p>
+        </div>
+        
+        <div class="payment-form">
+            <!-- Enhanced Wallet Section -->
+            <div class="wallet-section">
+                <h3>🦊 Connect Your Wallet</h3>
+                <p>Connect MetaMask to receive your MountainShares tokens</p>
+                
+                <div id="wallet-status">
+                    <div id="metamask-detection">
+                        <p>🔍 Checking for MetaMask...</p>
+                    </div>
+                </div>
+                
+                <!-- Debug Information -->
+                <div id="debug-info" class="debug-info" style="display: none;">
+                    <strong>Debug Info:</strong><br>
+                    <span id="debug-text"></span>
+                </div>
+            </div>
+
+            <!-- Payment Form (hidden until wallet connected) -->
+            <div id="payment-form" style="display: none;">
+                <div>
+                    <label>📧 Email Address</label>
+                    <input type="email" id="email" class="form-input" placeholder="your@email.com" required>
+                </div>
+                
+                <div>
+                    <label>🏔️ Quantity: <span id="quantity-display">1</span> MountainShares</label>
+                    <input type="range" id="quantity-slider" min="1" max="10" value="1" style="width: 100%; margin: 16px 0;">
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>MountainShares Tokens (<span id="token-count">1</span> MS)</span>
+                        <span id="token-cost">$1.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Governance Fee (2%)</span>
+                        <span id="governance-fee">$0.02</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Processing Fee</span>
+                        <span>$0.35</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.2rem; color: var(--primary-color); padding-top: 12px; border-top: 2px solid #e1e5e9;">
+                        <span>Total</span>
+                        <span id="total-cost">$1.37</span>
+                    </div>
+                </div>
+                
+                <button id="purchase-btn" class="purchase-button">
+                    🚀 Purchase MountainShares
+                </button>
+                
+                <div style="margin-top: 20px; padding: 16px; background: #e8f5e8; border-radius: 8px;">
+                    <h4>🔗 What Happens Next:</h4>
+                    <p>✅ Payment processed via Stripe</p>
+                    <p>💰 USDC distributed to governance wallets</p>
+                    <p>🪙 MountainShares tokens sent to: <span id="connected-wallet">Your Wallet</span></p>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        let currentQuantity = 1;
+        let connectedWallet = null;
+        const API_BASE_URL = 'https://mountainshares-backend-ailicjran-cakidds-projects.vercel.app';
+
+        // Enhanced MetaMask detection
+        async function detectMetaMask() {
+            const debugInfo = document.getElementById('debug-info');
+            const debugText = document.getElementById('debug-text');
+            
+            // Show debug info
+            debugInfo.style.display = 'block';
+            debugText.innerHTML = 'Checking window.ethereum...';
+            
+            // Wait for page to fully load
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (typeof window.ethereum !== 'undefined') {
+                debugText.innerHTML = 'MetaMask detected! Checking provider...';
+                
+                // Check if it's actually MetaMask
+                if (window.ethereum.isMetaMask) {
+                    debugText.innerHTML = 'MetaMask confirmed! Ready to connect.';
+                    showConnectButton();
+                } else {
+                    debugText.innerHTML = 'Ethereum provider found but not MetaMask.';
+                    showInstallButton();
+                }
+            } else {
+                debugText.innerHTML = 'No Ethereum provider detected.';
+                showInstallButton();
+            }
+        }
+
+        function showConnectButton() {
+            document.getElementById('wallet-status').innerHTML = `
+                <button id="connect-wallet" class="wallet-button">
+                    🦊 Connect MetaMask Wallet
+                </button>
+            `;
+            
+            document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+        }
+
+        function showInstallButton() {
+            document.getElementById('wallet-status').innerHTML = `
+                <p>⚠️ MetaMask not detected</p>
+                <button id="install-metamask" class="install-button">
+                    📥 Install MetaMask
+                </button>
+                <button id="continue-anyway" class="wallet-button">
+                    💳 Continue Without Wallet
+                </button>
+            `;
+            
+            document.getElementById('install-metamask').addEventListener('click', () => {
+                window.open('https://metamask.io/download/', '_blank');
+            });
+            
+            document.getElementById('continue-anyway').addEventListener('click', () => {
+                connectedWallet = 'no-wallet-connected';
+                document.getElementById('connected-wallet').textContent = 'Payment Email Address';
+                document.getElementById('payment-form').style.display = 'block';
+            });
+        }
+
+        async function connectWallet() {
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                connectedWallet = accounts[0];
+                
+                document.getElementById('wallet-status').innerHTML = `
+                    <div class="wallet-connected">
+                        ✅ Connected: ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)}
+                    </div>
+                `;
+                
+                document.getElementById('payment-form').style.display = 'block';
+                document.getElementById('connected-wallet').textContent = 
+                    connectedWallet.substring(0, 6) + '...' + connectedWallet.substring(38);
+                
+                // Hide debug info on successful connection
+                document.getElementById('debug-info').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Failed to connect wallet:', error);
+                document.getElementById('debug-text').innerHTML = 'Connection failed: ' + error.message;
+            }
+        }
+
+        // Quantity slider
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('quantity-slider');
+            if (slider) {
+                slider.addEventListener('input', (e) => {
+                    currentQuantity = parseInt(e.target.value);
+                    updateQuantityDisplay();
+                });
+            }
+        });
+
+        function updateQuantityDisplay() {
+            const tokenCost = currentQuantity * 1.00;
+            const governanceFee = currentQuantity * 0.02;
+            const totalCost = tokenCost + governanceFee + 0.35;
+
+            document.getElementById('quantity-display').textContent = currentQuantity;
+            document.getElementById('token-count').textContent = currentQuantity;
+            document.getElementById('token-cost').textContent = '$' + tokenCost.toFixed(2);
+            document.getElementById('governance-fee').textContent = '$' + governanceFee.toFixed(2);
+            document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(2);
+        }
+
+        // Purchase button
+        document.addEventListener('DOMContentLoaded', () => {
+            const purchaseBtn = document.getElementById('purchase-btn');
+            if (purchaseBtn) {
+                purchaseBtn.addEventListener('click', async () => {
+                    const email = document.getElementById('email').value;
+                    if (!email) {
+                        alert('Please enter your email address.');
+                        return;
+                    }
+                    
+                    const tokenCost = currentQuantity * 1.00;
+                    const governanceFee = currentQuantity * 0.02;
+                    const totalCost = tokenCost + governanceFee + 0.35;
+                    
+                    try {
+                        purchaseBtn.disabled = true;
+                        purchaseBtn.textContent = '⏳ Processing...';
+                        
+                        const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                amount: totalCost,
+                                quantity: currentQuantity,
+                                customerEmail: email,
+                                walletAddress: connectedWallet || email
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const result = await response.json();
+                        
+                        if (result.url) {
+                            window.location.href = result.url;
+                        } else {
+                            throw new Error(result.error || 'Failed to create checkout session');
+                        }
+                        
+                    } catch (error) {
+                        console.error('Payment error:', error);
+                        alert('Payment failed: ' + error.message);
+                        purchaseBtn.disabled = false;
+                        purchaseBtn.textContent = '🚀 Purchase MountainShares';
+                    }
+                });
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            detectMetaMask();
+            updateQuantityDisplay();
+        });
+    </script>
 </body>
 </html>
